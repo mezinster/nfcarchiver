@@ -1,16 +1,113 @@
-# nfc_archiver
+# NFC Archiver
 
-A new Flutter project.
+Распределённый архив данных на NFC-метках. Мобильное приложение для Android и iOS, позволяющее хранить файлы на множестве NFC-меток и восстанавливать их при наличии всех частей.
 
-## Getting Started
+## Возможности
 
-This project is a starting point for a Flutter application.
+- **Архивация файлов** — разбиение любого файла на части для записи на NFC-метки
+- **Восстановление** — сканирование меток в произвольном порядке и сборка исходного файла
+- **Сжатие** — опциональное GZIP сжатие для уменьшения количества меток
+- **Шифрование** — AES-256-GCM шифрование с паролем (PBKDF2 для ключа)
+- **Офлайн работа** — не требует подключения к сети
 
-A few resources to get you started if this is your first Flutter project:
+## Поддерживаемые NFC-метки
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+| Тип метки | Ёмкость | Полезная нагрузка* |
+|-----------|---------|-------------------|
+| NTAG213 | 144 байт | ~106 байт |
+| NTAG215 | 504 байт | ~466 байт |
+| NTAG216 | 888 байт | ~850 байт |
+| MIFARE Ultralight | 48 байт | ~10 байт |
+| MIFARE Ultralight C | 144 байт | ~106 байт |
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+*После вычета заголовка NFAR (28 байт) и NDEF overhead (~10 байт)
+
+## Формат данных NFAR v1
+
+```
+┌─────────────────────────────────────────────────────┐
+│ Magic (4 bytes): "NFAR" = 0x4E464152               │
+├─────────────────────────────────────────────────────┤
+│ Version (1 byte): 0x01                              │
+├─────────────────────────────────────────────────────┤
+│ Flags (1 byte): compression | encryption            │
+├─────────────────────────────────────────────────────┤
+│ Archive ID (16 bytes): UUID v4                      │
+├─────────────────────────────────────────────────────┤
+│ Total Chunks (2 bytes): uint16 big-endian           │
+├─────────────────────────────────────────────────────┤
+│ Chunk Index (2 bytes): uint16 big-endian            │
+├─────────────────────────────────────────────────────┤
+│ Payload Size (2 bytes): uint16 big-endian           │
+├─────────────────────────────────────────────────────┤
+│ Payload (N bytes): data                             │
+├─────────────────────────────────────────────────────┤
+│ CRC32 (4 bytes): checksum                           │
+└─────────────────────────────────────────────────────┘
+```
+
+## Установка
+
+### Требования
+
+- Flutter SDK 3.5+
+- Android SDK (API 26+) для Android
+- Xcode 15+ для iOS
+- Устройство с NFC
+
+### Сборка
+
+```bash
+# Клонирование
+git clone https://github.com/mezinster/nfcarchiver.git
+cd nfcarchiver
+
+# Установка зависимостей
+flutter pub get
+
+# Запуск на устройстве
+flutter run
+```
+
+### iOS
+
+Для iOS требуется настройка NFC entitlements в Xcode:
+
+1. Откройте `ios/Runner.xcworkspace` в Xcode
+2. Выберите Runner → Signing & Capabilities
+3. Добавьте "Near Field Communication Tag Reading"
+4. Требуется Apple Developer Program
+
+## Архитектура
+
+```
+lib/
+├── core/                    # Ядро системы
+│   ├── constants/           # Формат NFAR
+│   ├── models/              # Chunk, ArchiveMetadata, NfcTagInfo
+│   ├── services/            # Chunker, Compression, Encryption, CRC32
+│   └── utils/               # Binary Reader/Writer
+│
+├── features/
+│   ├── archive/             # Создание архива
+│   ├── restore/             # Восстановление
+│   └── nfc/                 # NFC абстракция
+│
+└── shared/                  # Тема, общие виджеты
+```
+
+## Стек технологий
+
+- **Flutter** — кроссплатформенный UI
+- **Riverpod** — управление состоянием
+- **nfc_manager** — NFC операции
+- **pointycastle** — криптография (AES-256-GCM, PBKDF2)
+- **go_router** — навигация
+
+## Лицензия
+
+MIT
+
+## Автор
+
+Создано с помощью Claude Code.
