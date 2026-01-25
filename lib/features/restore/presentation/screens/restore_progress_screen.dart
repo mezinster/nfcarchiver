@@ -287,13 +287,13 @@ class _RestoreProgressScreenState
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.error_outline,
+            state.hasCorruptedChunks ? Icons.warning_amber : Icons.error_outline,
             size: 64,
             color: Theme.of(context).colorScheme.error,
           ),
           const SizedBox(height: 24),
           Text(
-            'Restore Failed',
+            state.hasCorruptedChunks ? 'Data Corruption Detected' : 'Restore Failed',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 16),
@@ -303,14 +303,38 @@ class _RestoreProgressScreenState
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          if (state.canRetry)
+
+          // Different actions based on error type
+          if (state.hasCorruptedChunks) ...[
+            // CRC error - offer to rescan corrupted tags
+            FilledButton.icon(
+              onPressed: () {
+                ref.read(restoreProvider.notifier).rescanCorruptedChunks();
+                context.go('/restore');
+              },
+              icon: const Icon(Icons.nfc),
+              label: Text('Rescan ${state.corruptedChunks.length} Tag(s)'),
+            ),
+          ] else if (state.isDecryptionError && state.session != null) ...[
+            // Decryption error - retry with different password
+            FilledButton.icon(
+              onPressed: () {
+                _passwordController.clear();
+                ref.read(restoreProvider.notifier).retryRestore();
+              },
+              icon: const Icon(Icons.lock_reset),
+              label: const Text('Try Different Password'),
+            ),
+          ] else if (state.canRetry && state.session != null) ...[
+            // Other error with session preserved - retry
             FilledButton(
               onPressed: () {
-                ref.read(restoreProvider.notifier).backToScanning();
-                context.go('/restore/complete');
+                ref.read(restoreProvider.notifier).retryRestore();
               },
               child: const Text('Try Again'),
             ),
+          ],
+
           const SizedBox(height: 16),
           TextButton(
             onPressed: () {

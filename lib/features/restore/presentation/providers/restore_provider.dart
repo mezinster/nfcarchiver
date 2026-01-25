@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/models/chunk.dart';
+import '../../../../core/services/chunker_service.dart';
 import '../../data/restore_repository.dart';
 
 /// State for restore scanning process.
@@ -64,10 +65,19 @@ class RestoreError extends RestoreState {
   const RestoreError({
     required this.message,
     this.canRetry = true,
+    this.session,
+    this.corruptedChunks = const [],
   });
 
   final String message;
   final bool canRetry;
+  /// Session preserved for retry (if available)
+  final RestoreSession? session;
+  /// Indices of chunks with CRC errors
+  final List<int> corruptedChunks;
+
+  bool get hasCorruptedChunks => corruptedChunks.isNotEmpty;
+  bool get isDecryptionError => message.contains('Decryption failed');
 }
 
 /// Information about a scanned chunk.
@@ -119,14 +129,34 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
 
   /// Process a scanned chunk.
   void processChunk(Chunk chunk) {
-    final session = _repository.addChunk(chunk);
-    final isNew = session.hasChunk(chunk.chunkIndex);
+    final session = _repository.getSession(chunk.archiveId);
+
+    // Check if this chunk already exists
+    final existingChunk = session.chunks[chunk.chunkIndex];
+    bool isNew = existingChunk == null;
+    bool isReplacement = false;
+
+    if (existingChunk != null) {
+      // Check if existing chunk is corrupted - if so, replace it
+      final existingValid = ChunkerService.instance.validateChunk(existingChunk);
+      final newValid = ChunkerService.instance.validateChunk(chunk);
+
+      if (!existingValid && newValid) {
+        // Replace corrupted chunk with valid one
+        session.replaceChunk(chunk);
+        isReplacement = true;
+      }
+      // If existing is valid, ignore the new scan (duplicate)
+    } else {
+      // New chunk
+      session.addChunk(chunk);
+    }
 
     final info = ScannedChunkInfo(
       archiveId: session.archiveIdString,
       chunkIndex: chunk.chunkIndex,
       totalChunks: chunk.totalChunks,
-      isNew: isNew,
+      isNew: isNew || isReplacement,
     );
 
     if (session.isComplete) {
@@ -173,14 +203,35 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
     final current = state;
     if (current is! RestoreReady) return;
 
+    final session = current.session;
+
     state = RestoreInProgress(
-      archiveId: current.session.archiveIdString,
+      archiveId: session.archiveIdString,
+      stage: 'Validating chunks...',
+    );
+
+    // Check for CRC errors first
+    final corruptedChunks = session.getCorruptedChunkIndices();
+    if (corruptedChunks.isNotEmpty) {
+      state = RestoreError(
+        message: 'CRC validation failed for ${corruptedChunks.length} chunk(s): '
+            '${corruptedChunks.map((i) => '#${i + 1}').join(', ')}. '
+            'Please rescan these tags.',
+        canRetry: true,
+        session: session,
+        corruptedChunks: corruptedChunks,
+      );
+      return;
+    }
+
+    state = RestoreInProgress(
+      archiveId: session.archiveIdString,
       stage: 'Assembling data...',
     );
 
     try {
       final result = await _repository.restoreArchive(
-        session: current.session,
+        session: session,
         password: password,
       );
 
@@ -202,15 +253,46 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
         fileName: actualFileName,
       );
     } on RestoreException catch (e) {
-      state = RestoreError(message: e.message);
+      // Preserve session for retry
+      state = RestoreError(
+        message: e.message,
+        canRetry: true,
+        session: session,
+      );
     } catch (e) {
-      state = RestoreError(message: e.toString());
+      state = RestoreError(
+        message: e.toString(),
+        canRetry: true,
+        session: session,
+      );
     }
   }
 
   /// Get session by archive ID.
   RestoreSession? getSession(String archiveId) {
     return _repository.getSessionByIdString(archiveId);
+  }
+
+  /// Retry restore from error state (preserves session).
+  void retryRestore() {
+    final current = state;
+    if (current is RestoreError && current.session != null) {
+      state = RestoreReady(
+        session: current.session!,
+        needsPassword: current.session!.isEncrypted,
+      );
+    }
+  }
+
+  /// Go back to scanning to rescan specific corrupted chunks.
+  void rescanCorruptedChunks() {
+    final current = state;
+    if (current is RestoreError && current.session != null) {
+      state = RestoreScanning(
+        sessions: _getSessionInfos(),
+        lastError: 'Rescan tags for chunks: ${current.corruptedChunks.map((i) => '#${i + 1}').join(', ')}',
+      );
+    }
   }
 
   /// Reset to initial state.

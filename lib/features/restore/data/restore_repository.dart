@@ -238,8 +238,27 @@ class RestoreSession {
     return true;
   }
 
+  /// Replace a chunk (for rescanning corrupted chunks).
+  void replaceChunk(Chunk chunk) {
+    _chunks[chunk.chunkIndex] = chunk;
+  }
+
   /// Check if a chunk index has been received.
   bool hasChunk(int index) => _chunks.containsKey(index);
+
+  /// Validate all chunks and return indices of corrupted ones.
+  List<int> getCorruptedChunkIndices() {
+    final corrupted = <int>[];
+    for (final entry in _chunks.entries) {
+      if (!ChunkerService.instance.validateChunk(entry.value)) {
+        corrupted.add(entry.key);
+      }
+    }
+    return corrupted;
+  }
+
+  /// Check if all chunks pass CRC validation.
+  bool get allChunksValid => getCorruptedChunkIndices().isEmpty;
 }
 
 /// Result of archive restoration.
