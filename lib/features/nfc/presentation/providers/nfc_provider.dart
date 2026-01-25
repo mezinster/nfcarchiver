@@ -41,15 +41,18 @@ class NfcSessionReadSuccess extends NfcSessionState {
   final NfcTagInfo tagInfo;
 }
 
-/// NFC session wrote successfully.
+/// NFC session wrote successfully - waiting for tag removal.
 class NfcSessionWriteSuccess extends NfcSessionState {
   const NfcSessionWriteSuccess({
     required this.tagInfo,
     required this.bytesWritten,
+    this.waitingForRemoval = true,
   });
 
   final NfcTagInfo tagInfo;
   final int bytesWritten;
+  /// If true, user should remove tag before continuing
+  final bool waitingForRemoval;
 }
 
 /// NFC session encountered an error.
@@ -169,6 +172,19 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
     _stopSession?.call();
     _stopSession = null;
     state = const NfcSessionIdle();
+  }
+
+  /// Acknowledge tag removal after successful write.
+  /// Call this when the user confirms they've removed the tag.
+  void acknowledgeTagRemoval() {
+    final current = state;
+    if (current is NfcSessionWriteSuccess && current.waitingForRemoval) {
+      state = NfcSessionWriteSuccess(
+        tagInfo: current.tagInfo,
+        bytesWritten: current.bytesWritten,
+        waitingForRemoval: false,
+      );
+    }
   }
 
   /// Reset to idle state.

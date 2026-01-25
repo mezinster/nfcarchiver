@@ -18,6 +18,28 @@ class NfcRepository {
 
   final _ndefFormatter = NdefFormatter.instance;
 
+  /// Cooldown period after successful write to prevent immediate re-read
+  static const _writeCooldown = Duration(milliseconds: 2000);
+
+  /// Timestamp of last successful write
+  DateTime? _lastWriteTime;
+
+  /// Check if we're in write cooldown period
+  bool get isInWriteCooldown {
+    if (_lastWriteTime == null) return false;
+    return DateTime.now().difference(_lastWriteTime!) < _writeCooldown;
+  }
+
+  /// Record a successful write
+  void _recordWrite() {
+    _lastWriteTime = DateTime.now();
+  }
+
+  /// Clear the write cooldown (call when starting a new unrelated operation)
+  void clearWriteCooldown() {
+    _lastWriteTime = null;
+  }
+
   /// Check if NFC is available on this device.
   Future<bool> isAvailable() async {
     return NfcManager.instance.isAvailable();
@@ -45,6 +67,11 @@ class NfcRepository {
     NfcManager.instance.startSession(
       alertMessage: alertMessage,
       onDiscovered: (tag) async {
+        // Ignore reads during write cooldown to prevent re-reading just-written tags
+        if (isInWriteCooldown) {
+          return;
+        }
+
         try {
           final tagInfo = _extractTagInfo(tag);
           onTagDiscovered?.call(tagInfo);
@@ -134,6 +161,7 @@ class NfcRepository {
           }
 
           await ndef.write(message);
+          _recordWrite(); // Start cooldown to prevent immediate re-read
           onSuccess(tagInfo);
         } catch (e) {
           onError('Failed to write tag: $e');

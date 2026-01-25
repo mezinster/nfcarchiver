@@ -25,9 +25,23 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
   void _listenToNfcSession() {
     ref.listenManual(nfcSessionProvider, (previous, next) {
       if (next is NfcSessionWriteSuccess) {
-        // Chunk written successfully
-        ref.read(archiveProvider.notifier).markChunkWritten();
-        ref.read(nfcSessionProvider.notifier).reset();
+        if (next.waitingForRemoval) {
+          // Show "remove tag" prompt - will be handled by UI
+          // Auto-acknowledge after delay to prevent sticking
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (mounted) {
+              final currentState = ref.read(nfcSessionProvider);
+              if (currentState is NfcSessionWriteSuccess &&
+                  currentState.waitingForRemoval) {
+                ref.read(nfcSessionProvider.notifier).acknowledgeTagRemoval();
+              }
+            }
+          });
+        } else {
+          // Tag removed, proceed to next chunk
+          ref.read(archiveProvider.notifier).markChunkWritten();
+          ref.read(nfcSessionProvider.notifier).reset();
+        }
       } else if (next is NfcSessionTagTooSmall) {
         // Tag is too small - offer to rechunk
         ref.read(archiveProvider.notifier).cancelWriting();
@@ -161,6 +175,11 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
     ArchiveState state,
     NfcSessionState nfcState,
   ) {
+    // Show "remove tag" prompt after successful write
+    if (nfcState is NfcSessionWriteSuccess && nfcState.waitingForRemoval) {
+      return _buildRemoveTagView(context, nfcState);
+    }
+
     if (state is ArchivePreparing) {
       return _buildPreparingView(context, state);
     }
@@ -316,6 +335,62 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRemoveTagView(
+      BuildContext context, NfcSessionWriteSuccess state) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle,
+              size: 80,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Tag Written!',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Remove the tag from your device',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${state.bytesWritten} bytes written',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.6),
+                  ),
+            ),
+            const SizedBox(height: 32),
+            // Pulsing indicator
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                ref.read(nfcSessionProvider.notifier).acknowledgeTagRemoval();
+              },
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
       ),
     );
   }
