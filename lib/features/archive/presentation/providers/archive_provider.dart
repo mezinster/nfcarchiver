@@ -298,6 +298,64 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
     );
   }
 
+  /// Re-chunk the archive for a detected tag capacity.
+  ///
+  /// Call this when a tag is detected with less capacity than expected.
+  /// Returns the new number of chunks needed, or null if rechunking failed.
+  int? rechunkForDetectedCapacity(int detectedNdefCapacity) {
+    final current = state;
+    ArchiveResult? result;
+    Set<int> writtenChunks = const {};
+
+    if (current is ArchiveReady) {
+      result = current.result;
+      writtenChunks = current.writtenChunks;
+    } else if (current is ArchiveWriting) {
+      result = current.result;
+      writtenChunks = current.writtenChunks;
+    }
+
+    if (result == null) return null;
+
+    // Don't rechunk if we've already written some chunks
+    // (would invalidate the archive)
+    if (writtenChunks.isNotEmpty) return null;
+
+    try {
+      // Calculate max payload for the detected capacity
+      final newPayloadSize = NfcTagType.maxPayloadForCapacity(detectedNdefCapacity);
+
+      if (newPayloadSize <= 0) {
+        return null; // Tag too small for any data
+      }
+
+      // Re-chunk with new payload size
+      final newResult = _repository.rechunkForCapacity(
+        existingResult: result,
+        newPayloadSize: newPayloadSize,
+      );
+
+      state = ArchiveReady(
+        result: newResult,
+        currentChunkIndex: 0,
+        writtenChunks: const {},
+      );
+
+      return newResult.chunks.length;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get the current chunk's required NDEF size.
+  int? getCurrentChunkNdefSize() {
+    final current = state;
+    if (current is ArchiveReady) {
+      return current.currentChunk.totalSize + 39; // chunk bytes + NDEF overhead
+    }
+    return null;
+  }
+
   /// Reset to initial state.
   void reset() {
     _password = null;

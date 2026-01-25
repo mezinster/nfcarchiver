@@ -122,11 +122,30 @@ enum NfcTagType {
 
   /// Maximum payload size for this tag type
   int get maxPayloadSize {
-    // NDEF overhead is approximately 5-10 bytes depending on record type
-    // We use 10 bytes as a safe margin
-    const ndefOverhead = 10;
+    // NDEF overhead includes:
+    // - NDEF record header: 3-6 bytes (flags, type length, payload length)
+    // - MIME type: 33 bytes ("application/vnd.nfcarchiver.chunk")
+    // - NDEF TLV wrapper: ~5 bytes
+    // Total NDEF overhead: ~41-44 bytes
+    // We use 44 bytes as a safe margin
+    const ndefOverhead = 44;
     final available = capacity - ndefOverhead;
     return available - NfarHeaderSize.total;
+  }
+
+  /// Calculate max payload for a specific detected NDEF capacity.
+  /// Use this when you know the actual available space from ndef.maxSize.
+  static int maxPayloadForCapacity(int ndefCapacity) {
+    // NDEF record overhead for MIME type record
+    const mimeTypeLength = 33; // "application/vnd.nfcarchiver.chunk"
+    // Use long format (4-byte length) for safety
+    const ndefRecordOverhead = 6 + mimeTypeLength; // 39 bytes
+
+    // NFAR format overhead
+    const nfarOverhead = NfarHeaderSize.total; // 32 bytes (28 header + 4 CRC)
+
+    final payload = ndefCapacity - ndefRecordOverhead - nfarOverhead;
+    return payload > 0 ? payload : 0;
   }
 
   /// Check if a payload of given size fits in this tag

@@ -85,12 +85,15 @@ class NfcRepository {
   /// [chunk] is the chunk to write.
   /// [onSuccess] is called when the chunk is successfully written.
   /// [onError] is called when an error occurs.
+  /// [onTagTooSmall] is called when the tag doesn't have enough capacity.
   ///
   /// Returns a function to stop the session.
   Future<void Function()> startWriteSession({
     required Chunk chunk,
     required void Function(NfcTagInfo tagInfo) onSuccess,
     required void Function(String message) onError,
+    void Function(int requiredSize, int detectedCapacity, NfcTagInfo? tagInfo)?
+        onTagTooSmall,
     String alertMessage = 'Hold your device near an NFC tag to write',
   }) async {
     if (!await isAvailable()) {
@@ -119,10 +122,14 @@ class NfcRepository {
 
           final requiredSize = _ndefFormatter.requiredNdefSize(chunk);
           if (ndef.maxSize < requiredSize) {
-            onError(
-              'Tag too small: needs $requiredSize bytes, '
-              'has ${ndef.maxSize} bytes',
-            );
+            if (onTagTooSmall != null) {
+              onTagTooSmall(requiredSize, ndef.maxSize, tagInfo);
+            } else {
+              onError(
+                'Tag too small: needs $requiredSize bytes, '
+                'has ${ndef.maxSize} bytes',
+              );
+            }
             return;
           }
 
@@ -275,7 +282,8 @@ class NfcRepository {
     }
 
     // Try NfcA (Android)
-    final nfcA = tag.data['nfca'] as Map<String, dynamic>?;
+    final nfcAData = tag.data['nfca'];
+    final nfcA = nfcAData is Map ? Map<String, dynamic>.from(nfcAData) : null;
     if (nfcA != null) {
       final id = nfcA['identifier'] as List<dynamic>?;
       if (id != null) {
@@ -285,7 +293,8 @@ class NfcRepository {
     }
 
     // Try MifareUltralight (Android)
-    final mifare = tag.data['mifareultralight'] as Map<String, dynamic>?;
+    final mifareData = tag.data['mifareultralight'];
+    final mifare = mifareData is Map ? Map<String, dynamic>.from(mifareData) : null;
     if (mifare != null) {
       final type = mifare['type'] as int?;
       if (type == 1) {
@@ -297,7 +306,8 @@ class NfcRepository {
     }
 
     // Try ISO15693 (iOS)
-    final iso15693 = tag.data['iso15693'] as Map<String, dynamic>?;
+    final iso15693Data = tag.data['iso15693'];
+    final iso15693 = iso15693Data is Map ? Map<String, dynamic>.from(iso15693Data) : null;
     if (iso15693 != null) {
       final id = iso15693['identifier'] as List<dynamic>?;
       if (id != null) {
@@ -307,7 +317,8 @@ class NfcRepository {
     }
 
     // Try FeliCa (iOS/Android)
-    final felica = tag.data['felica'] as Map<String, dynamic>?;
+    final felicaData = tag.data['felica'];
+    final felica = felicaData is Map ? Map<String, dynamic>.from(felicaData) : null;
     if (felica != null) {
       technologies.add('FeliCa');
     }

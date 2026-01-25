@@ -63,6 +63,23 @@ class NfcSessionError extends NfcSessionState {
   final NfcTagInfo? tagInfo;
 }
 
+/// NFC tag is too small for the chunk.
+/// This is a special error that allows the app to offer rechunking.
+class NfcSessionTagTooSmall extends NfcSessionState {
+  const NfcSessionTagTooSmall({
+    required this.requiredSize,
+    required this.detectedCapacity,
+    this.tagInfo,
+  });
+
+  final int requiredSize;
+  final int detectedCapacity;
+  final NfcTagInfo? tagInfo;
+
+  String get message =>
+      'Tag too small: needs $requiredSize bytes, has $detectedCapacity bytes';
+}
+
 /// Mode of NFC session.
 enum NfcSessionMode {
   read,
@@ -133,6 +150,13 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
         },
         onError: (errorMessage) {
           state = NfcSessionError(message: errorMessage);
+        },
+        onTagTooSmall: (requiredSize, detectedCapacity, tagInfo) {
+          state = NfcSessionTagTooSmall(
+            requiredSize: requiredSize,
+            detectedCapacity: detectedCapacity,
+            tagInfo: tagInfo,
+          );
         },
       );
     } catch (e) {

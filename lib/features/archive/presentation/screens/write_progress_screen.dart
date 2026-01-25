@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/nfar_format.dart';
 import '../../../nfc/nfc.dart';
 import '../providers/archive_provider.dart';
 
@@ -27,6 +28,10 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
         // Chunk written successfully
         ref.read(archiveProvider.notifier).markChunkWritten();
         ref.read(nfcSessionProvider.notifier).reset();
+      } else if (next is NfcSessionTagTooSmall) {
+        // Tag is too small - offer to rechunk
+        ref.read(archiveProvider.notifier).cancelWriting();
+        _showRechunkDialog(context, next.detectedCapacity, next.requiredSize);
       } else if (next is NfcSessionError) {
         // Error writing
         ref.read(archiveProvider.notifier).writeError(next.message);
@@ -35,6 +40,103 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
         );
       }
     });
+  }
+
+  Future<void> _showRechunkDialog(
+    BuildContext context,
+    int detectedCapacity,
+    int requiredSize,
+  ) async {
+    ref.read(nfcSessionProvider.notifier).stopSession();
+
+    final archiveState = ref.read(archiveProvider);
+    final readyState = archiveState is ArchiveReady ? archiveState : null;
+    final canRechunk = readyState != null && readyState.writtenChunks.isEmpty;
+
+    // Calculate new chunk count if we rechunk
+    final newPayloadSize = NfcTagType.maxPayloadForCapacity(detectedCapacity);
+    int? newChunkCount;
+    if (canRechunk) {
+      final dataSize = readyState.result.processedSize;
+      newChunkCount = newPayloadSize > 0
+          ? (dataSize + newPayloadSize - 1) ~/ newPayloadSize
+          : null;
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Tag Too Small'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This tag has $detectedCapacity bytes available, '
+              'but the chunk needs $requiredSize bytes.',
+            ),
+            const SizedBox(height: 16),
+            if (canRechunk && newChunkCount != null && newPayloadSize > 0) ...[
+              const Text(
+                'Would you like to reconfigure the archive for this tag size?',
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This will split the data into $newChunkCount smaller chunks '
+                '($newPayloadSize bytes each).',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
+                    ),
+              ),
+            ] else if (!canRechunk) ...[
+              Text(
+                'Cannot reconfigure: chunks have already been written.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ] else ...[
+              Text(
+                'This tag is too small to store any data.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Use Different Tag'),
+          ),
+          if (canRechunk && newChunkCount != null && newPayloadSize > 0)
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Reconfigure'),
+            ),
+        ],
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      final newCount = ref
+          .read(archiveProvider.notifier)
+          .rechunkForDetectedCapacity(detectedCapacity);
+
+      if (newCount != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Reconfigured: now using $newCount tags'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to reconfigure archive'),
+          ),
+        );
+      }
+    }
   }
 
   @override

@@ -100,6 +100,44 @@ class NdefFormatter {
     return 1 + 1 + lengthBytes + typeSize + payloadSize;
   }
 
+  /// Calculate the maximum payload size that will fit in a given NDEF capacity.
+  ///
+  /// This accounts for all NDEF overhead:
+  /// - NDEF record header (flags, type length, payload length)
+  /// - MIME type string
+  /// - NFAR header and CRC
+  int maxPayloadForNdefCapacity(int ndefCapacity) {
+    // NDEF record overhead:
+    // - 1 byte: flags/type name format
+    // - 1 byte: type length
+    // - 1 byte: ID length (usually 0, but we account for structure)
+    // - N bytes: type (MIME type string = 33 bytes for our type)
+    const mimeTypeLength = 33; // "application/vnd.nfcarchiver.chunk"
+    const ndefHeaderBase = 3; // flags + type length + payload length (short)
+    const ndefHeaderLong = 6; // flags + type length + 4-byte payload length
+
+    // NFAR overhead per chunk
+    const nfarOverhead = NfarHeaderSize.total; // 28 bytes header + 4 CRC = 32
+
+    // Try short record format first (payload < 256)
+    // Available = ndefCapacity - ndefHeader - mimeType - nfarOverhead
+    final shortFormatPayload = ndefCapacity - ndefHeaderBase - mimeTypeLength - nfarOverhead;
+
+    if (shortFormatPayload > 0 && shortFormatPayload < 256) {
+      // Verify: total NDEF size should fit
+      final totalSize = ndefHeaderBase + mimeTypeLength + nfarOverhead + shortFormatPayload;
+      if (totalSize <= ndefCapacity) {
+        return shortFormatPayload;
+      }
+    }
+
+    // Use long record format (payload >= 256)
+    final longFormatPayload = ndefCapacity - ndefHeaderLong - mimeTypeLength - nfarOverhead;
+
+    // Ensure we have positive payload space
+    return longFormatPayload > 0 ? longFormatPayload : 0;
+  }
+
   /// Create an empty NDEF message (for erasing tags).
   NdefMessage createEmpty() {
     return NdefMessage([

@@ -82,6 +82,51 @@ class ArchiveRepository {
       processedSize: data.length,
       wasCompressed: wasCompressed,
       wasEncrypted: wasEncrypted,
+      processedData: data,
+      fileName: fileName,
+      flags: flags,
+    );
+  }
+
+  /// Re-chunk an existing archive result for a different payload size.
+  ///
+  /// Use this when the detected tag capacity is different from expected.
+  ArchiveResult rechunkForCapacity({
+    required ArchiveResult existingResult,
+    required int newPayloadSize,
+  }) {
+    if (newPayloadSize <= 0) {
+      throw ArchiveException('Payload size must be positive');
+    }
+    if (newPayloadSize > NfarLimits.maxPayloadSize) {
+      throw ArchiveException(
+        'Payload size too large: $newPayloadSize > ${NfarLimits.maxPayloadSize}',
+      );
+    }
+
+    // Re-chunk with new payload size
+    final result = _chunkerService.createChunksWithSize(
+      data: existingResult.processedData,
+      payloadSize: newPayloadSize,
+      flags: existingResult.flags,
+      fileName: existingResult.fileName,
+    );
+
+    final metadata = result.metadata.copyWith(
+      originalFileName: existingResult.fileName,
+      originalSize: existingResult.originalSize,
+    );
+
+    return ArchiveResult(
+      metadata: metadata,
+      chunks: result.chunks,
+      originalSize: existingResult.originalSize,
+      processedSize: existingResult.processedSize,
+      wasCompressed: existingResult.wasCompressed,
+      wasEncrypted: existingResult.wasEncrypted,
+      processedData: existingResult.processedData,
+      fileName: existingResult.fileName,
+      flags: existingResult.flags,
     );
   }
 
@@ -137,6 +182,9 @@ class ArchiveRepository {
       processedSize: processedData.length,
       wasCompressed: wasCompressed,
       wasEncrypted: wasEncrypted,
+      processedData: processedData,
+      fileName: fileName,
+      flags: flags,
     );
   }
 
@@ -242,6 +290,9 @@ class ArchiveResult {
     required this.processedSize,
     required this.wasCompressed,
     required this.wasEncrypted,
+    required this.processedData,
+    required this.fileName,
+    required this.flags,
   });
 
   final ArchiveMetadata metadata;
@@ -250,6 +301,12 @@ class ArchiveResult {
   final int processedSize;
   final bool wasCompressed;
   final bool wasEncrypted;
+  /// Processed data (after compression/encryption) for re-chunking
+  final Uint8List processedData;
+  /// Original file name
+  final String fileName;
+  /// NFAR flags
+  final int flags;
 
   /// Compression ratio (1.0 = no compression, 0.5 = 50% size)
   double get compressionRatio =>
