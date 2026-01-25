@@ -148,6 +148,9 @@ class _RestoreProgressScreenState
                     TextField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      keyboardType: TextInputType.visiblePassword,
                       decoration: InputDecoration(
                         labelText: 'Password',
                         hintText: 'Enter decryption password',
@@ -166,7 +169,10 @@ class _RestoreProgressScreenState
                             });
                           },
                         ),
+                        counterText:
+                            '${_passwordController.text.length} characters',
                       ),
+                      onChanged: (_) => setState(() {}),
                     ),
                   ],
                 ),

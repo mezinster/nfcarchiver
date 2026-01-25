@@ -50,12 +50,15 @@ class EncryptionService {
   ///
   /// Returns the encrypted data with salt, IV, and auth tag prepended/appended.
   Uint8List encrypt(Uint8List data, String password) {
+    // Trim password to avoid whitespace issues
+    final trimmedPassword = password.trim();
+
     // Generate random salt and IV
     final salt = _generateRandomBytes(saltSize);
     final iv = _generateRandomBytes(ivSize);
 
     // Derive key from password
-    final key = _deriveKey(password, salt);
+    final key = _deriveKey(trimmedPassword, salt);
 
     // Create AES-GCM cipher
     final cipher = GCMBlockCipher(AESEngine())
@@ -89,9 +92,13 @@ class EncryptionService {
   Uint8List decrypt(Uint8List encryptedData, String password) {
     if (encryptedData.length < encryptionOverhead) {
       throw ArgumentError(
-        'Data too short to be encrypted: ${encryptedData.length} bytes',
+        'Data too short to be encrypted: ${encryptedData.length} bytes '
+        '(minimum: $encryptionOverhead)',
       );
     }
+
+    // Trim password to avoid whitespace issues
+    final trimmedPassword = password.trim();
 
     // Extract salt, IV, and ciphertext
     final salt = Uint8List.sublistView(encryptedData, 0, saltSize);
@@ -99,7 +106,7 @@ class EncryptionService {
     final ciphertext = Uint8List.sublistView(encryptedData, saltSize + ivSize);
 
     // Derive key from password
-    final key = _deriveKey(password, salt);
+    final key = _deriveKey(trimmedPassword, salt);
 
     // Create AES-GCM cipher
     final cipher = GCMBlockCipher(AESEngine())
@@ -129,7 +136,11 @@ class EncryptionService {
       final actualLength = ciphertext.length - tagSize;
       return Uint8List.sublistView(plaintext, 0, actualLength);
     } catch (e) {
-      throw ArgumentError('Decryption failed: invalid password or corrupted data');
+      throw ArgumentError(
+        'Decryption failed: wrong password or corrupted data. '
+        'Data size: ${encryptedData.length}, ciphertext: ${ciphertext.length}, '
+        'password length: ${trimmedPassword.length}',
+      );
     }
   }
 
