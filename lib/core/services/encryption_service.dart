@@ -73,9 +73,13 @@ class EncryptionService {
       );
 
     // Encrypt
-    final ciphertext = Uint8List(cipher.getOutputSize(data.length));
-    final len = cipher.processBytes(data, 0, data.length, ciphertext, 0);
-    cipher.doFinal(ciphertext, len);
+    final ciphertextBuffer = Uint8List(cipher.getOutputSize(data.length));
+    var ciphertextLen = cipher.processBytes(data, 0, data.length, ciphertextBuffer, 0);
+    ciphertextLen += cipher.doFinal(ciphertextBuffer, ciphertextLen);
+
+    // IMPORTANT: Only use the actual written bytes, not the entire buffer!
+    // getOutputSize() over-estimates, but doFinal returns the actual length.
+    final ciphertext = Uint8List.sublistView(ciphertextBuffer, 0, ciphertextLen);
 
     // Combine: salt + iv + ciphertext (includes tag)
     final result = Uint8List(saltSize + ivSize + ciphertext.length);
@@ -122,19 +126,18 @@ class EncryptionService {
 
     // Decrypt
     try {
-      final plaintext = Uint8List(cipher.getOutputSize(ciphertext.length));
-      final len = cipher.processBytes(
+      final plaintextBuffer = Uint8List(cipher.getOutputSize(ciphertext.length));
+      var plaintextLen = cipher.processBytes(
         ciphertext,
         0,
         ciphertext.length,
-        plaintext,
+        plaintextBuffer,
         0,
       );
-      cipher.doFinal(plaintext, len);
+      plaintextLen += cipher.doFinal(plaintextBuffer, plaintextLen);
 
-      // Remove padding/extra bytes if needed
-      final actualLength = ciphertext.length - tagSize;
-      return Uint8List.sublistView(plaintext, 0, actualLength);
+      // Use actual length from doFinal, not calculated estimate
+      return Uint8List.sublistView(plaintextBuffer, 0, plaintextLen);
     } catch (e) {
       throw ArgumentError(
         'Decryption failed: wrong password or corrupted data. '

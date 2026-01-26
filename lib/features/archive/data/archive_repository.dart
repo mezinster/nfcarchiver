@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -39,6 +40,10 @@ class ArchiveRepository {
     final fileName = path.basename(filePath);
     var data = await file.readAsBytes();
     final originalSize = data.length;
+
+    // Prepend filename metadata to data
+    // Format: [2-byte length (big-endian)][UTF-8 filename bytes][original data]
+    data = _prependFilenameMetadata(data, fileName);
 
     // Compress if requested
     bool wasCompressed = false;
@@ -278,6 +283,43 @@ class ArchiveRepository {
       isValid: true,
       estimate: estimate,
     );
+  }
+
+  /// Prepend filename metadata to data.
+  /// Format: [2-byte length (big-endian)][UTF-8 filename bytes][original data]
+  Uint8List _prependFilenameMetadata(Uint8List data, String fileName) {
+    final filenameBytes = utf8.encode(fileName);
+    // Limit filename to 255 bytes for safety
+    final truncatedFilename = filenameBytes.length > 255
+        ? filenameBytes.sublist(0, 255)
+        : filenameBytes;
+
+    final result = Uint8List(2 + truncatedFilename.length + data.length);
+    // Big-endian length
+    result[0] = (truncatedFilename.length >> 8) & 0xFF;
+    result[1] = truncatedFilename.length & 0xFF;
+    result.setRange(2, 2 + truncatedFilename.length, truncatedFilename);
+    result.setRange(2 + truncatedFilename.length, result.length, data);
+
+    return result;
+  }
+}
+
+/// Extract filename metadata from data.
+/// Returns (filename, remaining data) or null if invalid.
+({String fileName, Uint8List data})? extractFilenameMetadata(Uint8List data) {
+  if (data.length < 2) return null;
+
+  final filenameLength = (data[0] << 8) | data[1];
+  if (data.length < 2 + filenameLength) return null;
+
+  try {
+    final filenameBytes = data.sublist(2, 2 + filenameLength);
+    final fileName = utf8.decode(filenameBytes);
+    final remainingData = Uint8List.sublistView(data, 2 + filenameLength);
+    return (fileName: fileName, data: remainingData);
+  } catch (_) {
+    return null;
   }
 }
 

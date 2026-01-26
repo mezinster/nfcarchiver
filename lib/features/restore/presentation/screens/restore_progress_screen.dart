@@ -106,7 +106,8 @@ class _RestoreProgressScreenState
             controller: _fileNameController,
             decoration: const InputDecoration(
               labelText: 'File name',
-              hintText: 'Enter file name for restored file',
+              hintText: 'Leave default to use original filename',
+              helperText: 'Original filename will be used if available',
               border: OutlineInputBorder(),
             ),
           ),
@@ -362,11 +363,13 @@ class _RestoreProgressScreenState
       return;
     }
 
+    // Pass null for fileName to use original filename from archive if available
+    final userFileName = _fileNameController.text.trim();
     ref.read(restoreProvider.notifier).restoreArchive(
           password: state.needsPassword ? _passwordController.text : null,
-          fileName: _fileNameController.text.isNotEmpty
-              ? _fileNameController.text
-              : 'restored_file',
+          fileName: userFileName.isNotEmpty && userFileName != 'restored_file'
+              ? userFileName
+              : null,
         );
   }
 

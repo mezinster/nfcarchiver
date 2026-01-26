@@ -235,8 +235,8 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
         password: password,
       );
 
-      // Save to downloads
-      final actualFileName = fileName ?? 'restored_file';
+      // Save to downloads - use original filename from archive if available
+      final actualFileName = fileName ?? result.originalFileName ?? 'restored_file';
       final savedPath = await _repository.saveToDownloads(
         result.data,
         actualFileName,
@@ -249,6 +249,7 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
           wasEncrypted: result.wasEncrypted,
           wasCompressed: result.wasCompressed,
           totalChunks: result.totalChunks,
+          originalFileName: result.originalFileName,
         ),
         fileName: actualFileName,
       );

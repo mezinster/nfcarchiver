@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -106,6 +107,14 @@ class RestoreRepository {
       }
     }
 
+    // Extract filename metadata
+    String? originalFileName;
+    final metadataResult = _extractFilenameMetadata(data);
+    if (metadataResult != null) {
+      originalFileName = metadataResult.fileName;
+      data = metadataResult.data;
+    }
+
     // Save to file if path provided
     String? savedPath;
     if (outputPath != null) {
@@ -121,6 +130,7 @@ class RestoreRepository {
       wasEncrypted: NfarFlags.isEncrypted(flags),
       wasCompressed: NfarFlags.isCompressed(flags),
       totalChunks: session.totalChunks,
+      originalFileName: originalFileName,
     );
   }
 
@@ -169,6 +179,26 @@ class RestoreRepository {
     return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
         '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
         '${hex.substring(20, 32)}';
+  }
+
+  /// Extract filename metadata from data.
+  /// Format: [2-byte length (big-endian)][UTF-8 filename bytes][original data]
+  /// Returns (filename, remaining data) or null if invalid.
+  ({String fileName, Uint8List data})? _extractFilenameMetadata(Uint8List data) {
+    if (data.length < 2) return null;
+
+    final filenameLength = (data[0] << 8) | data[1];
+    if (filenameLength == 0 || filenameLength > 255) return null;
+    if (data.length < 2 + filenameLength) return null;
+
+    try {
+      final filenameBytes = data.sublist(2, 2 + filenameLength);
+      final fileName = utf8.decode(filenameBytes);
+      final remainingData = Uint8List.sublistView(data, 2 + filenameLength);
+      return (fileName: fileName, data: remainingData);
+    } catch (_) {
+      return null;
+    }
   }
 }
 
@@ -275,6 +305,7 @@ class RestoreResult {
     required this.wasEncrypted,
     required this.wasCompressed,
     required this.totalChunks,
+    this.originalFileName,
   });
 
   final Uint8List data;
@@ -282,6 +313,8 @@ class RestoreResult {
   final bool wasEncrypted;
   final bool wasCompressed;
   final int totalChunks;
+  /// Original filename extracted from archive metadata, if available.
+  final String? originalFileName;
 
   int get dataSize => data.length;
 }
