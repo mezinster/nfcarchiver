@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -46,11 +47,12 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
     final tagType = ref.watch(selectedTagTypeProvider);
     final compress = ref.watch(compressionEnabledProvider);
     final encrypt = ref.watch(encryptionEnabledProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     if (state is! ArchiveConfiguring && state is! ArchiveFileSelected) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Settings')),
-        body: const Center(child: Text('No file selected')),
+        appBar: AppBar(title: Text(l10n.settings)),
+        body: Center(child: Text(l10n.noFileSelected)),
       );
     }
 
@@ -58,7 +60,7 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Archive Settings'),
+        title: Text(l10n.archiveSettings),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/archive'),
@@ -82,7 +84,7 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'NFC Tag Type',
+                        l10n.nfcTagType,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ],
@@ -93,7 +95,7 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                       .map((type) => RadioListTile<NfcTagType>(
                             title: Text(type.name),
                             subtitle:
-                                Text('${type.capacity} bytes capacity'),
+                                Text(l10n.bytesCapacity(type.capacity)),
                             value: type,
                             groupValue: tagType,
                             onChanged: (value) {
@@ -114,8 +116,8 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
           // Compression option
           Card(
             child: SwitchListTile(
-              title: const Text('Enable Compression'),
-              subtitle: const Text('Reduce size with GZIP compression'),
+              title: Text(l10n.enableCompression),
+              subtitle: Text(l10n.compressionSubtitle),
               secondary: Icon(
                 Icons.compress,
                 color: Theme.of(context).colorScheme.primary,
@@ -135,8 +137,8 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Enable Encryption'),
-                  subtitle: const Text('Protect with AES-256-GCM'),
+                  title: Text(l10n.enableEncryption),
+                  subtitle: Text(l10n.encryptionSubtitle),
                   secondary: Icon(
                     Icons.lock,
                     color: Theme.of(context).colorScheme.primary,
@@ -158,8 +160,8 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                       enableSuggestions: false,
                       keyboardType: TextInputType.visiblePassword,
                       decoration: InputDecoration(
-                        labelText: 'Password',
-                        hintText: 'Enter encryption password',
+                        labelText: l10n.password,
+                        hintText: l10n.enterPassword,
                         border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -204,7 +206,7 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'Archive Estimate',
+                          l10n.archiveEstimate,
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
@@ -218,21 +220,21 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     _EstimateRow(
-                      label: 'Original size',
+                      label: l10n.originalSize,
                       value: _formatSize(config!.fileSize),
                     ),
                     _EstimateRow(
-                      label: 'Estimated processed size',
+                      label: l10n.estimatedProcessedSize,
                       value: _formatSize(config.estimate!.estimatedProcessedSize),
                     ),
                     _EstimateRow(
-                      label: 'Tags needed',
+                      label: l10n.tagsNeeded,
                       value: '${config.estimate!.chunksNeeded}',
                       highlight: true,
                     ),
                     _EstimateRow(
-                      label: 'Payload per tag',
-                      value: '${config.estimate!.payloadPerChunk} bytes',
+                      label: l10n.payloadPerTag,
+                      value: l10n.bytesUnit(config.estimate!.payloadPerChunk),
                     ),
                   ],
                 ),
@@ -246,7 +248,7 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
           FilledButton.icon(
             onPressed: () => _startArchive(context, ref),
             icon: const Icon(Icons.archive),
-            label: const Text('Start Archiving'),
+            label: Text(l10n.startArchiving),
           ),
         ],
       ),
@@ -265,10 +267,11 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
   }
 
   Future<void> _startArchive(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final encrypt = ref.read(encryptionEnabledProvider);
     if (encrypt && _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a password')),
+        SnackBar(content: Text(l10n.pleaseEnterPassword)),
       );
       return;
     }

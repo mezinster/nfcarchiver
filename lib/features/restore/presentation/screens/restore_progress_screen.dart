@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
@@ -36,10 +37,11 @@ class _RestoreProgressScreenState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(restoreProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Restore Archive'),
+        title: Text(l10n.restoreArchive),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => _handleBack(context),
@@ -70,6 +72,7 @@ class _RestoreProgressScreenState
   }
 
   Widget _buildReadyView(BuildContext context, RestoreReady state) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -83,13 +86,13 @@ class _RestoreProgressScreenState
           ),
           const SizedBox(height: 24),
           Text(
-            'All chunks received!',
+            l10n.allChunksReceived,
             style: Theme.of(context).textTheme.headlineSmall,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            '${state.session.totalChunks} chunks from archive',
+            l10n.chunksFromArchive(state.session.totalChunks),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context)
                       .colorScheme
@@ -104,11 +107,11 @@ class _RestoreProgressScreenState
           // File name input
           TextField(
             controller: _fileNameController,
-            decoration: const InputDecoration(
-              labelText: 'File name',
-              hintText: 'Leave default to use original filename',
-              helperText: 'Original filename will be used if available',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.fileName,
+              hintText: l10n.fileNameHint,
+              helperText: l10n.fileNameHelper,
+              border: const OutlineInputBorder(),
             ),
           ),
 
@@ -133,7 +136,7 @@ class _RestoreProgressScreenState
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'This archive is encrypted',
+                          l10n.archiveIsEncrypted,
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
@@ -153,8 +156,8 @@ class _RestoreProgressScreenState
                       enableSuggestions: false,
                       keyboardType: TextInputType.visiblePassword,
                       decoration: InputDecoration(
-                        labelText: 'Password',
-                        hintText: 'Enter decryption password',
+                        labelText: l10n.password,
+                        hintText: l10n.enterDecryptionPassword,
                         border: const OutlineInputBorder(),
                         filled: true,
                         fillColor: Theme.of(context).colorScheme.surface,
@@ -171,7 +174,7 @@ class _RestoreProgressScreenState
                           },
                         ),
                         counterText:
-                            '${_passwordController.text.length} characters',
+                            l10n.charactersCount(_passwordController.text.length),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -187,7 +190,7 @@ class _RestoreProgressScreenState
           FilledButton.icon(
             onPressed: () => _restore(context, state),
             icon: const Icon(Icons.restore),
-            label: const Text('Restore Archive'),
+            label: Text(l10n.restoreArchive),
           ),
 
           const SizedBox(height: 16),
@@ -198,7 +201,7 @@ class _RestoreProgressScreenState
               ref.read(restoreProvider.notifier).backToScanning();
               context.go('/restore');
             },
-            child: const Text('Scan more tags'),
+            child: Text(l10n.scanMoreTags),
           ),
         ],
       ),
@@ -222,6 +225,7 @@ class _RestoreProgressScreenState
   }
 
   Widget _buildCompleteView(BuildContext context, RestoreComplete state) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -234,7 +238,7 @@ class _RestoreProgressScreenState
           ),
           const SizedBox(height: 24),
           Text(
-            'Archive Restored!',
+            l10n.archiveRestored,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 16),
@@ -256,7 +260,7 @@ class _RestoreProgressScreenState
           if (state.result.savedPath != null) ...[
             const SizedBox(height: 8),
             Text(
-              'Saved to: ${state.result.savedPath}',
+              l10n.savedTo(state.result.savedPath!),
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
@@ -269,7 +273,7 @@ class _RestoreProgressScreenState
             FilledButton.icon(
               onPressed: () => _shareFile(state.result.savedPath!),
               icon: const Icon(Icons.share),
-              label: const Text('Share File'),
+              label: Text(l10n.shareFile),
             ),
 
           const SizedBox(height: 16),
@@ -280,7 +284,7 @@ class _RestoreProgressScreenState
               context.go('/');
             },
             icon: const Icon(Icons.home),
-            label: const Text('Done'),
+            label: Text(l10n.done),
           ),
         ],
       ),
@@ -288,6 +292,7 @@ class _RestoreProgressScreenState
   }
 
   Widget _buildErrorView(BuildContext context, RestoreError state) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -300,7 +305,7 @@ class _RestoreProgressScreenState
           ),
           const SizedBox(height: 24),
           Text(
-            state.hasCorruptedChunks ? 'Data Corruption Detected' : 'Restore Failed',
+            state.hasCorruptedChunks ? l10n.dataCorruptionDetected : l10n.restoreFailed,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 16),
@@ -320,7 +325,7 @@ class _RestoreProgressScreenState
                 context.go('/restore');
               },
               icon: const Icon(Icons.nfc),
-              label: Text('Rescan ${state.corruptedChunks.length} Tag(s)'),
+              label: Text(l10n.rescanTags(state.corruptedChunks.length)),
             ),
           ] else if (state.isDecryptionError && state.session != null) ...[
             // Decryption error - retry with different password
@@ -330,7 +335,7 @@ class _RestoreProgressScreenState
                 ref.read(restoreProvider.notifier).retryRestore();
               },
               icon: const Icon(Icons.lock_reset),
-              label: const Text('Try Different Password'),
+              label: Text(l10n.tryDifferentPassword),
             ),
           ] else if (state.canRetry && state.session != null) ...[
             // Other error with session preserved - retry
@@ -338,7 +343,7 @@ class _RestoreProgressScreenState
               onPressed: () {
                 ref.read(restoreProvider.notifier).retryRestore();
               },
-              child: const Text('Try Again'),
+              child: Text(l10n.tryAgain),
             ),
           ],
 
@@ -348,7 +353,7 @@ class _RestoreProgressScreenState
               ref.read(restoreProvider.notifier).reset();
               context.go('/');
             },
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
         ],
       ),
@@ -356,9 +361,10 @@ class _RestoreProgressScreenState
   }
 
   void _restore(BuildContext context, RestoreReady state) {
+    final l10n = AppLocalizations.of(context)!;
     if (state.needsPassword && _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the password')),
+        SnackBar(content: Text(l10n.pleaseEnterThePassword)),
       );
       return;
     }

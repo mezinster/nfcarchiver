@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,10 +15,11 @@ class FilePickerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(archiveProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select File'),
+        title: Text(l10n.selectFile),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/'),
@@ -44,12 +46,12 @@ class FilePickerScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Tap to select a file',
+                        l10n.tapToSelectFile,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Choose any file to archive to NFC tags',
+                        l10n.chooseFileToArchive,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Theme.of(context)
                                   .colorScheme
@@ -75,7 +77,7 @@ class FilePickerScreen extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => context.go('/archive/settings'),
                 icon: const Icon(Icons.settings),
-                label: const Text('Configure Archive'),
+                label: Text(l10n.configureArchive),
               ),
             ],
           ],
@@ -85,6 +87,7 @@ class FilePickerScreen extends ConsumerWidget {
   }
 
   Future<void> _pickFile(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final result = await FilePicker.platform.pickFiles();
       if (result == null || result.files.isEmpty) return;
@@ -93,7 +96,7 @@ class FilePickerScreen extends ConsumerWidget {
       if (file.path == null) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not access file')),
+            SnackBar(content: Text(l10n.couldNotAccessFile)),
           );
         }
         return;
@@ -111,7 +114,7 @@ class FilePickerScreen extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error selecting file: $e')),
+          SnackBar(content: Text(l10n.errorSelectingFile(e.toString()))),
         );
       }
     }

@@ -1,0 +1,626 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "NFC Archiver",
+  "@appTitle": {
+    "description": "Application title"
+  },
+
+  "nfcChecking": "Checking NFC...",
+  "@nfcChecking": {
+    "description": "Status message while checking NFC availability"
+  },
+
+  "nfcAvailable": "NFC is available",
+  "@nfcAvailable": {
+    "description": "Status when NFC is available"
+  },
+
+  "nfcUnavailable": "NFC is not available",
+  "@nfcUnavailable": {
+    "description": "Status when NFC is not available"
+  },
+
+  "mainHeading": "Store files across\nmultiple NFC tags",
+  "@mainHeading": {
+    "description": "Main heading on home screen"
+  },
+
+  "createArchive": "Create Archive",
+  "@createArchive": {
+    "description": "Create archive button title"
+  },
+
+  "createArchiveDesc": "Split a file into multiple NFC tags",
+  "@createArchiveDesc": {
+    "description": "Create archive button description"
+  },
+
+  "restoreArchive": "Restore Archive",
+  "@restoreArchive": {
+    "description": "Restore archive button title"
+  },
+
+  "restoreArchiveDesc": "Scan tags to restore a file",
+  "@restoreArchiveDesc": {
+    "description": "Restore archive button description"
+  },
+
+  "version": "NFC Archiver v1.0.0",
+  "@version": {
+    "description": "Version text in footer"
+  },
+
+  "aboutAppDescription": "A distributed data archive system using NFC tags. Store files across multiple NFC tags and restore them later.",
+  "@aboutAppDescription": {
+    "description": "About dialog description"
+  },
+
+  "aboutSupportedTags": "Supported tags: NTAG213/215/216, MIFARE Ultralight",
+  "@aboutSupportedTags": {
+    "description": "Supported NFC tags in about dialog"
+  },
+
+  "selectFile": "Select File",
+  "@selectFile": {
+    "description": "Title for file picker screen"
+  },
+
+  "tapToSelectFile": "Tap to select a file",
+  "@tapToSelectFile": {
+    "description": "Instruction to tap for file selection"
+  },
+
+  "chooseFileToArchive": "Choose any file to archive to NFC tags",
+  "@chooseFileToArchive": {
+    "description": "Subtitle for file picker"
+  },
+
+  "configureArchive": "Configure Archive",
+  "@configureArchive": {
+    "description": "Button to configure archive settings"
+  },
+
+  "couldNotAccessFile": "Could not access file",
+  "@couldNotAccessFile": {
+    "description": "Error when file cannot be accessed"
+  },
+
+  "errorSelectingFile": "Error selecting file: {error}",
+  "@errorSelectingFile": {
+    "description": "Error message when file selection fails",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "The error message"
+      }
+    }
+  },
+
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+
+  "noFileSelected": "No file selected",
+  "@noFileSelected": {
+    "description": "Message when no file is selected"
+  },
+
+  "archiveSettings": "Archive Settings",
+  "@archiveSettings": {
+    "description": "Archive settings screen title"
+  },
+
+  "nfcTagType": "NFC Tag Type",
+  "@nfcTagType": {
+    "description": "NFC tag type selection header"
+  },
+
+  "bytesCapacity": "{bytes} bytes capacity",
+  "@bytesCapacity": {
+    "description": "Tag capacity description",
+    "placeholders": {
+      "bytes": {
+        "type": "int",
+        "description": "Number of bytes"
+      }
+    }
+  },
+
+  "enableCompression": "Enable Compression",
+  "@enableCompression": {
+    "description": "Compression switch title"
+  },
+
+  "compressionSubtitle": "Reduce size with GZIP compression",
+  "@compressionSubtitle": {
+    "description": "Compression switch subtitle"
+  },
+
+  "enableEncryption": "Enable Encryption",
+  "@enableEncryption": {
+    "description": "Encryption switch title"
+  },
+
+  "encryptionSubtitle": "Protect with AES-256-GCM",
+  "@encryptionSubtitle": {
+    "description": "Encryption switch subtitle"
+  },
+
+  "password": "Password",
+  "@password": {
+    "description": "Password field label"
+  },
+
+  "enterPassword": "Enter encryption password",
+  "@enterPassword": {
+    "description": "Password hint text"
+  },
+
+  "pleaseEnterPassword": "Please enter a password",
+  "@pleaseEnterPassword": {
+    "description": "Validation message for empty password"
+  },
+
+  "archiveEstimate": "Archive Estimate",
+  "@archiveEstimate": {
+    "description": "Archive estimate card title"
+  },
+
+  "originalSize": "Original size",
+  "@originalSize": {
+    "description": "Original file size label"
+  },
+
+  "estimatedProcessedSize": "Estimated processed size",
+  "@estimatedProcessedSize": {
+    "description": "Estimated size after processing"
+  },
+
+  "tagsNeeded": "Tags needed",
+  "@tagsNeeded": {
+    "description": "Number of tags needed"
+  },
+
+  "payloadPerTag": "Payload per tag",
+  "@payloadPerTag": {
+    "description": "Payload size per tag"
+  },
+
+  "bytesUnit": "{bytes} bytes",
+  "@bytesUnit": {
+    "description": "Bytes with unit",
+    "placeholders": {
+      "bytes": {
+        "type": "int",
+        "description": "Number of bytes"
+      }
+    }
+  },
+
+  "startArchiving": "Start Archiving",
+  "@startArchiving": {
+    "description": "Button to start archiving"
+  },
+
+  "writingToTags": "Writing to Tags",
+  "@writingToTags": {
+    "description": "Write progress screen title"
+  },
+
+  "tagTooSmall": "Tag Too Small",
+  "@tagTooSmall": {
+    "description": "Dialog title for small tag"
+  },
+
+  "tagTooSmallMessage": "This tag has {available} bytes available, but the chunk needs {required} bytes.",
+  "@tagTooSmallMessage": {
+    "description": "Message explaining tag is too small",
+    "placeholders": {
+      "available": {
+        "type": "int",
+        "description": "Available bytes"
+      },
+      "required": {
+        "type": "int",
+        "description": "Required bytes"
+      }
+    }
+  },
+
+  "reconfigureForTagSize": "Would you like to reconfigure the archive for this tag size?",
+  "@reconfigureForTagSize": {
+    "description": "Question about reconfiguring for smaller tags"
+  },
+
+  "reconfigureDetails": "This will split the data into {chunks} smaller chunks ({bytes} bytes each).",
+  "@reconfigureDetails": {
+    "description": "Details about reconfiguration",
+    "placeholders": {
+      "chunks": {
+        "type": "int",
+        "description": "Number of chunks"
+      },
+      "bytes": {
+        "type": "int",
+        "description": "Bytes per chunk"
+      }
+    }
+  },
+
+  "cannotReconfigureChunksWritten": "Cannot reconfigure: chunks have already been written.",
+  "@cannotReconfigureChunksWritten": {
+    "description": "Error when cannot reconfigure because chunks are written"
+  },
+
+  "tagTooSmallForData": "This tag is too small to store any data.",
+  "@tagTooSmallForData": {
+    "description": "Error when tag is too small for any data"
+  },
+
+  "useDifferentTag": "Use Different Tag",
+  "@useDifferentTag": {
+    "description": "Button to use a different tag"
+  },
+
+  "reconfigure": "Reconfigure",
+  "@reconfigure": {
+    "description": "Button to reconfigure archive"
+  },
+
+  "reconfiguredNowUsingTags": "Reconfigured: now using {count} tags",
+  "@reconfiguredNowUsingTags": {
+    "description": "Success message after reconfiguration",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of tags"
+      }
+    }
+  },
+
+  "failedToReconfigure": "Failed to reconfigure archive",
+  "@failedToReconfigure": {
+    "description": "Error message when reconfiguration fails"
+  },
+
+  "holdTagNearDevice": "Hold tag near device",
+  "@holdTagNearDevice": {
+    "description": "Instruction to hold tag near device"
+  },
+
+  "readyToWriteTag": "Ready to write tag {index}",
+  "@readyToWriteTag": {
+    "description": "Ready to write message",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "description": "Tag index"
+      }
+    }
+  },
+
+  "chunkOfTotal": "Chunk {current} of {total}",
+  "@chunkOfTotal": {
+    "description": "Chunk progress indicator",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "description": "Current chunk number"
+      },
+      "total": {
+        "type": "int",
+        "description": "Total chunks"
+      }
+    }
+  },
+
+  "writeToTag": "Write to Tag",
+  "@writeToTag": {
+    "description": "Button to write to tag"
+  },
+
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+
+  "skipThisTag": "Skip this tag",
+  "@skipThisTag": {
+    "description": "Button to skip current tag"
+  },
+
+  "writingChunk": "Writing chunk {index}...",
+  "@writingChunk": {
+    "description": "Status while writing chunk",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "description": "Chunk index"
+      }
+    }
+  },
+
+  "tagWritten": "Tag Written!",
+  "@tagWritten": {
+    "description": "Success message after writing tag"
+  },
+
+  "removeTagFromDevice": "Remove the tag from your device",
+  "@removeTagFromDevice": {
+    "description": "Instruction to remove tag"
+  },
+
+  "bytesWritten": "{bytes} bytes written",
+  "@bytesWritten": {
+    "description": "Number of bytes written",
+    "placeholders": {
+      "bytes": {
+        "type": "int",
+        "description": "Number of bytes"
+      }
+    }
+  },
+
+  "continueButton": "Continue",
+  "@continueButton": {
+    "description": "Continue button"
+  },
+
+  "archiveComplete": "Archive Complete!",
+  "@archiveComplete": {
+    "description": "Archive complete title"
+  },
+
+  "tagsWritten": "{count} tags written",
+  "@tagsWritten": {
+    "description": "Number of tags written",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of tags"
+      }
+    }
+  },
+
+  "done": "Done",
+  "@done": {
+    "description": "Done button"
+  },
+
+  "error": "Error",
+  "@error": {
+    "description": "Error title"
+  },
+
+  "tryAgain": "Try Again",
+  "@tryAgain": {
+    "description": "Try again button"
+  },
+
+  "unexpectedState": "Unexpected state",
+  "@unexpectedState": {
+    "description": "Message for unexpected application state"
+  },
+
+  "cancelArchive": "Cancel Archive?",
+  "@cancelArchive": {
+    "description": "Cancel archive dialog title"
+  },
+
+  "progressWillBeLost": "Progress will be lost. Are you sure you want to cancel?",
+  "@progressWillBeLost": {
+    "description": "Warning about losing progress"
+  },
+
+  "progress": "Progress",
+  "@progress": {
+    "description": "Progress label"
+  },
+
+  "tagsProgress": "{current} / {total} tags",
+  "@tagsProgress": {
+    "description": "Tags progress indicator",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "description": "Current count"
+      },
+      "total": {
+        "type": "int",
+        "description": "Total count"
+      }
+    }
+  },
+
+  "holdTagNearDeviceToWrite": "Hold tag near device to write chunk {current} of {total}",
+  "@holdTagNearDeviceToWrite": {
+    "description": "NFC write message",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "description": "Current chunk"
+      },
+      "total": {
+        "type": "int",
+        "description": "Total chunks"
+      }
+    }
+  },
+
+  "scanTags": "Scan Tags",
+  "@scanTags": {
+    "description": "Scan screen title"
+  },
+
+  "scanningForTags": "Scanning for tags...",
+  "@scanningForTags": {
+    "description": "Status while scanning"
+  },
+
+  "preparingScanner": "Preparing scanner...",
+  "@preparingScanner": {
+    "description": "Status while preparing scanner"
+  },
+
+  "holdEachTagNear": "Hold each NFC tag near your device",
+  "@holdEachTagNear": {
+    "description": "Instruction for scanning tags"
+  },
+
+  "holdDeviceNearTag": "Hold your device near an NFC tag",
+  "@holdDeviceNearTag": {
+    "description": "NFC read session message"
+  },
+
+  "newChunkFound": "New chunk found!",
+  "@newChunkFound": {
+    "description": "Message when new chunk is found"
+  },
+
+  "duplicateChunk": "Duplicate chunk",
+  "@duplicateChunk": {
+    "description": "Message for duplicate chunk"
+  },
+
+  "archivesInProgress": "Archives in progress",
+  "@archivesInProgress": {
+    "description": "Header for in-progress archives"
+  },
+
+  "archiveId": "Archive {id}...",
+  "@archiveId": {
+    "description": "Archive ID display",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "description": "Shortened archive ID"
+      }
+    }
+  },
+
+  "allChunksReceived": "All chunks received!",
+  "@allChunksReceived": {
+    "description": "Message when all chunks are received"
+  },
+
+  "chunksFromArchive": "{count} chunks from archive",
+  "@chunksFromArchive": {
+    "description": "Number of chunks received",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Chunk count"
+      }
+    }
+  },
+
+  "fileName": "File name",
+  "@fileName": {
+    "description": "File name field label"
+  },
+
+  "fileNameHint": "Leave default to use original filename",
+  "@fileNameHint": {
+    "description": "File name hint text"
+  },
+
+  "fileNameHelper": "Original filename will be used if available",
+  "@fileNameHelper": {
+    "description": "File name helper text"
+  },
+
+  "archiveIsEncrypted": "This archive is encrypted",
+  "@archiveIsEncrypted": {
+    "description": "Encrypted archive message"
+  },
+
+  "enterDecryptionPassword": "Enter decryption password",
+  "@enterDecryptionPassword": {
+    "description": "Password hint for decryption"
+  },
+
+  "charactersCount": "{count} characters",
+  "@charactersCount": {
+    "description": "Character count display",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of characters"
+      }
+    }
+  },
+
+  "scanMoreTags": "Scan more tags",
+  "@scanMoreTags": {
+    "description": "Button to scan more tags"
+  },
+
+  "archiveRestored": "Archive Restored!",
+  "@archiveRestored": {
+    "description": "Restore complete title"
+  },
+
+  "savedTo": "Saved to: {path}",
+  "@savedTo": {
+    "description": "Saved file path message",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "description": "File path"
+      }
+    }
+  },
+
+  "shareFile": "Share File",
+  "@shareFile": {
+    "description": "Share file button"
+  },
+
+  "dataCorruptionDetected": "Data Corruption Detected",
+  "@dataCorruptionDetected": {
+    "description": "Data corruption error title"
+  },
+
+  "restoreFailed": "Restore Failed",
+  "@restoreFailed": {
+    "description": "Restore failed title"
+  },
+
+  "rescanTags": "Rescan {count} Tag(s)",
+  "@rescanTags": {
+    "description": "Rescan corrupted tags button",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of tags to rescan"
+      }
+    }
+  },
+
+  "tryDifferentPassword": "Try Different Password",
+  "@tryDifferentPassword": {
+    "description": "Try different password button"
+  },
+
+  "pleaseEnterThePassword": "Please enter the password",
+  "@pleaseEnterThePassword": {
+    "description": "Validation message for password"
+  },
+
+  "english": "English",
+  "@english": {
+    "description": "English language name"
+  },
+
+  "russian": "Russian",
+  "@russian": {
+    "description": "Russian language name"
+  },
+
+  "language": "Language",
+  "@language": {
+    "description": "Language setting label"
+  }
+}

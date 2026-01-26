@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -61,6 +62,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
     int detectedCapacity,
     int requiredSize,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     ref.read(nfcSessionProvider.notifier).stopSession();
 
     final archiveState = ref.read(archiveProvider);
@@ -79,57 +81,56 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tag Too Small'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'This tag has $detectedCapacity bytes available, '
-              'but the chunk needs $requiredSize bytes.',
-            ),
-            const SizedBox(height: 16),
-            if (canRechunk && newChunkCount != null && newPayloadSize > 0) ...[
-              const Text(
-                'Would you like to reconfigure the archive for this tag size?',
-              ),
-              const SizedBox(height: 8),
+      builder: (dialogContext) {
+        final dialogL10n = AppLocalizations.of(dialogContext)!;
+        return AlertDialog(
+          title: Text(dialogL10n.tagTooSmall),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                'This will split the data into $newChunkCount smaller chunks '
-                '($newPayloadSize bytes each).',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.6),
-                    ),
+                dialogL10n.tagTooSmallMessage(detectedCapacity, requiredSize),
               ),
-            ] else if (!canRechunk) ...[
-              Text(
-                'Cannot reconfigure: chunks have already been written.',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ] else ...[
-              Text(
-                'This tag is too small to store any data.',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
+              const SizedBox(height: 16),
+              if (canRechunk && newChunkCount != null && newPayloadSize > 0) ...[
+                Text(dialogL10n.reconfigureForTagSize),
+                const SizedBox(height: 8),
+                Text(
+                  dialogL10n.reconfigureDetails(newChunkCount, newPayloadSize),
+                  style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(dialogContext)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
+                      ),
+                ),
+              ] else if (!canRechunk) ...[
+                Text(
+                  dialogL10n.cannotReconfigureChunksWritten,
+                  style: TextStyle(color: Theme.of(dialogContext).colorScheme.error),
+                ),
+              ] else ...[
+                Text(
+                  dialogL10n.tagTooSmallForData,
+                  style: TextStyle(color: Theme.of(dialogContext).colorScheme.error),
+                ),
+              ],
             ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Use Different Tag'),
           ),
-          if (canRechunk && newChunkCount != null && newPayloadSize > 0)
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Reconfigure'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(dialogL10n.useDifferentTag),
             ),
-        ],
-      ),
+            if (canRechunk && newChunkCount != null && newPayloadSize > 0)
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(dialogL10n.reconfigure),
+              ),
+          ],
+        );
+      },
     );
 
     if (result == true && context.mounted) {
@@ -140,13 +141,13 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
       if (newCount != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Reconfigured: now using $newCount tags'),
+            content: Text(l10n.reconfiguredNowUsingTags(newCount)),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to reconfigure archive'),
+          SnackBar(
+            content: Text(l10n.failedToReconfigure),
           ),
         );
       }
@@ -157,10 +158,11 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(archiveProvider);
     final nfcState = ref.watch(nfcSessionProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Writing to Tags'),
+        title: Text(l10n.writingToTags),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => _showCancelDialog(context),
@@ -200,7 +202,8 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
       return _buildErrorView(context, state);
     }
 
-    return const Center(child: Text('Unexpected state'));
+    final l10n = AppLocalizations.of(context)!;
+    return Center(child: Text(l10n.unexpectedState));
   }
 
   Widget _buildPreparingView(BuildContext context, ArchivePreparing state) {
@@ -235,6 +238,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
     NfcSessionState nfcState,
   ) {
     final isWaiting = nfcState is NfcSessionWaiting;
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -265,14 +269,14 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
                   const SizedBox(height: 16),
                   Text(
                     isWaiting
-                        ? 'Hold tag near device'
-                        : 'Ready to write tag ${state.currentChunkIndex + 1}',
+                        ? l10n.holdTagNearDevice
+                        : l10n.readyToWriteTag(state.currentChunkIndex + 1),
                     style: Theme.of(context).textTheme.titleLarge,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Chunk ${state.currentChunkIndex + 1} of ${state.totalChunks}',
+                    l10n.chunkOfTotal(state.currentChunkIndex + 1, state.totalChunks),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -282,7 +286,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${state.currentChunk.payload.length} bytes',
+                    l10n.bytesUnit(state.currentChunk.payload.length),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -297,14 +301,14 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
             FilledButton.icon(
               onPressed: () => _startWriting(context, ref, state),
               icon: const Icon(Icons.nfc),
-              label: const Text('Write to Tag'),
+              label: Text(l10n.writeToTag),
             )
           else
             OutlinedButton(
               onPressed: () {
                 ref.read(nfcSessionProvider.notifier).stopSession();
               },
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
 
           const SizedBox(height: 16),
@@ -316,7 +320,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
                 // Skip to next chunk
                 ref.read(archiveProvider.notifier).markChunkWritten();
               },
-              child: const Text('Skip this tag'),
+              child: Text(l10n.skipThisTag),
             ),
         ],
       ),
@@ -324,6 +328,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
   }
 
   Widget _buildWritingView(BuildContext context, ArchiveWriting state) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -331,7 +336,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
           const CircularProgressIndicator(),
           const SizedBox(height: 24),
           Text(
-            'Writing chunk ${state.currentChunkIndex + 1}...',
+            l10n.writingChunk(state.currentChunkIndex + 1),
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
@@ -341,6 +346,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
 
   Widget _buildRemoveTagView(
       BuildContext context, NfcSessionWriteSuccess state) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -354,12 +360,12 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Tag Written!',
+              l10n.tagWritten,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
             Text(
-              'Remove the tag from your device',
+              l10n.removeTagFromDevice,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Theme.of(context).colorScheme.secondary,
                   ),
@@ -367,7 +373,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '${state.bytesWritten} bytes written',
+              l10n.bytesWritten(state.bytesWritten),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context)
                         .colorScheme
@@ -387,7 +393,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
               onPressed: () {
                 ref.read(nfcSessionProvider.notifier).acknowledgeTagRemoval();
               },
-              child: const Text('Continue'),
+              child: Text(l10n.continueButton),
             ),
           ],
         ),
@@ -396,6 +402,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
   }
 
   Widget _buildCompleteView(BuildContext context, ArchiveComplete state) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -408,12 +415,12 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Archive Complete!',
+            l10n.archiveComplete,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 16),
           Text(
-            '${state.totalTags} tags written',
+            l10n.tagsWritten(state.totalTags),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context)
                       .colorScheme
@@ -433,7 +440,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
               context.go('/');
             },
             icon: const Icon(Icons.home),
-            label: const Text('Done'),
+            label: Text(l10n.done),
           ),
         ],
       ),
@@ -441,6 +448,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
   }
 
   Widget _buildErrorView(BuildContext context, ArchiveError state) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -453,7 +461,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Error',
+            l10n.error,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 16),
@@ -468,7 +476,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
               onPressed: () {
                 context.go('/archive/settings');
               },
-              child: const Text('Try Again'),
+              child: Text(l10n.tryAgain),
             ),
           const SizedBox(height: 16),
           TextButton(
@@ -476,7 +484,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
               ref.read(archiveProvider.notifier).reset();
               context.go('/');
             },
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
         ],
       ),
@@ -488,33 +496,35 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
     WidgetRef ref,
     ArchiveReady state,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     ref.read(archiveProvider.notifier).startWriting();
     await ref.read(nfcSessionProvider.notifier).startWriteSession(
           chunk: state.currentChunk,
-          message: 'Hold tag near device to write chunk '
-              '${state.currentChunkIndex + 1} of ${state.totalChunks}',
+          message: l10n.holdTagNearDeviceToWrite(
+              state.currentChunkIndex + 1, state.totalChunks),
         );
   }
 
   Future<void> _showCancelDialog(BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Archive?'),
-        content: const Text(
-          'Progress will be lost. Are you sure you want to cancel?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Continue'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        final dialogL10n = AppLocalizations.of(dialogContext)!;
+        return AlertDialog(
+          title: Text(dialogL10n.cancelArchive),
+          content: Text(dialogL10n.progressWillBeLost),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(dialogL10n.continueButton),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(dialogL10n.cancel),
+            ),
+          ],
+        );
+      },
     );
 
     if (result == true && context.mounted) {
@@ -538,6 +548,7 @@ class _ProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -547,11 +558,11 @@ class _ProgressCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Progress',
+                  l10n.progress,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 Text(
-                  '$current / $total tags',
+                  l10n.tagsProgress(current, total),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),

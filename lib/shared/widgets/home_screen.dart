@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/nfc/nfc.dart';
+import 'language_selector.dart';
 
 /// Home screen with mode selection.
 class HomeScreen extends ConsumerWidget {
@@ -11,11 +13,13 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nfcAvailable = ref.watch(nfcAvailableProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('NFC Archiver'),
+        title: Text(l10n.appTitle),
         actions: [
+          const LanguageSelector(),
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: () => _showAboutDialog(context),
@@ -46,7 +50,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Store files across\nmultiple NFC tags',
+                l10n.mainHeading,
                 style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
@@ -56,8 +60,8 @@ class HomeScreen extends ConsumerWidget {
               // Archive button
               _ModeCard(
                 icon: Icons.archive,
-                title: 'Create Archive',
-                description: 'Split a file into multiple NFC tags',
+                title: l10n.createArchive,
+                description: l10n.createArchiveDesc,
                 onTap: () => context.go('/archive'),
               ),
 
@@ -66,8 +70,8 @@ class HomeScreen extends ConsumerWidget {
               // Restore button
               _ModeCard(
                 icon: Icons.restore,
-                title: 'Restore Archive',
-                description: 'Scan tags to restore a file',
+                title: l10n.restoreArchive,
+                description: l10n.restoreArchiveDesc,
                 onTap: () => context.go('/restore'),
               ),
 
@@ -75,7 +79,7 @@ class HomeScreen extends ConsumerWidget {
 
               // Footer
               Text(
-                'NFC Archiver v1.0.0',
+                l10n.version,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context)
                           .colorScheme
@@ -93,9 +97,10 @@ class HomeScreen extends ConsumerWidget {
   }
 
   void _showAboutDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showAboutDialog(
       context: context,
-      applicationName: 'NFC Archiver',
+      applicationName: l10n.appTitle,
       applicationVersion: '1.0.0',
       applicationIcon: Icon(
         Icons.nfc,
@@ -103,14 +108,9 @@ class HomeScreen extends ConsumerWidget {
         color: Theme.of(context).colorScheme.primary,
       ),
       children: [
-        const Text(
-          'A distributed data archive system using NFC tags. '
-          'Store files across multiple NFC tags and restore them later.',
-        ),
+        Text(l10n.aboutAppDescription),
         const SizedBox(height: 16),
-        const Text(
-          'Supported tags: NTAG213/215/216, MIFARE Ultralight',
-        ),
+        Text(l10n.aboutSupportedTags),
       ],
     );
   }
@@ -127,6 +127,8 @@ class _NfcStatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (isLoading) {
       return Card(
         child: Padding(
@@ -140,7 +142,7 @@ class _NfcStatusBanner extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'Checking NFC...',
+                l10n.nfcChecking,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
@@ -166,7 +168,7 @@ class _NfcStatusBanner extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                isAvailable ? 'NFC is available' : 'NFC is not available',
+                isAvailable ? l10n.nfcAvailable : l10n.nfcUnavailable,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: isAvailable
                           ? Theme.of(context).colorScheme.onPrimaryContainer

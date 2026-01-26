@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/providers/locale_provider.dart';
 import 'features/archive/presentation/screens/archive_settings_screen.dart';
 import 'features/archive/presentation/screens/file_picker_screen.dart';
 import 'features/archive/presentation/screens/write_progress_screen.dart';
@@ -56,6 +59,8 @@ class NfcArchiverApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final userLocale = ref.watch(localeProvider);
+
     return MaterialApp.router(
       title: 'NFC Archiver',
       debugShowCheckedModeBanner: false,
@@ -63,6 +68,15 @@ class NfcArchiverApp extends ConsumerWidget {
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
       routerConfig: _router,
+      // Localization
+      locale: userLocale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: supportedLocales,
     );
   }
 }

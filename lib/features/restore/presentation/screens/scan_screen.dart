@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -28,12 +29,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   Future<void> _startNfcSession() async {
     final nfcAvailable = await ref.read(nfcAvailableProvider.future);
     if (!nfcAvailable) {
-      ref.read(restoreProvider.notifier).scanError('NFC is not available');
+      final l10n = AppLocalizations.of(context);
+      ref.read(restoreProvider.notifier).scanError(l10n?.nfcUnavailable ?? 'NFC is not available');
       return;
     }
 
+    final l10n = AppLocalizations.of(context);
     ref.read(nfcSessionProvider.notifier).startReadSession(
-          message: 'Hold your device near an NFC tag',
+          message: l10n?.holdDeviceNearTag ?? 'Hold your device near an NFC tag',
         );
   }
 
@@ -69,9 +72,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       }
     });
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan Tags'),
+        title: Text(l10n.scanTags),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -106,6 +110,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     RestoreScanning state,
     NfcSessionState nfcState,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -121,13 +126,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                   const SizedBox(height: 24),
                   Text(
                     nfcState is NfcSessionWaiting
-                        ? 'Scanning for tags...'
-                        : 'Preparing scanner...',
+                        ? l10n.scanningForTags
+                        : l10n.preparingScanner,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Hold each NFC tag near your device',
+                    l10n.holdEachTagNear,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -165,13 +170,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                         children: [
                           Text(
                             state.lastScannedChunk!.isNew
-                                ? 'New chunk found!'
-                                : 'Duplicate chunk',
+                                ? l10n.newChunkFound
+                                : l10n.duplicateChunk,
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                           Text(
-                            'Chunk ${state.lastScannedChunk!.chunkIndex + 1} '
-                            'of ${state.lastScannedChunk!.totalChunks}',
+                            l10n.chunkOfTotal(
+                                state.lastScannedChunk!.chunkIndex + 1,
+                                state.lastScannedChunk!.totalChunks),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -216,7 +222,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           // Sessions list
           if (state.sessions.isNotEmpty) ...[
             Text(
-              'Archives in progress',
+              l10n.archivesInProgress,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -230,6 +236,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   }
 
   Widget _buildErrorView(BuildContext context, RestoreError state) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -242,7 +249,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Error',
+            l10n.error,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 16),
@@ -255,7 +262,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           if (state.canRetry)
             FilledButton(
               onPressed: _startScanning,
-              child: const Text('Try Again'),
+              child: Text(l10n.tryAgain),
             ),
         ],
       ),
@@ -345,6 +352,7 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -362,7 +370,7 @@ class _SessionCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Archive ${session.archiveId.substring(0, 8)}...',
+                    l10n.archiveId(session.archiveId.substring(0, 8)),
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ),
