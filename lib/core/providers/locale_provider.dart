@@ -10,6 +10,9 @@ const _localeKey = 'app_locale';
 const supportedLocales = [
   Locale('en'), // English
   Locale('ru'), // Russian
+  Locale('tr'), // Turkish
+  Locale('uk'), // Ukrainian
+  Locale('ka'), // Georgian
 ];
 
 /// Provider for SharedPreferences instance.

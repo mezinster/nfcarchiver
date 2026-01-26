@@ -619,6 +619,21 @@
     "description": "Russian language name"
   },
 
+  "turkish": "Turkish",
+  "@turkish": {
+    "description": "Turkish language name"
+  },
+
+  "ukrainian": "Ukrainian",
+  "@ukrainian": {
+    "description": "Ukrainian language name"
+  },
+
+  "georgian": "Georgian",
+  "@georgian": {
+    "description": "Georgian language name"
+  },
+
   "language": "Language",
   "@language": {
     "description": "Language setting label"

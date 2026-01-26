@@ -33,6 +33,21 @@ class LanguageSelector extends ConsumerWidget {
           const Locale('ru'),
           effectiveLocale,
         ),
+        _buildMenuItem(
+          context,
+          const Locale('tr'),
+          effectiveLocale,
+        ),
+        _buildMenuItem(
+          context,
+          const Locale('uk'),
+          effectiveLocale,
+        ),
+        _buildMenuItem(
+          context,
+          const Locale('ka'),
+          effectiveLocale,
+        ),
       ],
     );
   }
@@ -72,6 +87,12 @@ class LanguageSelector extends ConsumerWidget {
     switch (languageCode) {
       case 'ru':
         return '\u{1F1F7}\u{1F1FA}'; // Russian flag
+      case 'tr':
+        return '\u{1F1F9}\u{1F1F7}'; // Turkish flag
+      case 'uk':
+        return '\u{1F1FA}\u{1F1E6}'; // Ukrainian flag
+      case 'ka':
+        return '\u{1F1EC}\u{1F1EA}'; // Georgian flag
       case 'en':
       default:
         return '\u{1F1FA}\u{1F1F8}'; // US flag
@@ -82,6 +103,12 @@ class LanguageSelector extends ConsumerWidget {
     switch (languageCode) {
       case 'ru':
         return l10n?.russian ?? 'Russian';
+      case 'tr':
+        return l10n?.turkish ?? 'Turkish';
+      case 'uk':
+        return l10n?.ukrainian ?? 'Ukrainian';
+      case 'ka':
+        return l10n?.georgian ?? 'Georgian';
       case 'en':
       default:
         return l10n?.english ?? 'English';
