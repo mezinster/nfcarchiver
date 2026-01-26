@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/nfar_format.dart';
@@ -27,10 +30,24 @@ class ArchiveFileSelected extends ArchiveState {
   final int fileSize;
 }
 
+/// Text selected, ready to configure.
+class ArchiveTextSelected extends ArchiveState {
+  const ArchiveTextSelected({
+    required this.text,
+    required this.textSize,
+  });
+
+  final String text;
+  final int textSize;
+
+  String get fileName => 'text_note.txt';
+}
+
 /// Configuring archive settings.
 class ArchiveConfiguring extends ArchiveState {
   const ArchiveConfiguring({
-    required this.filePath,
+    this.filePath,
+    this.textContent,
     required this.fileName,
     required this.fileSize,
     required this.tagType,
@@ -39,13 +56,18 @@ class ArchiveConfiguring extends ArchiveState {
     this.estimate,
   });
 
-  final String filePath;
+  /// File path (null if text mode).
+  final String? filePath;
+  /// Text content (null if file mode).
+  final String? textContent;
   final String fileName;
   final int fileSize;
   final NfcTagType tagType;
   final bool compress;
   final bool encrypt;
   final ArchiveEstimate? estimate;
+
+  bool get isTextMode => textContent != null;
 }
 
 /// Archive is being prepared (compression, encryption, chunking).
@@ -139,6 +161,17 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
     );
   }
 
+  /// Select text to archive.
+  void selectText({
+    required String text,
+    required int textSize,
+  }) {
+    state = ArchiveTextSelected(
+      text: text,
+      textSize: textSize,
+    );
+  }
+
   /// Configure archive settings.
   void configure({
     required NfcTagType tagType,
@@ -146,11 +179,14 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
     bool encrypt = false,
   }) {
     final current = state;
-    if (current is! ArchiveFileSelected && current is! ArchiveConfiguring) {
+    if (current is! ArchiveFileSelected &&
+        current is! ArchiveTextSelected &&
+        current is! ArchiveConfiguring) {
       return;
     }
 
-    String filePath;
+    String? filePath;
+    String? textContent;
     String fileName;
     int fileSize;
 
@@ -158,9 +194,14 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
       filePath = current.filePath;
       fileName = current.fileName;
       fileSize = current.fileSize;
+    } else if (current is ArchiveTextSelected) {
+      textContent = current.text;
+      fileName = current.fileName;
+      fileSize = current.textSize;
     } else {
       final config = current as ArchiveConfiguring;
       filePath = config.filePath;
+      textContent = config.textContent;
       fileName = config.fileName;
       fileSize = config.fileSize;
     }
@@ -175,6 +216,7 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
 
     state = ArchiveConfiguring(
       filePath: filePath,
+      textContent: textContent,
       fileName: fileName,
       fileSize: fileSize,
       tagType: tagType,
@@ -196,16 +238,31 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
 
     state = ArchivePreparing(
       fileName: current.fileName,
-      stage: 'Reading file...',
+      stage: current.isTextMode ? 'Processing text...' : 'Reading file...',
     );
 
     try {
-      final result = await _repository.createArchive(
-        filePath: current.filePath,
-        tagType: current.tagType,
-        compress: current.compress,
-        password: current.encrypt ? _password : null,
-      );
+      ArchiveResult result;
+
+      if (current.isTextMode) {
+        // Text mode: encode text as UTF-8 bytes
+        final textBytes = Uint8List.fromList(utf8.encode(current.textContent!));
+        result = await _repository.createArchiveFromBytes(
+          data: textBytes,
+          fileName: current.fileName,
+          tagType: current.tagType,
+          compress: current.compress,
+          password: current.encrypt ? _password : null,
+        );
+      } else {
+        // File mode: read from file path
+        result = await _repository.createArchive(
+          filePath: current.filePath!,
+          tagType: current.tagType,
+          compress: current.compress,
+          password: current.encrypt ? _password : null,
+        );
+      }
 
       state = ArchiveReady(
         result: result,

@@ -105,5 +105,14 @@
 
   "english": "Английский",
   "russian": "Русский",
-  "language": "Язык"
+  "language": "Язык",
+
+  "file": "Файл",
+  "text": "Текст",
+  "enterTextToArchive": "Введите текст для архивации",
+  "typeYourTextHere": "Введите текст здесь...",
+  "textRestored": "Текст восстановлен!",
+  "textCopied": "Текст скопирован в буфер обмена",
+  "copyText": "Копировать текст",
+  "couldNotDecodeText": "[Не удалось декодировать текст]"
 }

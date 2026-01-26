@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -226,6 +229,15 @@ class _RestoreProgressScreenState
 
   Widget _buildCompleteView(BuildContext context, RestoreComplete state) {
     final l10n = AppLocalizations.of(context)!;
+
+    // Check if this is a text note (special filename)
+    final isTextNote = state.fileName == 'text_note.txt' ||
+        state.result.originalFileName == 'text_note.txt';
+
+    if (isTextNote) {
+      return _buildTextCompleteView(context, state);
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -285,6 +297,116 @@ class _RestoreProgressScreenState
             },
             icon: const Icon(Icons.home),
             label: Text(l10n.done),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextCompleteView(BuildContext context, RestoreComplete state) {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Decode the text from UTF-8 bytes
+    String restoredText;
+    try {
+      restoredText = utf8.decode(state.result.data);
+    } catch (_) {
+      restoredText = l10n.couldNotDecodeText;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 32,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.textRestored,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    Text(
+                      _formatSize(state.result.dataSize),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              // Copy button
+              IconButton.filled(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: restoredText));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.textCopied)),
+                  );
+                },
+                icon: const Icon(Icons.copy),
+                tooltip: l10n.copyText,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Text content card
+          Expanded(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    restoredText,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'monospace',
+                        ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    ref.read(restoreProvider.notifier).reset();
+                    context.go('/');
+                  },
+                  icon: const Icon(Icons.home),
+                  label: Text(l10n.done),
+                ),
+              ),
+              if (state.result.savedPath != null) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => _shareFile(state.result.savedPath!),
+                    icon: const Icon(Icons.share),
+                    label: Text(l10n.shareFile),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),

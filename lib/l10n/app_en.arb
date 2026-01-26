@@ -622,5 +622,45 @@
   "language": "Language",
   "@language": {
     "description": "Language setting label"
+  },
+
+  "file": "File",
+  "@file": {
+    "description": "File mode button label"
+  },
+
+  "text": "Text",
+  "@text": {
+    "description": "Text mode button label"
+  },
+
+  "enterTextToArchive": "Enter text to archive",
+  "@enterTextToArchive": {
+    "description": "Text input header"
+  },
+
+  "typeYourTextHere": "Type your text here...",
+  "@typeYourTextHere": {
+    "description": "Text input placeholder"
+  },
+
+  "textRestored": "Text Restored!",
+  "@textRestored": {
+    "description": "Text restore complete title"
+  },
+
+  "textCopied": "Text copied to clipboard",
+  "@textCopied": {
+    "description": "Text copy confirmation"
+  },
+
+  "copyText": "Copy text",
+  "@copyText": {
+    "description": "Copy text button tooltip"
+  },
+
+  "couldNotDecodeText": "[Could not decode text]",
+  "@couldNotDecodeText": {
+    "description": "Error when text decoding fails"
   }
 }

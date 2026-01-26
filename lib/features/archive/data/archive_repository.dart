@@ -144,7 +144,9 @@ class ArchiveRepository {
     String? password,
   }) async {
     final originalSize = data.length;
-    var processedData = data;
+
+    // Prepend filename metadata to data (same as createArchive)
+    var processedData = _prependFilenameMetadata(data, fileName);
 
     // Compress if requested
     bool wasCompressed = false;
