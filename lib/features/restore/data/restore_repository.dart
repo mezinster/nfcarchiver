@@ -87,13 +87,9 @@ class RestoreRepository {
       }
       try {
         data = _encryptionService.decrypt(data, password);
-      } catch (e) {
-        // Provide detailed error for debugging
+      } catch (_) {
         throw RestoreException(
-          'Decryption failed: wrong password or corrupted data.\n'
-          'Assembled data size: ${data.length} bytes, '
-          'password length: ${password.length} chars.\n'
-          'Detail: $e',
+          'Decryption failed: wrong password or corrupted data',
         );
       }
     }
