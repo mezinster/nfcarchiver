@@ -46,7 +46,7 @@
     "description": "Restore archive button description"
   },
 
-  "version": "NFC Archiver v1.0.0",
+  "version": "NFC Archiver (c) 2026",
   "@version": {
     "description": "Version text in footer"
   },
