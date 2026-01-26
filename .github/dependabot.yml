@@ -37,3 +37,11 @@ updates:
       - "android"
     commit-message:
       prefix: "deps(gradle):"
+    ignore:
+      # Ignore major version updates that require migration
+      - dependency-name: "com.android.application"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.jetbrains.kotlin.android"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "gradle-wrapper"
+        update-types: ["version-update:semver-major"]
