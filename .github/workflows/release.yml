@@ -10,6 +10,11 @@ on:
         description: 'Version to release (e.g., 1.2.0)'
         required: true
         type: string
+      branch:
+        description: 'Branch to release from (default: master)'
+        required: false
+        type: string
+        default: 'master'
       prerelease:
         description: 'Mark as pre-release'
         required: false
@@ -27,21 +32,26 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       build_number: ${{ steps.version.outputs.build_number }}
       tag: ${{ steps.version.outputs.tag }}
+      branch: ${{ steps.version.outputs.branch }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.ref }}
 
       - name: Determine version
         id: version
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
+            BRANCH="${{ github.event.inputs.branch }}"
           else
             # Extract version from tag (remove 'v' prefix)
             VERSION="${GITHUB_REF#refs/tags/v}"
+            # For tag pushes, determine branch from tag's commit
+            BRANCH=$(git branch -r --contains HEAD | head -1 | sed 's|.*origin/||' || echo "unknown")
           fi
 
           # Calculate build number from commit count
@@ -50,9 +60,11 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
 
           echo "Version: ${VERSION}"
           echo "Build Number: ${BUILD_NUMBER}"
+          echo "Branch: ${BRANCH}"
 
   test:
     name: Run Tests
@@ -61,6 +73,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.ref }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -89,6 +103,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.ref }}
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -173,6 +189,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.ref }}
 
       - name: Download APK artifact
         uses: actions/download-artifact@v7
@@ -197,6 +215,7 @@ jobs:
         run: |
           VERSION="${{ needs.version.outputs.version }}"
           BUILD="${{ needs.version.outputs.build_number }}"
+          BRANCH="${{ needs.version.outputs.branch }}"
 
           cat << EOF > release-notes.md
           ## NFC Archiver v${VERSION}
@@ -216,6 +235,7 @@ jobs:
           ### Build Info
           - Version: ${VERSION}
           - Build Number: ${BUILD}
+          - Branch: ${BRANCH}
           - Flutter: ${{ env.FLUTTER_VERSION }}
           EOF
 
@@ -226,7 +246,7 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git tag -fa "${{ needs.version.outputs.tag }}" -m "Release ${{ needs.version.outputs.tag }}"
+          git tag -fa "${{ needs.version.outputs.tag }}" -m "Release ${{ needs.version.outputs.tag }} from branch ${{ needs.version.outputs.branch }}"
           git push origin "${{ needs.version.outputs.tag }}" --force
 
       - name: Create GitHub Release
