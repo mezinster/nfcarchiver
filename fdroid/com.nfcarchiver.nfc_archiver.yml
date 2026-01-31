@@ -1,0 +1,34 @@
+Categories:
+  - System
+  - Utility
+License: MIT
+AuthorName: mezinster
+SourceCode: https://github.com/mezinster/nfcarchiver
+IssueTracker: https://github.com/mezinster/nfcarchiver/issues
+
+RepoType: git
+Repo: https://github.com/mezinster/nfcarchiver.git
+
+Builds:
+  - versionName: 1.0.5
+    versionCode: 5
+    commit: v1.0.5
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+      - macos
+      - windows
+      - linux
+      - web
+    build:
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+      - $$flutter$$/bin/flutter gen-l10n
+      - $$flutter$$/bin/flutter build apk --release
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.0.5
+CurrentVersionCode: 5

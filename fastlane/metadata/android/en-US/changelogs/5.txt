@@ -1,0 +1,8 @@
+Initial release of NFC Archiver.
+
+* Archive files and text to multiple NFC tags
+* Restore archives by scanning tags in any order
+* GZIP compression support
+* AES-256-GCM encryption with password protection
+* Support for NTAG213, NTAG215, NTAG216, MIFARE Ultralight tags
+* Available in English, Russian, Turkish, Ukrainian, and Georgian
