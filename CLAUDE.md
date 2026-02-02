@@ -72,3 +72,15 @@ Riverpod with `StateNotifier` pattern using sealed classes for type-safe state t
 ### Localization
 
 Uses Flutter's `gen-l10n` with ARB files in `lib/l10n/`. Supported: English (`app_en.arb`), Russian (`app_ru.arb`). Run `flutter gen-l10n` after modifying ARB files.
+
+## F-Droid Build Notes
+
+F-Droid metadata lives in `fdroid/com.nfcarchiver.nfc_archiver.yml` (local copy) and is submitted via MR to [fdroiddata](https://gitlab.com/fdroid/fdroiddata). Key gotchas for future updates:
+
+- **`compileSdk` must stay at 34** — F-Droid's build server has a JDK 21 `jlink`/`JdkImageTransform` bug with SDK 35. Do not bump `compileSdk` unless F-Droid upgrades their JDK or the bug is fixed. The build also installs JDK 17 from Debian Bookworm as a workaround.
+- **Flutter version is pinned from the release workflow** — `prebuild` extracts `FLUTTER_VERSION` from `.github/workflows/release.yml` via `sed`. If you rename/restructure the workflow, the F-Droid build will break.
+- **`pub get` runs in `prebuild`, not `build`** — F-Droid scans dependencies between prebuild and build. `.pub-cache` is in `scandelete` (deleted after scanning). Any build step that depends on `.pub-cache` must set `PUB_CACHE=$(pwd)/.pub-cache`.
+- **Categories** — F-Droid does not accept `Utility`. Current categories: `Connectivity`, `System`.
+- **Commit reference** — Use full commit SHA in the `commit:` field, not tag references.
+- **`rewritemeta` formatting** — Run `rewritemeta com.nfcarchiver.nfc_archiver` in the fdroiddata repo before submitting. It enforces field ordering and line formatting. `sudo:` must come after `commit:`, and compound shell commands (like `echo ... > file`) must be on a single line.
+- **`UpdateCheckData`** — Regex pattern `pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+` extracts versionCode and versionName from `pubspec.yaml`. The `version:` field format in pubspec must remain `X.Y.Z+N`.

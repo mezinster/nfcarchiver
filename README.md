@@ -110,6 +110,41 @@ lib/
 - **pointycastle** — cryptography (AES-256-GCM, PBKDF2)
 - **go_router** — navigation
 
+### F-Droid Publishing
+
+This app went through 13 iterations of its [F-Droid metadata MR](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/32729) before acceptance. Here are the key challenges encountered:
+
+1. **Invalid metadata categories** — `Utility` is not a valid F-Droid category. Had to use `Connectivity` instead, which is the closest match for an NFC-based app.
+
+2. **Missing required fields** — F-Droid's linting requires `AutoName` (human-readable app name) and `UpdateCheckData` (regex to extract version from the repo). Without these, the `checkupdates` pipeline fails.
+
+3. **Flutter version pinning** — F-Droid's `flutter@stable` srclib doesn't guarantee a specific Flutter version. The solution was to extract `FLUTTER_VERSION` from the GitHub release workflow using `sed` and explicitly `git checkout` that version in `prebuild`:
+   ```yaml
+   prebuild:
+     - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\ '(.*)'/\1/p" .github/workflows/release.yml)
+     - git -C $$flutter$$ checkout -f $flutterVersion
+   ```
+
+4. **Package scanning (`scandelete`)** — F-Droid scans all dependencies for proprietary code between `prebuild` and `build`. This means `flutter pub get` must run in `prebuild` (not `build`), and `.pub-cache` must be listed in `scandelete` since it contains pre-compiled binaries.
+
+5. **compileSdk 35 vs JDK 21 incompatibility** — F-Droid's build server uses JDK 21, which has a `jlink`/`JdkImageTransform` bug with Android SDK 35. Multiple approaches failed:
+   - `sed`-patching `.pub-cache` plugin files — failed because `scandelete` removes `.pub-cache` before build
+   - Gradle `afterEvaluate` override — failed with "project already evaluated" due to Flutter's `evaluationDependsOn`
+   - Gradle init script — worked but was overly complex
+   - **Final solution**: lower `compileSdk` to 34 in the source repo itself, plus an `afterEvaluate` block for plugin subprojects
+
+6. **JDK 17 installation** — Even with `compileSdk` 34, JDK 21 still caused issues. The fix required installing JDK 17 via `sudo`, but F-Droid's build server runs Debian Trixie which doesn't have JDK 17 in its repos. Solution: add the Debian Bookworm repo first:
+   ```yaml
+   sudo:
+     - echo 'deb http://deb.debian.org/debian bookworm main' > /etc/apt/sources.list.d/bookworm.list
+     - apt-get update
+     - apt-get install -y openjdk-17-jdk-headless
+   ```
+
+7. **`rewritemeta` formatting** — F-Droid's linter (`rewritemeta`) enforces strict field ordering (e.g., `sudo:` must come after `commit:`) and formatting rules (multi-part shell commands like `echo` must stay on a single line).
+
+8. **Commit hash requirement** — The reviewer required a full commit SHA (`97f2567c...`) instead of a tag reference (`v1.0.6`) for build reproducibility.
+
 ### License
 
 MIT
@@ -225,6 +260,41 @@ lib/
 - **nfc_manager** — NFC операции
 - **pointycastle** — криптография (AES-256-GCM, PBKDF2)
 - **go_router** — навигация
+
+### Публикация в F-Droid
+
+Приложение прошло через 13 итераций [MR в fdroiddata](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/32729) до принятия. Основные трудности:
+
+1. **Невалидные категории метаданных** — `Utility` не является допустимой категорией F-Droid. Пришлось использовать `Connectivity` как наиболее подходящую для NFC-приложения.
+
+2. **Отсутствующие обязательные поля** — линтер F-Droid требует `AutoName` (человекочитаемое имя) и `UpdateCheckData` (регулярное выражение для извлечения версии из репозитория). Без них пайплайн `checkupdates` падает.
+
+3. **Привязка версии Flutter** — srclib `flutter@stable` в F-Droid не гарантирует конкретную версию Flutter. Решение — извлекать `FLUTTER_VERSION` из workflow релиза через `sed` и явно делать `git checkout` нужной версии в `prebuild`:
+   ```yaml
+   prebuild:
+     - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\ '(.*)'/\1/p" .github/workflows/release.yml)
+     - git -C $$flutter$$ checkout -f $flutterVersion
+   ```
+
+4. **Сканирование пакетов (`scandelete`)** — F-Droid сканирует все зависимости на проприетарный код между `prebuild` и `build`. Поэтому `flutter pub get` должен выполняться в `prebuild` (не в `build`), а `.pub-cache` нужно указать в `scandelete`, так как он содержит прекомпилированные бинарники.
+
+5. **Несовместимость compileSdk 35 и JDK 21** — сервер сборки F-Droid использует JDK 21, в котором есть баг `jlink`/`JdkImageTransform` с Android SDK 35. Несколько подходов не сработали:
+   - Патчинг файлов плагинов в `.pub-cache` через `sed` — не работает, т.к. `scandelete` удаляет `.pub-cache` перед сборкой
+   - Gradle `afterEvaluate` override — ошибка "project already evaluated" из-за `evaluationDependsOn` во Flutter
+   - Gradle init script — работал, но слишком сложный
+   - **Итоговое решение**: понижение `compileSdk` до 34 в самом репозитории + блок `afterEvaluate` для субпроектов плагинов
+
+6. **Установка JDK 17** — даже с `compileSdk` 34 у JDK 21 оставались проблемы. Потребовалась установка JDK 17 через `sudo`, но на сервере F-Droid стоит Debian Trixie, где нет JDK 17 в репозиториях. Решение — подключить репозиторий Debian Bookworm:
+   ```yaml
+   sudo:
+     - echo 'deb http://deb.debian.org/debian bookworm main' > /etc/apt/sources.list.d/bookworm.list
+     - apt-get update
+     - apt-get install -y openjdk-17-jdk-headless
+   ```
+
+7. **Форматирование `rewritemeta`** — линтер F-Droid (`rewritemeta`) требует строгого порядка полей (например, `sudo:` должен идти после `commit:`) и правил форматирования (составные shell-команды вроде `echo` должны быть на одной строке).
+
+8. **Требование хеша коммита** — ревьюер потребовал полный SHA коммита (`97f2567c...`) вместо ссылки на тег (`v1.0.6`) для воспроизводимости сборки.
 
 ### Лицензия
 
