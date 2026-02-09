@@ -111,6 +111,14 @@ class HomeScreen extends ConsumerWidget {
         Text(l10n.aboutAppDescription),
         const SizedBox(height: 16),
         Text(l10n.aboutSupportedTags),
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            GoRouter.of(context).push('/privacy-policy');
+          },
+          child: Text(l10n.privacyPolicy),
+        ),
       ],
     );
   }

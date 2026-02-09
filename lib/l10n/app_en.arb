@@ -677,5 +677,20 @@
   "couldNotDecodeText": "[Could not decode text]",
   "@couldNotDecodeText": {
     "description": "Error when text decoding fails"
+  },
+
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Privacy policy button label in About dialog"
+  },
+
+  "privacyPolicyTitle": "Privacy Policy",
+  "@privacyPolicyTitle": {
+    "description": "Privacy policy screen title"
+  },
+
+  "privacyPolicyContent": "NFC Archiver is designed with privacy as a core principle. The app operates entirely offline and does not collect, transmit, or store any personal data.\n\nData Collection\nWe do not collect any data. No personal information, usage analytics, tracking, crash reports, cookies, identifiers, or advertising data.\n\nNFC Access\nNFC functionality is used exclusively for reading and writing data to physical NFC tags held near your device. All NFC operations are local — no data is transmitted over the network.\n\nFile Processing\nFiles you select for archiving are processed entirely on your device. File data is read from local storage, optionally compressed and encrypted on-device, split into chunks, and written to NFC tags. No file data is ever uploaded or transmitted to any server.\n\nEncryption\nWhen you enable encryption, your password is used locally to derive an encryption key (PBKDF2). Your password is never stored, logged, or transmitted. Encryption and decryption happen entirely on your device.\n\nThird-Party Services\nNFC Archiver uses no third-party services — no analytics, no cloud storage, no remote servers, no social media integrations.\n\nPermissions\nThe app requests only the permissions necessary for its core functionality: NFC access to read and write tags, and storage access for files you choose to archive or restore.",
+  "@privacyPolicyContent": {
+    "description": "Full privacy policy text displayed in the app"
   }
 }

@@ -12,6 +12,7 @@ import 'features/restore/presentation/screens/restore_progress_screen.dart';
 import 'features/restore/presentation/screens/scan_screen.dart';
 import 'shared/theme/app_theme.dart';
 import 'shared/widgets/home_screen.dart';
+import 'shared/widgets/privacy_policy_screen.dart';
 
 /// Router configuration.
 final _router = GoRouter(
@@ -37,6 +38,12 @@ final _router = GoRouter(
           builder: (context, state) => const WriteProgressScreen(),
         ),
       ],
+    ),
+
+    // Privacy policy
+    GoRoute(
+      path: '/privacy-policy',
+      builder: (context, state) => const PrivacyPolicyScreen(),
     ),
 
     // Restore flow
