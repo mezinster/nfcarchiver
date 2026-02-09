@@ -1,0 +1,1 @@
+Dosyaları birden fazla NFC etiketinde saklayın ve geri yükleyin

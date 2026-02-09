@@ -8,11 +8,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- F-Droid publishing challenges documentation in README (EN + RU) and CLAUDE.md
+
+## [1.0.6] - 2026-02-01
+
+### Added
+- F-Droid publishing metadata (fastlane structure, store listing images)
+- MIT LICENSE file
+- F-Droid store listing: icon, feature graphic, and 6 phone screenshots
+
+### Changed
+- Lowered compileSdk to 34 for F-Droid JDK 21 compatibility
+- Added Gradle `afterEvaluate` block to override compileSdk for plugin subprojects
+
+## [1.0.4] - 2026-01-27
+
+### Changed
+- Release workflow now supports branch selection via `workflow_dispatch` input
+- Workflow run name shows version and branch in Actions UI
+- Added release notes input field for custom changelog entries
+- Updated SDK version
+
+## [1.0.3] - 2026-01-26
+
+### Added
+- Textarea feature to send text messages over NFC tags
+- Turkish, Ukrainian, and Georgian translations
 - Internationalization support with English and Russian languages
 - Language selector in app bar with flag icons
 - Persistent language preference
+- GitHub Actions CI/CD (analyze, test, debug builds, release workflow)
+- Dependabot for automated dependency updates
+- Copyright footer
+- Original filename preserved in archive metadata
 
-## [1.0.0] - 2024-01-26
+### Fixed
+- Critical GCM encryption bug: `cipher.getOutputSize()` over-estimated buffer size, causing garbage bytes to corrupt authentication tag
+- NFC `Map<Object?, Object?>` type cast error on Android 16
+- Password handling: trim whitespace, disable autocorrect/suggestions on password fields
+- Dart SDK version constraint lowered to `^3.5.0` for Flutter 3.24.0 compatibility
+- "Try Again" navigation was routing to wrong screen
+
+### Improved
+- Restore error handling: retry password without rescanning, rescan only corrupted chunks
+- Write cooldown (2s) to prevent NFC re-read after write
+- Adaptive chunk sizing that detects actual tag NDEF capacity
+- Decryption password field with character counter and detailed error messages
+- NDEF overhead calculation corrected (was 10 bytes, now 44 bytes)
+
+## [1.0.0] - 2026-01-26
 
 ### Added
 - Initial release

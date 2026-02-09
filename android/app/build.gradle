@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.nfcarchiver.nfc_archiver"
-    compileSdk = 35
+    compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

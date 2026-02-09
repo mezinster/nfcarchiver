@@ -1,0 +1,22 @@
+NFC etiketleri kullanan dağıtık veri arşivleme sistemi. Dosyaları birden fazla NFC etiketinde saklayın ve daha sonra geri yükleyin.
+
+Herhangi bir dosyayı parçalara bölün ve NFC etiketlerine yazın. Orijinal dosyayı yeniden oluşturmak ve geri yüklemek için etiketleri herhangi bir sırada tarayın.
+
+Özellikler:
+* Dosya arşivleme — herhangi bir dosyayı NFC etiketlerine yazmak için parçalara bölme
+* Metin arşivleme — metin mesajlarını NFC etiketlerinde saklama
+* Geri yükleme — etiketleri herhangi bir sırada tarayarak orijinal dosyayı birleştirme
+* Sıkıştırma — gereken etiket sayısını azaltmak için isteğe bağlı GZIP sıkıştırma
+* Şifreleme — parola korumalı AES-256-GCM şifreleme (PBKDF2 anahtar türetme)
+* Çevrimdışı çalışma — ağ bağlantısı gerekmez
+
+Desteklenen NFC Etiketleri:
+* NTAG213 (144 bayt)
+* NTAG215 (504 bayt)
+* NTAG216 (888 bayt)
+* MIFARE Ultralight (48 bayt)
+* MIFARE Ultralight C (144 bayt)
+
+28 baytlık başlık, CRC32 bütünlük kontrolü ve UUID tabanlı arşiv tanımlama ile NFAR v1 ikili formatını kullanır. Parçalar herhangi bir sırada taranabilir ve otomatik olarak doğrulanır.
+
+NFC Arşivcisi özgür ve açık kaynaklı yazılımdır. İzleme yok, reklam yok, ağ erişimi gerekmez.

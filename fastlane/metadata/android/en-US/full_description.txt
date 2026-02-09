@@ -1,0 +1,22 @@
+A distributed data archive system using NFC tags. Store files across multiple NFC tags and restore them later.
+
+Split any file into parts and write them to NFC tags. Scan the tags in any order to reassemble and restore the original file.
+
+Features:
+* File archiving — split any file into parts for writing to NFC tags
+* Text archiving — store text messages across NFC tags
+* Restoration — scan tags in any order and assemble the original file
+* Compression — optional GZIP compression to reduce the number of tags needed
+* Encryption — AES-256-GCM encryption with password protection (PBKDF2 key derivation)
+* Offline operation — no network connection required
+
+Supported NFC Tags:
+* NTAG213 (144 bytes)
+* NTAG215 (504 bytes)
+* NTAG216 (888 bytes)
+* MIFARE Ultralight (48 bytes)
+* MIFARE Ultralight C (144 bytes)
+
+Uses the NFAR v1 binary format with a 28-byte header, CRC32 integrity checking, and UUID-based archive identification. Chunks can be scanned in any order and are validated automatically.
+
+NFC Archiver is free and open source software. No tracking, no ads, no network access required.
