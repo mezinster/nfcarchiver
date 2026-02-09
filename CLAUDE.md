@@ -71,4 +71,22 @@ Riverpod with `StateNotifier` pattern using sealed classes for type-safe state t
 
 ### Localization
 
-Uses Flutter's `gen-l10n` with ARB files in `lib/l10n/`. Supported: English (`app_en.arb`), Russian (`app_ru.arb`). Run `flutter gen-l10n` after modifying ARB files.
+Uses Flutter's `gen-l10n` with ARB files in `lib/l10n/`. Supported: English (`app_en.arb`), Russian (`app_ru.arb`), Turkish (`app_tr.arb`), Ukrainian (`app_uk.arb`), Georgian (`app_ka.arb`). Run `flutter gen-l10n` after modifying ARB files.
+
+## Apple App Store Publishing
+
+**Goal:** Publish NFC Archiver to the Apple App Store.
+
+### Steps to Resolve
+
+1. **Apple Developer Account** — Enroll in the Apple Developer Program ($99/year) if not already enrolled
+2. **App Store Connect setup** — Create the app record in App Store Connect with bundle ID, app name, and category
+3. **App icons & screenshots** — Prepare required app icon sizes (1024x1024 for store) and screenshots for all required device sizes (6.7", 6.5", 5.5" iPhones; iPad Pro)
+4. **App Store metadata** — Write app description, keywords, subtitle, promotional text, and select appropriate categories
+5. **Privacy policy URL** — Host `PRIVACY_POLICY.md` at a public URL (required by Apple for apps accessing NFC/files); reference it in App Store Connect
+6. **Age rating questionnaire** — Complete the age rating questionnaire in App Store Connect
+7. **Review NFC entitlements** — Ensure `ios/Runner/Runner.entitlements` has the correct NFC tag reading capability; already added in commit `25ee496`
+8. **Signing & provisioning** — Configure distribution certificate and App Store provisioning profile in Xcode
+9. **Build & upload** — Build release IPA via `flutter build ipa` and upload via Xcode or `xcrun altool`
+10. **TestFlight** — Distribute a build via TestFlight for pre-release testing before submitting for review
+11. **App Review submission** — Submit for Apple review; address any rejection feedback
