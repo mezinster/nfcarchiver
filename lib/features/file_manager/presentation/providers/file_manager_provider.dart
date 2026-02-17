@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/file_manager_repository.dart';
 
 /// Lightweight provider for storage info, used by the home screen indicator.
-final storageInfoProvider = FutureProvider<StorageInfo>((ref) {
+/// Uses autoDispose so it re-fetches when the home screen is navigated to.
+final storageInfoProvider = FutureProvider.autoDispose<StorageInfo>((ref) {
   return FileManagerRepository.instance.getStorageInfo();
 });
 
@@ -34,7 +35,7 @@ class FileManagerError extends FileManagerState {
 
 /// Provider for the file manager screen.
 final fileManagerProvider =
-    StateNotifierProvider<FileManagerNotifier, FileManagerState>(
+    StateNotifierProvider.autoDispose<FileManagerNotifier, FileManagerState>(
   (ref) => FileManagerNotifier(ref),
 );
 
