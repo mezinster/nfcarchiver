@@ -57,8 +57,6 @@ class HomeScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 16),
-
               // Storage indicator
               _StorageIndicator(),
 
@@ -276,33 +274,37 @@ class _StorageIndicator extends ConsumerWidget {
     return storageInfo.when(
       data: (info) {
         if (info.fileCount == 0) return const SizedBox.shrink();
-        return Card(
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => GoRouter.of(context).push('/files'),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.folder,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      l10n.storageUsage(
-                        info.fileCount,
-                        formatFileSize(info.totalBytes),
-                      ),
-                      style: Theme.of(context).textTheme.bodyMedium,
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Card(
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => GoRouter.of(context).push('/files'),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.folder,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l10n.storageUsage(
+                          info.fileCount,
+                          formatFileSize(info.totalBytes),
+                        ),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
