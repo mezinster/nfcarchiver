@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-02-17
+
 ### Added
-- F-Droid publishing challenges documentation in README (EN + RU) and CLAUDE.md
+- File manager screen for viewing, sharing, and deleting restored files
+- Storage indicator on home screen showing file count and total size
+- Delete file button on restore complete screen (files and text notes)
+- Localized file management strings for all 5 languages (EN, RU, TR, UK, KA)
+
+### Changed
+- Home screen body is now scrollable to support smaller viewports
+- Extracted shared `formatFileSize()` utility replacing 3 duplicated methods
+- iOS build in release workflow is now non-blocking (`continue-on-error`)
 
 ## [1.0.6] - 2026-02-01
 

@@ -1,0 +1,6 @@
+File Manager for restored files.
+
+* New file manager screen to view, share, and delete restored files
+* Storage indicator on home screen shows file count and total size
+* Delete file button on restore complete screen
+* Home screen now scrollable for smaller devices
