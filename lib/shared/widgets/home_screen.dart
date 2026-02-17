@@ -29,73 +29,88 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // NFC Status
-              nfcAvailable.when(
-                data: (available) => _NfcStatusBanner(isAvailable: available),
-                loading: () => const _NfcStatusBanner(isLoading: true),
-                error: (_, __) =>
-                    const _NfcStatusBanner(isAvailable: false),
-              ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // NFC Status
+                        nfcAvailable.when(
+                          data: (available) =>
+                              _NfcStatusBanner(isAvailable: available),
+                          loading: () =>
+                              const _NfcStatusBanner(isLoading: true),
+                          error: (_, __) =>
+                              const _NfcStatusBanner(isAvailable: false),
+                        ),
 
-              const SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
-              // Logo/Header
-              Icon(
-                Icons.nfc,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.mainHeading,
-                style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
+                        // Logo/Header
+                        Icon(
+                          Icons.nfc,
+                          size: 80,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.mainHeading,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
+                        ),
 
-              // Storage indicator
-              _StorageIndicator(),
+                        // Storage indicator
+                        _StorageIndicator(),
 
-              const Spacer(),
+                        const Spacer(),
 
-              // Archive button
-              _ModeCard(
-                icon: Icons.archive,
-                title: l10n.createArchive,
-                description: l10n.createArchiveDesc,
-                onTap: () => context.go('/archive'),
-              ),
+                        // Archive button
+                        _ModeCard(
+                          icon: Icons.archive,
+                          title: l10n.createArchive,
+                          description: l10n.createArchiveDesc,
+                          onTap: () => context.go('/archive'),
+                        ),
 
-              const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-              // Restore button
-              _ModeCard(
-                icon: Icons.restore,
-                title: l10n.restoreArchive,
-                description: l10n.restoreArchiveDesc,
-                onTap: () => context.go('/restore'),
-              ),
+                        // Restore button
+                        _ModeCard(
+                          icon: Icons.restore,
+                          title: l10n.restoreArchive,
+                          description: l10n.restoreArchiveDesc,
+                          onTap: () => context.go('/restore'),
+                        ),
 
-              const Spacer(),
+                        const Spacer(),
 
-              // Footer
-              Text(
-                l10n.version,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.4),
+                        // Footer
+                        Text(
+                          l10n.version,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.4),
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
-                textAlign: TextAlign.center,
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -271,47 +286,47 @@ class _StorageIndicator extends ConsumerWidget {
     final storageInfo = ref.watch(storageInfoProvider);
     final l10n = AppLocalizations.of(context)!;
 
-    return storageInfo.when(
-      data: (info) {
-        if (info.fileCount == 0) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.only(top: 16),
-          child: Card(
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: () => GoRouter.of(context).push('/files'),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.folder,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        l10n.storageUsage(
-                          info.fileCount,
-                          formatFileSize(info.totalBytes),
-                        ),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                  ],
+    final hasFiles = storageInfo.whenOrNull(
+          data: (info) => info.fileCount > 0,
+        ) ??
+        false;
+    final info = storageInfo.valueOrNull;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => GoRouter.of(context).push('/files'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  hasFiles ? Icons.folder : Icons.folder_open,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    hasFiles
+                        ? l10n.storageUsage(
+                            info!.fileCount,
+                            formatFileSize(info.totalBytes),
+                          )
+                        : l10n.noArchivedFiles,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ],
             ),
           ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+        ),
+      ),
     );
   }
 }
