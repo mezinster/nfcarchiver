@@ -3,7 +3,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/file_manager/presentation/providers/file_manager_provider.dart';
 import '../../features/nfc/nfc.dart';
+import '../utils/format_utils.dart';
 import 'language_selector.dart';
 
 /// Home screen with mode selection.
@@ -27,70 +29,88 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // NFC Status
-              nfcAvailable.when(
-                data: (available) => _NfcStatusBanner(isAvailable: available),
-                loading: () => const _NfcStatusBanner(isLoading: true),
-                error: (_, __) =>
-                    const _NfcStatusBanner(isAvailable: false),
-              ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // NFC Status
+                        nfcAvailable.when(
+                          data: (available) =>
+                              _NfcStatusBanner(isAvailable: available),
+                          loading: () =>
+                              const _NfcStatusBanner(isLoading: true),
+                          error: (_, __) =>
+                              const _NfcStatusBanner(isAvailable: false),
+                        ),
 
-              const SizedBox(height: 32),
+                        const SizedBox(height: 32),
 
-              // Logo/Header
-              Icon(
-                Icons.nfc,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.mainHeading,
-                style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
+                        // Logo/Header
+                        Icon(
+                          Icons.nfc,
+                          size: 80,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.mainHeading,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
+                        ),
 
-              const Spacer(),
+                        // Storage indicator
+                        _StorageIndicator(),
 
-              // Archive button
-              _ModeCard(
-                icon: Icons.archive,
-                title: l10n.createArchive,
-                description: l10n.createArchiveDesc,
-                onTap: () => context.go('/archive'),
-              ),
+                        const Spacer(),
 
-              const SizedBox(height: 16),
+                        // Archive button
+                        _ModeCard(
+                          icon: Icons.archive,
+                          title: l10n.createArchive,
+                          description: l10n.createArchiveDesc,
+                          onTap: () => context.go('/archive'),
+                        ),
 
-              // Restore button
-              _ModeCard(
-                icon: Icons.restore,
-                title: l10n.restoreArchive,
-                description: l10n.restoreArchiveDesc,
-                onTap: () => context.go('/restore'),
-              ),
+                        const SizedBox(height: 16),
 
-              const Spacer(),
+                        // Restore button
+                        _ModeCard(
+                          icon: Icons.restore,
+                          title: l10n.restoreArchive,
+                          description: l10n.restoreArchiveDesc,
+                          onTap: () => context.go('/restore'),
+                        ),
 
-              // Footer
-              Text(
-                l10n.version,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.4),
+                        const Spacer(),
+
+                        // Footer
+                        Text(
+                          l10n.version,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.4),
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
-                textAlign: TextAlign.center,
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -101,7 +121,7 @@ class HomeScreen extends ConsumerWidget {
     showAboutDialog(
       context: context,
       applicationName: l10n.appTitle,
-      applicationVersion: '1.0.5',
+      applicationVersion: '1.0.7',
       applicationIcon: Icon(
         Icons.nfc,
         size: 48,
@@ -253,6 +273,57 @@ class _ModeCard extends StatelessWidget {
                 color: Theme.of(context).colorScheme.outline,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StorageIndicator extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final storageInfo = ref.watch(storageInfoProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    final hasFiles = storageInfo.whenOrNull(
+          data: (info) => info.fileCount > 0,
+        ) ??
+        false;
+    final info = storageInfo.valueOrNull;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => GoRouter.of(context).push('/files'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  hasFiles ? Icons.folder : Icons.folder_open,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    hasFiles
+                        ? l10n.storageUsage(
+                            info!.fileCount,
+                            formatFileSize(info.totalBytes),
+                          )
+                        : l10n.noArchivedFiles,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ],
+            ),
           ),
         ),
       ),

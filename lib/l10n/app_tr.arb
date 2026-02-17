@@ -119,6 +119,21 @@
   "copyText": "Metni kopyala",
   "couldNotDecodeText": "[Metin çözülemedi]",
 
+  "archivedFiles": "Arşivlenmiş Dosyalar",
+  "archivedFilesDesc": "Geri yüklenen dosyaları yönet",
+  "storageUsage": "{count} dosya ({size})",
+  "noArchivedFiles": "Arşivlenmiş dosya yok",
+  "noArchivedFilesDesc": "Geri yüklenen dosyalar burada görünecek",
+  "deleteFile": "Dosyayı Sil",
+  "delete": "Sil",
+  "deleteFileConfirmation": "\"{fileName}\" dosyasını silmek istediğinizden emin misiniz?",
+  "fileDeleted": "\"{fileName}\" silindi",
+  "deleteAll": "Tümünü Sil",
+  "deleteAllFiles": "Tüm Dosyalar Silinsin mi?",
+  "deleteAllConfirmation": "Bu işlem tüm {count} arşivlenmiş dosyayı kalıcı olarak silecektir. Bu geri alınamaz.",
+  "allFilesDeleted": "Tüm dosyalar silindi",
+  "modifiedDate": "Değiştirilme: {date}",
+
   "privacyPolicy": "Gizlilik Politikası",
   "privacyPolicyTitle": "Gizlilik Politikası",
   "privacyPolicyContent": "NFC Arşivcisi, gizliliği temel ilke olarak benimser. Uygulama tamamen çevrimdışı çalışır ve hiçbir kişisel veri toplamaz, iletmez veya saklamaz.\n\nVeri Toplama\nHiçbir veri toplamıyoruz. Kişisel bilgi, kullanım analitiği, izleme, çökme raporları, çerezler, tanımlayıcılar veya reklam verileri bulunmamaktadır.\n\nNFC Erişimi\nNFC işlevi yalnızca cihazınıza yakın tutulan fiziksel NFC etiketlerine veri okumak ve yazmak için kullanılır. Tüm NFC işlemleri yereldir — ağ üzerinden hiçbir veri iletilmez.\n\nDosya İşleme\nArşivlemek için seçtiğiniz dosyalar tamamen cihazınızda işlenir. Dosya verileri yerel depolama alanından okunur, isteğe bağlı olarak cihazda sıkıştırılır ve şifrelenir, parçalara bölünür ve NFC etiketlerine yazılır. Hiçbir dosya verisi herhangi bir sunucuya yüklenmez veya iletilmez.\n\nŞifreleme\nŞifrelemeyi etkinleştirdiğinizde, şifreniz yerel olarak bir şifreleme anahtarı türetmek için kullanılır (PBKDF2). Şifreniz asla saklanmaz, günlüğe kaydedilmez veya iletilmez. Şifreleme ve şifre çözme tamamen cihazınızda gerçekleşir.\n\nÜçüncü Taraf Hizmetleri\nNFC Arşivcisi hiçbir üçüncü taraf hizmeti kullanmaz — analitik, bulut depolama, uzak sunucu veya sosyal medya entegrasyonu yoktur.\n\nİzinler\nUygulama yalnızca temel işlevleri için gerekli izinleri ister: etiketleri okumak ve yazmak için NFC erişimi ve arşivlemek veya geri yüklemek istediğiniz dosyalar için depolama erişimi."

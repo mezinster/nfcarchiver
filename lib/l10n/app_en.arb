@@ -679,6 +679,110 @@
     "description": "Error when text decoding fails"
   },
 
+  "archivedFiles": "Archived Files",
+  "@archivedFiles": {
+    "description": "File manager screen title"
+  },
+
+  "archivedFilesDesc": "Manage restored files",
+  "@archivedFilesDesc": {
+    "description": "File manager description on home screen"
+  },
+
+  "storageUsage": "{count} files ({size})",
+  "@storageUsage": {
+    "description": "Storage usage summary",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of files"
+      },
+      "size": {
+        "type": "String",
+        "description": "Formatted total size"
+      }
+    }
+  },
+
+  "noArchivedFiles": "No archived files",
+  "@noArchivedFiles": {
+    "description": "Empty state title in file manager"
+  },
+
+  "noArchivedFilesDesc": "Restored files will appear here",
+  "@noArchivedFilesDesc": {
+    "description": "Empty state description in file manager"
+  },
+
+  "deleteFile": "Delete File",
+  "@deleteFile": {
+    "description": "Delete file button label"
+  },
+
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete confirmation button"
+  },
+
+  "deleteFileConfirmation": "Are you sure you want to delete \"{fileName}\"?",
+  "@deleteFileConfirmation": {
+    "description": "Delete file confirmation message",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "description": "Name of the file to delete"
+      }
+    }
+  },
+
+  "fileDeleted": "\"{fileName}\" deleted",
+  "@fileDeleted": {
+    "description": "File deleted snackbar message",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "description": "Name of the deleted file"
+      }
+    }
+  },
+
+  "deleteAll": "Delete All",
+  "@deleteAll": {
+    "description": "Delete all button label"
+  },
+
+  "deleteAllFiles": "Delete All Files?",
+  "@deleteAllFiles": {
+    "description": "Delete all confirmation dialog title"
+  },
+
+  "deleteAllConfirmation": "This will permanently delete all {count} archived files. This cannot be undone.",
+  "@deleteAllConfirmation": {
+    "description": "Delete all confirmation message",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of files to delete"
+      }
+    }
+  },
+
+  "allFilesDeleted": "All files deleted",
+  "@allFilesDeleted": {
+    "description": "All files deleted snackbar message"
+  },
+
+  "modifiedDate": "Modified: {date}",
+  "@modifiedDate": {
+    "description": "File modified date display",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "description": "Formatted date string"
+      }
+    }
+  },
+
   "privacyPolicy": "Privacy Policy",
   "@privacyPolicy": {
     "description": "Privacy policy button label in About dialog"

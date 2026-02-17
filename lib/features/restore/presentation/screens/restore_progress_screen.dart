@@ -7,6 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../file_manager/data/file_manager_repository.dart';
+import '../../../file_manager/presentation/providers/file_manager_provider.dart';
+import '../../../../shared/utils/format_utils.dart';
 import '../providers/restore_provider.dart';
 
 /// Screen for completing archive restoration.
@@ -260,7 +263,7 @@ class _RestoreProgressScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            _formatSize(state.result.dataSize),
+            formatFileSize(state.result.dataSize),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context)
                       .colorScheme
@@ -288,7 +291,24 @@ class _RestoreProgressScreenState
               label: Text(l10n.shareFile),
             ),
 
-          const SizedBox(height: 16),
+          if (state.result.savedPath != null) ...[
+            const SizedBox(height: 12),
+
+            // Delete button
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+                side: BorderSide(
+                    color: Theme.of(context).colorScheme.error),
+              ),
+              onPressed: () => _confirmDeleteFile(
+                  context, state.result.savedPath!, state.fileName),
+              icon: const Icon(Icons.delete_outline),
+              label: Text(l10n.deleteFile),
+            ),
+          ],
+
+          const SizedBox(height: 12),
 
           OutlinedButton.icon(
             onPressed: () {
@@ -337,7 +357,7 @@ class _RestoreProgressScreenState
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     Text(
-                      _formatSize(state.result.dataSize),
+                      formatFileSize(state.result.dataSize),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context)
                                 .colorScheme
@@ -397,7 +417,17 @@ class _RestoreProgressScreenState
                 ),
               ),
               if (state.result.savedPath != null) ...[
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
+                IconButton(
+                  style: IconButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                  onPressed: () => _confirmDeleteFile(
+                      context, state.result.savedPath!, state.fileName),
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: l10n.deleteFile,
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: () => _shareFile(state.result.savedPath!),
@@ -516,9 +546,38 @@ class _RestoreProgressScreenState
     await Share.shareXFiles([XFile(path)]);
   }
 
-  String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  void _confirmDeleteFile(
+      BuildContext context, String path, String fileName) {
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteFile),
+        content: Text(l10n.deleteFileConfirmation(fileName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await FileManagerRepository.instance.deleteFile(path);
+              ref.invalidate(storageInfoProvider);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.fileDeleted(fileName))),
+                );
+              }
+            },
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/nfar_format.dart';
+import '../../../../shared/utils/format_utils.dart';
 import '../providers/archive_provider.dart';
 
 /// Screen for configuring archive settings.
@@ -221,11 +222,11 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                     const SizedBox(height: 16),
                     _EstimateRow(
                       label: l10n.originalSize,
-                      value: _formatSize(config!.fileSize),
+                      value: formatFileSize(config!.fileSize),
                     ),
                     _EstimateRow(
                       label: l10n.estimatedProcessedSize,
-                      value: _formatSize(config.estimate!.estimatedProcessedSize),
+                      value: formatFileSize(config.estimate!.estimatedProcessedSize),
                     ),
                     _EstimateRow(
                       label: l10n.tagsNeeded,
@@ -282,11 +283,6 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
     }
   }
 
-  String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
 }
 
 class _EstimateRow extends StatelessWidget {

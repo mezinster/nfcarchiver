@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/providers/locale_provider.dart';
 import 'features/archive/presentation/screens/archive_settings_screen.dart';
+import 'features/file_manager/presentation/screens/file_manager_screen.dart';
 import 'features/archive/presentation/screens/file_picker_screen.dart';
 import 'features/archive/presentation/screens/write_progress_screen.dart';
 import 'features/restore/presentation/screens/restore_progress_screen.dart';
@@ -38,6 +39,12 @@ final _router = GoRouter(
           builder: (context, state) => const WriteProgressScreen(),
         ),
       ],
+    ),
+
+    // File manager
+    GoRoute(
+      path: '/files',
+      builder: (context, state) => const FileManagerScreen(),
     ),
 
     // Privacy policy

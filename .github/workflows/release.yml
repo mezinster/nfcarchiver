@@ -188,6 +188,7 @@ jobs:
     name: Build iOS
     runs-on: macos-latest
     needs: [version, test]
+    continue-on-error: true
 
     steps:
       - name: Checkout repository
@@ -321,12 +322,14 @@ jobs:
 
       - name: Download IPA artifact
         uses: actions/download-artifact@v7
+        continue-on-error: true
         with:
           name: ios-ipa
           path: release-artifacts/
 
       - name: Download iOS checksums
         uses: actions/download-artifact@v7
+        continue-on-error: true
         with:
           name: checksums-ios
           path: release-artifacts/
@@ -334,9 +337,11 @@ jobs:
       - name: Combine checksums
         run: |
           cd release-artifacts
-          cat checksums-sha256.txt checksums-ios-sha256.txt > all-checksums-sha256.txt
-          mv all-checksums-sha256.txt checksums-sha256.txt
-          rm -f checksums-ios-sha256.txt
+          if [ -f checksums-ios-sha256.txt ]; then
+            cat checksums-sha256.txt checksums-ios-sha256.txt > all-checksums-sha256.txt
+            mv all-checksums-sha256.txt checksums-sha256.txt
+            rm -f checksums-ios-sha256.txt
+          fi
 
       - name: Generate release notes
         id: release_notes
