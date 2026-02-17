@@ -3,7 +3,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/file_manager/presentation/providers/file_manager_provider.dart';
 import '../../features/nfc/nfc.dart';
+import '../utils/format_utils.dart';
 import 'language_selector.dart';
 
 /// Home screen with mode selection.
@@ -54,6 +56,11 @@ class HomeScreen extends ConsumerWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
+
+              const SizedBox(height: 16),
+
+              // Storage indicator
+              _StorageIndicator(),
 
               const Spacer(),
 
@@ -256,6 +263,53 @@ class _ModeCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StorageIndicator extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final storageInfo = ref.watch(storageInfoProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    return storageInfo.when(
+      data: (info) {
+        if (info.fileCount == 0) return const SizedBox.shrink();
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => GoRouter.of(context).push('/files'),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.folder,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      l10n.storageUsage(
+                        info.fileCount,
+                        formatFileSize(info.totalBytes),
+                      ),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
