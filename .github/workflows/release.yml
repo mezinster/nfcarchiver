@@ -48,10 +48,14 @@ jobs:
 
       - name: Determine version
         id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_BRANCH: ${{ github.event.inputs.branch }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-            BRANCH="${{ github.event.inputs.branch }}"
+          if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
+            VERSION="$INPUT_VERSION"
+            BRANCH="$INPUT_BRANCH"
           else
             # Extract version from tag (remove 'v' prefix)
             VERSION="${GITHUB_REF#refs/tags/v}"
@@ -132,9 +136,12 @@ jobs:
         run: flutter gen-l10n
 
       - name: Update version in pubspec.yaml
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          BUILD: ${{ needs.version.outputs.build_number }}
         run: |
-          sed -i "s/^version: .*/version: ${{ needs.version.outputs.version }}+${{ needs.version.outputs.build_number }}/" pubspec.yaml
-          cat pubspec.yaml | grep "^version:"
+          sed -i "s/^version: .*/version: ${VERSION}+${BUILD}/" pubspec.yaml
+          grep "^version:" pubspec.yaml
 
       - name: Build Release APK
         run: flutter build apk --release
@@ -143,19 +150,19 @@ jobs:
         run: flutter build appbundle --release
 
       - name: Rename artifacts with version
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          BUILD: ${{ needs.version.outputs.build_number }}
         run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          BUILD="${{ needs.version.outputs.build_number }}"
-
           mkdir -p artifacts
 
           # APK
           cp build/app/outputs/flutter-apk/app-release.apk \
-             artifacts/nfc-archiver-${VERSION}+${BUILD}.apk
+             "artifacts/nfc-archiver-${VERSION}+${BUILD}.apk"
 
           # App Bundle
           cp build/app/outputs/bundle/release/app-release.aab \
-             artifacts/nfc-archiver-${VERSION}+${BUILD}.aab
+             "artifacts/nfc-archiver-${VERSION}+${BUILD}.aab"
 
       - name: Generate checksums
         run: |
@@ -240,22 +247,28 @@ jobs:
           cp $PROVISION_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: Update version in pubspec.yaml
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          BUILD: ${{ needs.version.outputs.build_number }}
         run: |
-          sed -i '' "s/^version: .*/version: ${{ needs.version.outputs.version }}+${{ needs.version.outputs.build_number }}/" pubspec.yaml
-          cat pubspec.yaml | grep "^version:"
+          sed -i '' "s/^version: .*/version: ${VERSION}+${BUILD}/" pubspec.yaml
+          grep "^version:" pubspec.yaml
 
       - name: Build iOS IPA
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          BUILD: ${{ needs.version.outputs.build_number }}
         run: |
           flutter build ipa --release \
-            --build-name=${{ needs.version.outputs.version }} \
-            --build-number=${{ needs.version.outputs.build_number }} \
+            --build-name="$VERSION" \
+            --build-number="$BUILD" \
             --export-options-plist=ios/ExportOptions.plist
 
       - name: Rename IPA with version
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          BUILD: ${{ needs.version.outputs.build_number }}
         run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          BUILD="${{ needs.version.outputs.build_number }}"
-
           mkdir -p artifacts
 
           # Find and rename the IPA
@@ -345,13 +358,14 @@ jobs:
 
       - name: Generate release notes
         id: release_notes
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          BUILD: ${{ needs.version.outputs.build_number }}
+          BRANCH: ${{ needs.version.outputs.branch }}
+          CUSTOM_NOTES: ${{ github.event.inputs.release_notes }}
+          FL_VERSION: ${{ env.FLUTTER_VERSION }}
         run: |
-          VERSION="${{ needs.version.outputs.version }}"
-          BUILD="${{ needs.version.outputs.build_number }}"
-          BRANCH="${{ needs.version.outputs.branch }}"
-          CUSTOM_NOTES="${{ github.event.inputs.release_notes }}"
-
-          cat << EOF > release-notes.md
+          cat > release-notes.md << EOF
           ## NFC Archiver v${VERSION}
 
           ### Downloads
@@ -368,12 +382,12 @@ jobs:
 
           # Add custom release notes if provided
           if [ -n "$CUSTOM_NOTES" ]; then
-            echo "$CUSTOM_NOTES" >> release-notes.md
+            printf '%s\n' "$CUSTOM_NOTES" >> release-notes.md
           else
             echo "See [CHANGELOG.md](CHANGELOG.md) for detailed changes." >> release-notes.md
           fi
 
-          cat << EOF >> release-notes.md
+          cat >> release-notes.md << EOF
 
           ### Checksums (SHA-256)
           \`\`\`
@@ -384,18 +398,21 @@ jobs:
           - Version: ${VERSION}
           - Build Number: ${BUILD}
           - Branch: ${BRANCH}
-          - Flutter: ${{ env.FLUTTER_VERSION }}
+          - Flutter: ${FL_VERSION}
           EOF
 
           cat release-notes.md
 
       - name: Create or update tag
         if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          RELEASE_BRANCH: ${{ needs.version.outputs.branch }}
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git tag -fa "${{ needs.version.outputs.tag }}" -m "Release ${{ needs.version.outputs.tag }} from branch ${{ needs.version.outputs.branch }}"
-          git push origin "${{ needs.version.outputs.tag }}" --force
+          git tag -fa "$RELEASE_TAG" -m "Release $RELEASE_TAG from branch $RELEASE_BRANCH"
+          git push origin "$RELEASE_TAG" --force
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
