@@ -12,65 +12,9 @@ RepoType: git
 Repo: https://github.com/mezinster/nfcarchiver.git
 
 Builds:
-  - versionName: 1.0.6
-    versionCode: 6
-    commit: 97f2567c53ab6e77da8c9b476e09fa15d68d52fc
-    sudo:
-      - echo 'deb http://deb.debian.org/debian bookworm main' > /etc/apt/sources.list.d/bookworm.list
-      - apt-get update
-      - apt-get install -y openjdk-17-jdk-headless
-      - update-java-alternatives -a
-    output: build/app/outputs/flutter-apk/app-release.apk
-    srclibs:
-      - flutter@stable
-    rm:
-      - ios
-    prebuild:
-      - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\ '(.*)'/\1/p" .github/workflows/release.yml)
-      - '[[ $flutterVersion ]]'
-      - git -C $$flutter$$ checkout -f $flutterVersion
-      - export PUB_CACHE=$(pwd)/.pub-cache
-      - $$flutter$$/bin/flutter config --no-analytics
-      - $$flutter$$/bin/flutter pub get
-    scandelete:
-      - .pub-cache
-    build:
-      - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-      - export PUB_CACHE=$(pwd)/.pub-cache
-      - $$flutter$$/bin/flutter gen-l10n
-      - $$flutter$$/bin/flutter build apk --release
-
-  - versionName: 1.0.7
-    versionCode: 7
-    commit: 4deeeb912bfc8defa811b33bf7768a934aeabed7
-    sudo:
-      - echo 'deb http://deb.debian.org/debian bookworm main' > /etc/apt/sources.list.d/bookworm.list
-      - apt-get update
-      - apt-get install -y openjdk-17-jdk-headless
-      - update-java-alternatives -a
-    output: build/app/outputs/flutter-apk/app-release.apk
-    srclibs:
-      - flutter@stable
-    rm:
-      - ios
-    prebuild:
-      - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\ '(.*)'/\1/p" .github/workflows/release.yml)
-      - '[[ $flutterVersion ]]'
-      - git -C $$flutter$$ checkout -f $flutterVersion
-      - export PUB_CACHE=$(pwd)/.pub-cache
-      - $$flutter$$/bin/flutter config --no-analytics
-      - $$flutter$$/bin/flutter pub get
-    scandelete:
-      - .pub-cache
-    build:
-      - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-      - export PUB_CACHE=$(pwd)/.pub-cache
-      - $$flutter$$/bin/flutter gen-l10n
-      - $$flutter$$/bin/flutter build apk --release
-
   - versionName: 1.0.8
     versionCode: 8
-    commit: 449b088ba1837b7379b45f3b6fe4d34895318505
+    commit: 00d7d41694dd779187362b272a6cd092be454049
     sudo:
       - echo 'deb http://deb.debian.org/debian bookworm main' > /etc/apt/sources.list.d/bookworm.list
       - apt-get update
