@@ -1,0 +1,24 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="110" fill="#0F172A"></rect>
+
+  <!-- Archive box (scaled 20%) -->
+  <rect x="118" y="238" width="278" height="168" rx="24" fill="#22C55E"></rect>
+
+  <!-- Archive slot (scaled 20%) -->
+  <rect x="177" y="288" width="158" height="29" rx="10" fill="#0F172A"></rect>
+
+  <!-- NFC chip (scaled 20% + raised 20px) -->
+  <rect x="210" y="148" width="86" height="72" rx="14" fill="#EAB308"></rect>
+
+  <!-- Radiowave 1 (centered with NFC chip) -->
+  <path d="M322 167 A43 43 0 0 1 322 201" stroke="#EAB308" stroke-width="14" fill="none" stroke-linecap="round"></path>
+
+  <!-- Radiowave 2 (centered with NFC chip) -->
+  <path d="M346 152 A72 72 0 0 1 346 216" stroke="#EAB308" stroke-width="14" fill="none" stroke-linecap="round"></path>
+
+  <!-- Radiowave 3 (centered with NFC chip) -->
+  <path d="M376 137 A108 108 0 0 1 376 231" stroke="#EAB308" stroke-width="14" fill="none" stroke-linecap="round"></path>
+
+</svg>
