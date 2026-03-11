@@ -1,0 +1,4 @@
+New app icon.
+
+* Redesigned app icon with NFC chip, radio waves, and archive box
+* Updated feature graphic for store listings

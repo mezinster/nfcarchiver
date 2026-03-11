@@ -2,7 +2,7 @@ name: nfc_archiver
 description: "Distributed data archive on NFC tags - store and restore files across multiple NFC tags"
 publish_to: 'none'
 
-version: 1.0.7+7
+version: 1.0.8+8
 
 environment:
   sdk: ^3.5.0
@@ -49,6 +49,15 @@ dev_dependencies:
   mockito: ^5.4.4
   build_runner: ^2.4.8
   riverpod_generator: ^2.3.9
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/app_icon.png"
+  adaptive_icon_background: "#0F172A"
+  adaptive_icon_foreground: "assets/app_icon_foreground.png"
 
 flutter:
   generate: true
