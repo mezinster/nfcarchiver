@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-03-15
+
+### Fixed
+- Fastlane metadata structure: moved images into en-US locale folder for correct F-Droid screenshot propagation
+- About dialog version now correctly shows current version
+
+## [1.0.8] - 2026-03-08
+
+### Changed
+- Redesigned app icon with NFC chip, radio waves, and archive box
+- Updated feature graphic for store listings
+
 ## [1.0.7] - 2026-02-17
 
 ### Added

@@ -121,7 +121,7 @@ class HomeScreen extends ConsumerWidget {
     showAboutDialog(
       context: context,
       applicationName: l10n.appTitle,
-      applicationVersion: '1.0.7',
+      applicationVersion: '1.0.9',
       applicationIcon: Icon(
         Icons.nfc,
         size: 48,
