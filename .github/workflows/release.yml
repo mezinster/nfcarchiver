@@ -1,5 +1,5 @@
 name: Release
-run-name: "Release v${{ inputs.version || github.ref_name }} from ${{ inputs.branch || 'tag' }}"
+run-name: "Release ${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }} from ${{ inputs.branch || 'tag' }}"
 
 on:
   push:
