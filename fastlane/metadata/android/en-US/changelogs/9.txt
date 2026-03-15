@@ -1,0 +1,5 @@
+Fix Fastlane pipeline.
+
+* Fixed metadata structure for correct F-Droid screenshot propagation
+* Moved images into en-US locale folder
+* Fixed About dialog version display
