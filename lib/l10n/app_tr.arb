@@ -10,7 +10,9 @@
   "createArchiveDesc": "Bir dosyayı birden fazla NFC etiketine böl",
   "restoreArchive": "Arşivi Geri Yükle",
   "restoreArchiveDesc": "Dosyayı geri yüklemek için etiketleri tara",
-  "version": "NFC Arşivcisi (c) 2026",
+  "copyright": "NFC Arşivcisi \u00a9 2026",
+  "versionFooter": "NFC Arşivcisi v{version} (Yapı {build}) \u00a9 2026",
+  "buildLabel": "Yapı",
   "aboutAppDescription": "NFC etiketleri kullanan dağıtık veri arşivleme sistemi. Dosyaları birden fazla NFC etiketinde saklayın ve daha sonra geri yükleyin.",
   "aboutSupportedTags": "Desteklenen etiketler: NTAG213/215/216, MIFARE Ultralight",
 

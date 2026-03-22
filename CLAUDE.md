@@ -69,9 +69,24 @@ Riverpod with `StateNotifier` pattern using sealed classes for type-safe state t
 
 28-byte header. Flags byte: bit 0 = GZIP, bit 1 = AES-256-GCM. Archive ID is UUID v4 (16 bytes) for grouping chunks. Max 65535 chunks per archive. Chunks validated with CRC32 and can be scanned in any order.
 
+### File Sharing (`share_plus`)
+
+All `Share.shareXFiles` calls include explicit MIME types resolved via the `mime` package (`lookupMimeType()`) from file extensions. This is required for Telegram and other strict Android apps that validate content before enabling the send button. Without MIME types, Android's `ContentResolver` reports `application/octet-stream` and the receiving app may refuse to send.
+
+`AndroidManifest.xml` declares `SEND` and `SEND_MULTIPLE` intent queries for proper share target resolution on Android 11+ (API 30+ package visibility).
+
+### Version Display
+
+Version and build number are read at runtime via `PackageInfo.fromPlatform()` (`package_info_plus` package) — **never hardcoded**. `pubspec.yaml` `version:` field is the single source of truth. The version propagates to:
+- **Home screen footer**: `"NFC Archiver v1.0.10 (Build 10) © 2026"` via parameterized `versionFooter` l10n key
+- **About dialog**: `applicationVersion` parameter in `showAboutDialog()`
+- **Android APK**: `build.gradle` reads `flutter.versionName`/`flutter.versionCode` from pubspec
+
+To release a new version: bump `version: X.Y.Z+N` in `pubspec.yaml` (increment both version name and build number). Nothing else needs updating.
+
 ### Localization
 
-Uses Flutter's `gen-l10n` with ARB files in `lib/l10n/`. Supported: English (`app_en.arb`), Russian (`app_ru.arb`), Turkish (`app_tr.arb`), Ukrainian (`app_uk.arb`), Georgian (`app_ka.arb`). Run `flutter gen-l10n` after modifying ARB files.
+Uses Flutter's `gen-l10n` with ARB files in `lib/l10n/`. Supported: English (`app_en.arb`), Russian (`app_ru.arb`), Turkish (`app_tr.arb`), Ukrainian (`app_uk.arb`), Georgian (`app_ka.arb`). Run `flutter gen-l10n` after modifying ARB files. All new UI strings must be added to `app_en.arb` (template) and all 4 translation files.
 
 ## Apple App Store Publishing
 
