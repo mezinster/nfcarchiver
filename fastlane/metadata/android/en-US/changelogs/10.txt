@@ -1,0 +1,5 @@
+Fix Android file sharing
+- Fixed Telegram and other apps disabling send button for shared files (added MIME types)
+- Added share intent queries for Android 11+ compatibility
+- Version and build number now displayed on home screen and About dialog
+- Version is read dynamically from app — no more hardcoded strings
