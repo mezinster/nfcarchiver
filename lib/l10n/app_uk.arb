@@ -10,7 +10,9 @@
   "createArchiveDesc": "Розділити файл на кілька NFC-міток",
   "restoreArchive": "Відновити архів",
   "restoreArchiveDesc": "Сканувати мітки для відновлення файлу",
-  "version": "NFC Архіватор (c) 2026",
+  "copyright": "NFC Архіватор \u00a9 2026",
+  "versionFooter": "NFC Архіватор v{version} (Збірка {build}) \u00a9 2026",
+  "buildLabel": "Збірка",
   "aboutAppDescription": "Розподілена система архівації даних з використанням NFC-міток. Зберігайте файли на кількох NFC-мітках та відновлюйте їх пізніше.",
   "aboutSupportedTags": "Підтримувані мітки: NTAG213/215/216, MIFARE Ultralight",
 

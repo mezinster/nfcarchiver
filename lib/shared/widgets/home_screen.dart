@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../features/file_manager/presentation/providers/file_manager_provider.dart';
 import '../../features/nfc/nfc.dart';
@@ -93,15 +94,26 @@ class HomeScreen extends ConsumerWidget {
                         const Spacer(),
 
                         // Footer
-                        Text(
-                          l10n.version,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.4),
-                              ),
-                          textAlign: TextAlign.center,
+                        FutureBuilder<PackageInfo>(
+                          future: PackageInfo.fromPlatform(),
+                          builder: (context, snapshot) {
+                            final versionText = snapshot.hasData
+                                ? l10n.versionFooter(
+                                    snapshot.data!.version,
+                                    snapshot.data!.buildNumber,
+                                  )
+                                : l10n.copyright;
+                            return Text(
+                              versionText,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.4),
+                                  ),
+                              textAlign: TextAlign.center,
+                            );
+                          },
                         ),
                         const SizedBox(height: 8),
                       ],
@@ -116,12 +128,14 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  void _showAboutDialog(BuildContext context) {
+  Future<void> _showAboutDialog(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
+    final info = await PackageInfo.fromPlatform();
+    if (!context.mounted) return;
     showAboutDialog(
       context: context,
       applicationName: l10n.appTitle,
-      applicationVersion: '1.0.9',
+      applicationVersion: '${info.version} (${l10n.buildLabel} ${info.buildNumber})',
       applicationIcon: Icon(
         Icons.nfc,
         size: 48,

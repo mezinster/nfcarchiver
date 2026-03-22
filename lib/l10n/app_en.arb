@@ -46,9 +46,29 @@
     "description": "Restore archive button description"
   },
 
-  "version": "NFC Archiver (c) 2026",
-  "@version": {
-    "description": "Version text in footer"
+  "copyright": "NFC Archiver \u00a9 2026",
+  "@copyright": {
+    "description": "Copyright text (fallback before version loads)"
+  },
+
+  "versionFooter": "NFC Archiver v{version} (Build {build}) \u00a9 2026",
+  "@versionFooter": {
+    "description": "Footer text with version and build number",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "description": "App version"
+      },
+      "build": {
+        "type": "String",
+        "description": "Build number"
+      }
+    }
+  },
+
+  "buildLabel": "Build",
+  "@buildLabel": {
+    "description": "Label for build number in About dialog"
   },
 
   "aboutAppDescription": "A distributed data archive system using NFC tags. Store files across multiple NFC tags and restore them later.",

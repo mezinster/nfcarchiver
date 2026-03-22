@@ -10,7 +10,9 @@
   "createArchiveDesc": "ფაილის დაყოფა რამდენიმე NFC ტეგზე",
   "restoreArchive": "არქივის აღდგენა",
   "restoreArchiveDesc": "ტეგების სკანირება ფაილის აღსადგენად",
-  "version": "NFC არქივატორი (c) 2026",
+  "copyright": "NFC არქივატორი \u00a9 2026",
+  "versionFooter": "NFC არქივატორი v{version} (ბილდი {build}) \u00a9 2026",
+  "buildLabel": "ბილდი",
   "aboutAppDescription": "განაწილებული მონაცემთა არქივაციის სისტემა NFC ტეგების გამოყენებით. შეინახეთ ფაილები რამდენიმე NFC ტეგზე და აღადგინეთ ისინი მოგვიანებით.",
   "aboutSupportedTags": "მხარდაჭერილი ტეგები: NTAG213/215/216, MIFARE Ultralight",
 
