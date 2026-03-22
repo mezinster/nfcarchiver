@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mime/mime.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../file_manager/data/file_manager_repository.dart';
@@ -543,7 +544,8 @@ class _RestoreProgressScreenState
   }
 
   Future<void> _shareFile(String path) async {
-    await Share.shareXFiles([XFile(path)]);
+    final mime = lookupMimeType(path) ?? 'application/octet-stream';
+    await Share.shareXFiles([XFile(path, mimeType: mime)]);
   }
 
   void _confirmDeleteFile(

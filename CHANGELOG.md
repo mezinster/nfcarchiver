@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-03-22
+
+### Fixed
+- **Android file sharing**: Telegram and other strict apps disabled the send button when receiving shared files. Added explicit MIME type detection (via `mime` package) to all `Share.shareXFiles` calls — correct types (`image/png`, `application/pdf`, `text/plain`, etc.) are now resolved from file extensions.
+- **Android share target visibility**: Added `SEND` and `SEND_MULTIPLE` intent queries to `AndroidManifest.xml` for proper share target resolution on Android 11+ (API 30+).
+
+### Added
+- `mime` package dependency for dynamic MIME type lookup from file extensions.
+
 ## [1.0.9] - 2026-03-15
 
 ### Fixed

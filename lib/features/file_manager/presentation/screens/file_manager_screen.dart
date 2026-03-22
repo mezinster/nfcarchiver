@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mime/mime.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../shared/utils/format_utils.dart';
@@ -193,7 +194,10 @@ class _FileCard extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.share),
               tooltip: l10n.shareFile,
-              onPressed: () => Share.shareXFiles([XFile(file.path)]),
+              onPressed: () {
+                                final mime = lookupMimeType(file.path) ?? 'application/octet-stream';
+                                Share.shareXFiles([XFile(file.path, mimeType: mime)]);
+                              },
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline),

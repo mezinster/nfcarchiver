@@ -2,7 +2,7 @@ name: nfc_archiver
 description: "Distributed data archive on NFC tags - store and restore files across multiple NFC tags"
 publish_to: 'none'
 
-version: 1.0.9+9
+version: 1.0.10+10
 
 environment:
   sdk: ^3.5.0
@@ -31,6 +31,7 @@ dependencies:
   path_provider: ^2.1.1
   path: ^1.8.3
   share_plus: ^7.2.1
+  mime: ^1.0.6
 
   # Crypto & Compression
   pointycastle: ^3.7.3
