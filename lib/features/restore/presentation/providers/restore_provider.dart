@@ -241,7 +241,13 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
       );
 
       // Save to downloads - use original filename from archive if available
-      final actualFileName = fileName ?? result.originalFileName ?? 'restored_file';
+      // Append short archive UUID to prevent overwrites from different archives
+      final baseName = fileName ?? result.originalFileName ?? 'restored_file';
+      final uuidSuffix = session.archiveIdString.substring(0, 8);
+      final dotIndex = baseName.lastIndexOf('.');
+      final actualFileName = dotIndex > 0
+          ? '${baseName.substring(0, dotIndex)}_$uuidSuffix${baseName.substring(dotIndex)}'
+          : '${baseName}_$uuidSuffix';
       final savedPath = await _repository.saveToDownloads(
         result.data,
         actualFileName,

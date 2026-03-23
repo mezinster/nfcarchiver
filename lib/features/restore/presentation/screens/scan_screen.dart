@@ -299,6 +299,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               (session) => _SessionCard(
                 session: session,
                 onDelete: () => _confirmDeleteSession(context, session.archiveId),
+                onTap: session.isComplete
+                    ? () {
+                        final fullSession = ref
+                            .read(restoreProvider.notifier)
+                            .getSession(session.archiveId);
+                        if (fullSession != null) {
+                          ref.read(restoreProvider.notifier).selectSession(fullSession);
+                        }
+                      }
+                    : null,
               ),
             ),
           ],
@@ -418,25 +428,33 @@ class _NfcAnimatedIconState extends State<_NfcAnimatedIcon>
 }
 
 class _SessionCard extends StatelessWidget {
-  const _SessionCard({required this.session, required this.onDelete});
+  const _SessionCard({
+    required this.session,
+    required this.onDelete,
+    this.onTap,
+  });
 
   final RestoreSessionInfo session;
   final VoidCallback onDelete;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final dateFormat = DateFormat.MMMd().add_Hm();
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  session.isComplete ? Icons.check_circle : Icons.pending,
+      child: InkWell(
+        onTap: session.isComplete ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    session.isComplete ? Icons.check_circle : Icons.pending,
                   color: session.isComplete
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.outline,
@@ -499,7 +517,8 @@ class _SessionCard extends StatelessWidget {
                 ),
               ],
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
