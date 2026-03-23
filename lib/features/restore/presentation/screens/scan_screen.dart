@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../nfc/nfc.dart';
 import '../providers/restore_provider.dart';
@@ -18,11 +19,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   @override
   void initState() {
     super.initState();
-    _startScanning();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScanning());
   }
 
-  void _startScanning() {
-    ref.read(restoreProvider.notifier).startScanning();
+  Future<void> _startScanning() async {
+    await ref.read(restoreProvider.notifier).startScanning();
     _startNfcSession();
   }
 
@@ -84,8 +85,76 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             context.go('/');
           },
         ),
+        actions: [
+          if (state is RestoreScanning && state.sessions.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep),
+              tooltip: l10n.clearAllSessions,
+              onPressed: () => _confirmClearAll(context),
+            ),
+        ],
       ),
       body: _buildBody(context, state, nfcState),
+    );
+  }
+
+  void _confirmClearAll(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.clearAllSessions),
+        content: Text(l10n.clearAllSessionsConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.read(restoreProvider.notifier).clearAllSessions();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.sessionsCleared)),
+              );
+            },
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteSession(BuildContext context, String archiveId) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteSession),
+        content: Text(l10n.deleteSessionConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.read(restoreProvider.notifier).deleteSession(archiveId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.sessionDeleted)),
+              );
+            },
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
     );
   }
 
@@ -227,7 +296,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             ),
             const SizedBox(height: 8),
             ...state.sessions.map(
-              (session) => _SessionCard(session: session),
+              (session) => _SessionCard(
+                session: session,
+                onDelete: () => _confirmDeleteSession(context, session.archiveId),
+              ),
             ),
           ],
         ],
@@ -346,13 +418,15 @@ class _NfcAnimatedIconState extends State<_NfcAnimatedIcon>
 }
 
 class _SessionCard extends StatelessWidget {
-  const _SessionCard({required this.session});
+  const _SessionCard({required this.session, required this.onDelete});
 
   final RestoreSessionInfo session;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final dateFormat = DateFormat.MMMd().add_Hm();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -369,9 +443,23 @@ class _SessionCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    l10n.archiveId(session.archiveId.substring(0, 8)),
-                    style: Theme.of(context).textTheme.titleSmall,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.archiveId(session.archiveId.substring(0, 8)),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      Text(
+                        l10n.lastUpdated(dateFormat.format(session.updatedAt)),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.5),
+                            ),
+                      ),
+                    ],
                   ),
                 ),
                 if (session.isEncrypted)
@@ -380,6 +468,16 @@ class _SessionCard extends StatelessWidget {
                     size: 16,
                     color: Theme.of(context).colorScheme.outline,
                   ),
+                IconButton(
+                  icon: Icon(
+                    Icons.close,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  onPressed: onDelete,
+                  tooltip: l10n.deleteSession,
+                  visualDensity: VisualDensity.compact,
+                ),
               ],
             ),
             const SizedBox(height: 12),
