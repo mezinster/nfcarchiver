@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-03-23
+
+### Added
+- **Persistent restore sessions**: Incomplete restore sessions now survive app restarts and navigation. Progress on partially-scanned archives is saved to disk as JSON files and automatically restored when returning to the scan screen.
+- **Session management UI**: View, resume, and delete incomplete restore sessions from the scan screen. Bulk clear option available in the app bar.
+- **Tappable completed sessions**: Completed archive session cards on the scan screen can now be tapped to trigger the restore flow directly.
+- **Archive UUID in filenames**: Restored files now include the first 8 characters of the archive UUID in the filename (e.g., `photo_550e8400.jpg`) to prevent overwrites from different archives.
+- Session management localization for all 5 languages (EN, RU, TR, UK, KA).
+
+### Fixed
+- **Crash on "Restore Archive"**: App crashed when opening the restore scan screen due to provider state modification during widget tree build. Fixed by deferring NFC session start to `addPostFrameCallback`.
+
 ## [1.0.10] - 2026-03-22
 
 ### Fixed

@@ -103,6 +103,7 @@ class RestoreSessionInfo {
     required this.totalChunks,
     required this.isComplete,
     required this.isEncrypted,
+    required this.updatedAt,
   });
 
   final String archiveId;
@@ -110,6 +111,7 @@ class RestoreSessionInfo {
   final int totalChunks;
   final bool isComplete;
   final bool isEncrypted;
+  final DateTime updatedAt;
 
   double get progress => totalChunks > 0 ? receivedCount / totalChunks : 0.0;
 }
@@ -120,8 +122,9 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
 
   final _repository = RestoreRepository.instance;
 
-  /// Start scanning for tags.
-  void startScanning() {
+  /// Start scanning for tags. Loads persisted sessions from disk first.
+  Future<void> startScanning() async {
+    await _repository.loadFromDisk();
     state = RestoreScanning(
       sessions: _getSessionInfos(),
     );
@@ -144,12 +147,14 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
       if (!existingValid && newValid) {
         // Replace corrupted chunk with valid one
         session.replaceChunk(chunk);
+        _repository.persistSession(session.archiveIdString);
         isReplacement = true;
       }
       // If existing is valid, ignore the new scan (duplicate)
     } else {
       // New chunk
       session.addChunk(chunk);
+      _repository.persistSession(session.archiveIdString);
     }
 
     final info = ScannedChunkInfo(
@@ -236,7 +241,13 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
       );
 
       // Save to downloads - use original filename from archive if available
-      final actualFileName = fileName ?? result.originalFileName ?? 'restored_file';
+      // Append short archive UUID to prevent overwrites from different archives
+      final baseName = fileName ?? result.originalFileName ?? 'restored_file';
+      final uuidSuffix = session.archiveIdString.substring(0, 8);
+      final dotIndex = baseName.lastIndexOf('.');
+      final actualFileName = dotIndex > 0
+          ? '${baseName.substring(0, dotIndex)}_$uuidSuffix${baseName.substring(dotIndex)}'
+          : '${baseName}_$uuidSuffix';
       final savedPath = await _repository.saveToDownloads(
         result.data,
         actualFileName,
@@ -296,10 +307,25 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
     }
   }
 
-  /// Reset to initial state.
+  /// Delete a single session.
+  void deleteSession(String archiveId) {
+    _repository.clearSession(archiveId);
+    state = RestoreScanning(
+      sessions: _getSessionInfos(),
+    );
+  }
+
+  /// Reset to initial state (UI only — sessions persist on disk).
   void reset() {
-    _repository.clearAllSessions();
     state = const RestoreInitial();
+  }
+
+  /// Clear all sessions (data destruction — used by bulk clear UI).
+  void clearAllSessions() {
+    _repository.clearAllSessions();
+    state = const RestoreScanning(
+      sessions: [],
+    );
   }
 
   /// Go back to scanning (from ready state).
@@ -317,6 +343,7 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
               totalChunks: s.totalChunks,
               isComplete: s.isComplete,
               isEncrypted: s.isEncrypted,
+              updatedAt: s.updatedAt,
             ))
         .toList();
   }
