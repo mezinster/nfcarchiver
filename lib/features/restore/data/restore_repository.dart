@@ -10,6 +10,7 @@ import '../../../core/models/chunk.dart';
 import '../../../core/services/chunker_service.dart';
 import '../../../core/services/compression_service.dart';
 import '../../../core/services/encryption_service.dart';
+import 'session_storage_service.dart';
 
 /// Repository for archive restoration operations.
 class RestoreRepository {
@@ -21,9 +22,27 @@ class RestoreRepository {
   final _chunkerService = ChunkerService.instance;
   final _compressionService = CompressionService.instance;
   final _encryptionService = EncryptionService.instance;
+  final _storageService = SessionStorageService.instance;
 
   /// Active restore sessions by archive ID.
   final Map<String, RestoreSession> _sessions = {};
+
+  /// Load sessions from disk into memory.
+  /// Existing in-memory sessions take precedence over disk versions.
+  Future<void> loadFromDisk() async {
+    final diskSessions = await _storageService.loadAll();
+    for (final session in diskSessions) {
+      _sessions.putIfAbsent(session.archiveIdString, () => session);
+    }
+  }
+
+  /// Persist a session to disk (fire-and-forget).
+  void persistSession(String archiveIdString) {
+    final session = _sessions[archiveIdString];
+    if (session != null) {
+      _storageService.save(session);
+    }
+  }
 
   /// Get or create a restore session for an archive.
   RestoreSession getSession(Uint8List archiveId) {
@@ -119,6 +138,7 @@ class RestoreRepository {
 
     // Clean up session
     _sessions.remove(session.archiveIdString);
+    _storageService.delete(session.archiveIdString);
 
     return RestoreResult(
       data: data,
@@ -162,11 +182,13 @@ class RestoreRepository {
 
   /// Clear a specific session.
   void clearSession(String archiveIdString) {
+    _storageService.delete(archiveIdString);
     _sessions.remove(archiveIdString);
   }
 
   /// Clear all sessions.
   void clearAllSessions() {
+    _storageService.deleteAll();
     _sessions.clear();
   }
 
