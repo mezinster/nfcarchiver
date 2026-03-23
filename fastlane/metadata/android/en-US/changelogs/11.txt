@@ -1,4 +1,5 @@
-Persistent restore sessions
+Persistent restore sessions & bug fix
+- Fixed crash when opening "Restore Archive"
 - Incomplete restore sessions now survive app restarts and navigation
 - View, resume, and delete incomplete sessions from the scan screen
 - Tap completed sessions to restore directly

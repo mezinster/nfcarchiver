@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Archive UUID in filenames**: Restored files now include the first 8 characters of the archive UUID in the filename (e.g., `photo_550e8400.jpg`) to prevent overwrites from different archives.
 - Session management localization for all 5 languages (EN, RU, TR, UK, KA).
 
+### Fixed
+- **Crash on "Restore Archive"**: App crashed when opening the restore scan screen due to provider state modification during widget tree build. Fixed by deferring NFC session start to `addPostFrameCallback`.
+
 ## [1.0.10] - 2026-03-22
 
 ### Fixed
