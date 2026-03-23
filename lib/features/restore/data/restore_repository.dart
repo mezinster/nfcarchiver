@@ -200,12 +200,29 @@ class RestoreRepository {
 
 /// Session for collecting chunks of an archive.
 class RestoreSession {
-  RestoreSession({required this.archiveId});
+  RestoreSession({required this.archiveId})
+      : createdAt = DateTime.now(),
+        updatedAt = DateTime.now();
+
+  RestoreSession._fromJson({
+    required this.archiveId,
+    required this.createdAt,
+    required this.updatedAt,
+    required int? totalChunks,
+    required int flags,
+  })  : _totalChunks = totalChunks,
+        _flags = flags;
 
   final Uint8List archiveId;
   final Map<int, Chunk> _chunks = {};
   int? _totalChunks;
   int _flags = 0;
+
+  /// Timestamp when this session was created.
+  final DateTime createdAt;
+
+  /// Timestamp when this session was last updated.
+  DateTime updatedAt;
 
   /// All received chunks.
   Map<int, Chunk> get chunks => Map.unmodifiable(_chunks);
@@ -267,12 +284,14 @@ class RestoreSession {
     }
 
     _chunks[chunk.chunkIndex] = chunk;
+    updatedAt = DateTime.now();
     return true;
   }
 
   /// Replace a chunk (for rescanning corrupted chunks).
   void replaceChunk(Chunk chunk) {
     _chunks[chunk.chunkIndex] = chunk;
+    updatedAt = DateTime.now();
   }
 
   /// Check if a chunk index has been received.
@@ -291,6 +310,50 @@ class RestoreSession {
 
   /// Check if all chunks pass CRC validation.
   bool get allChunksValid => getCorruptedChunkIndices().isEmpty;
+
+  /// Serialize this session to a JSON-compatible map.
+  Map<String, dynamic> toJson() {
+    final chunksMap = <String, String>{};
+    for (final entry in _chunks.entries) {
+      chunksMap[entry.key.toString()] = base64Encode(entry.value.toBytes());
+    }
+    return {
+      'archiveId': archiveIdString,
+      'archiveIdBytes': base64Encode(archiveId),
+      'totalChunks': totalChunks,
+      'flags': _flags,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'chunks': chunksMap,
+    };
+  }
+
+  /// Reconstruct a [RestoreSession] from a JSON-compatible map.
+  factory RestoreSession.fromJson(Map<String, dynamic> json) {
+    final archiveId = base64Decode(json['archiveIdBytes'] as String);
+    final totalChunks = json['totalChunks'] as int;
+    final flags = json['flags'] as int;
+    final createdAt = DateTime.parse(json['createdAt'] as String);
+    final updatedAt = DateTime.parse(json['updatedAt'] as String);
+
+    final session = RestoreSession._fromJson(
+      archiveId: Uint8List.fromList(archiveId),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      totalChunks: totalChunks > 0 ? totalChunks : null,
+      flags: flags,
+    );
+
+    final chunksMap = json['chunks'] as Map<String, dynamic>;
+    for (final entry in chunksMap.entries) {
+      final index = int.parse(entry.key);
+      final chunkBytes = base64Decode(entry.value as String);
+      final chunk = Chunk.fromBytes(Uint8List.fromList(chunkBytes));
+      session._chunks[index] = chunk;
+    }
+
+    return session;
+  }
 }
 
 /// Result of archive restoration.
