@@ -48,6 +48,16 @@ class LanguageSelector extends ConsumerWidget {
           const Locale('ka'),
           effectiveLocale,
         ),
+        _buildMenuItem(
+          context,
+          const Locale('pl'),
+          effectiveLocale,
+        ),
+        _buildMenuItem(
+          context,
+          const Locale('be'),
+          effectiveLocale,
+        ),
       ],
     );
   }
@@ -93,6 +103,10 @@ class LanguageSelector extends ConsumerWidget {
         return '\u{1F1FA}\u{1F1E6}'; // Ukrainian flag
       case 'ka':
         return '\u{1F1EC}\u{1F1EA}'; // Georgian flag
+      case 'pl':
+        return '\u{1F1F5}\u{1F1F1}'; // Polish flag
+      case 'be':
+        return '\u{1F1E7}\u{1F1FE}'; // Belarusian flag
       case 'en':
       default:
         return '\u{1F1FA}\u{1F1F8}'; // US flag
@@ -109,6 +123,10 @@ class LanguageSelector extends ConsumerWidget {
         return l10n?.ukrainian ?? 'Ukrainian';
       case 'ka':
         return l10n?.georgian ?? 'Georgian';
+      case 'pl':
+        return l10n?.polish ?? 'Polish';
+      case 'be':
+        return l10n?.belarusian ?? 'Belarusian';
       case 'en':
       default:
         return l10n?.english ?? 'English';

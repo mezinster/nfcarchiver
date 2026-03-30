@@ -654,6 +654,16 @@
     "description": "Georgian language name"
   },
 
+  "polish": "Polish",
+  "@polish": {
+    "description": "Polish language name"
+  },
+
+  "belarusian": "Belarusian",
+  "@belarusian": {
+    "description": "Belarusian language name"
+  },
+
   "language": "Language",
   "@language": {
     "description": "Language setting label"
