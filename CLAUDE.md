@@ -86,7 +86,7 @@ To release a new version: bump `version: X.Y.Z+N` in `pubspec.yaml` (increment b
 
 ### Localization
 
-Uses Flutter's `gen-l10n` with ARB files in `lib/l10n/`. Supported: English (`app_en.arb`), Russian (`app_ru.arb`), Turkish (`app_tr.arb`), Ukrainian (`app_uk.arb`), Georgian (`app_ka.arb`). Run `flutter gen-l10n` after modifying ARB files. All new UI strings must be added to `app_en.arb` (template) and all 4 translation files.
+Uses Flutter's `gen-l10n` with ARB files in `lib/l10n/`. Supported: English (`app_en.arb`), Russian (`app_ru.arb`), Turkish (`app_tr.arb`), Ukrainian (`app_uk.arb`), Georgian (`app_ka.arb`), Polish (`app_pl.arb`), Belarusian (`app_be.arb`). Run `flutter gen-l10n` after modifying ARB files. All new UI strings must be added to `app_en.arb` (template) and all 6 translation files.
 
 ## Apple App Store Publishing
 
