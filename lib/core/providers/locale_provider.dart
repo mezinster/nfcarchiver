@@ -13,6 +13,8 @@ const supportedLocales = [
   Locale('tr'), // Turkish
   Locale('uk'), // Ukrainian
   Locale('ka'), // Georgian
+  Locale('pl'), // Polish
+  Locale('be'), // Belarusian
 ];
 
 /// Provider for SharedPreferences instance.
