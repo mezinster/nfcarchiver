@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-04-02
+
+### Added
+- **Polish language support** (`pl`) — full translation of all UI strings.
+- **Belarusian language support** (`be`) — full translation of all UI strings.
+
+### Fixed
+- **YubiKey / smart card NFC conflict**: Removed broad `TECH_DISCOVERED` NFC intent filter that matched all NfcA devices (YubiKeys, payment cards, transit cards), causing NFC Archiver to hijack authentication flows. The app now only launches via `NDEF_DISCOVERED` with its custom MIME type; foreground dispatch still handles tags when the app is actively scanning.
+
 ## [1.0.11] - 2026-03-23
 
 ### Added

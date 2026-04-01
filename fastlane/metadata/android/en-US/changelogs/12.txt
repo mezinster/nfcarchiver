@@ -1,0 +1,3 @@
+Polish & Belarusian languages, NFC conflict fix
+- Added Polish and Belarusian language support
+- Fixed NFC conflict with YubiKeys and smart cards — app no longer hijacks authentication flows from other NFC devices
