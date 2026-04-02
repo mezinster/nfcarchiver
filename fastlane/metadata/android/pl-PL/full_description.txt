@@ -1,0 +1,22 @@
+Rozproszony system archiwizacji danych z wykorzystaniem tagów NFC. Przechowuj pliki na wielu tagach NFC i odtwarzaj je później.
+
+Podziel dowolny plik na części i zapisz je na tagach NFC. Skanuj tagi w dowolnej kolejności, aby złożyć i odtworzyć oryginalny plik.
+
+Funkcje:
+* Archiwizacja plików — podział dowolnego pliku na części do zapisu na tagach NFC
+* Archiwizacja tekstu — przechowywanie wiadomości tekstowych na tagach NFC
+* Odtwarzanie — skanowanie tagów w dowolnej kolejności i składanie oryginalnego pliku
+* Kompresja — opcjonalna kompresja GZIP w celu zmniejszenia liczby tagów
+* Szyfrowanie — szyfrowanie AES-256-GCM z hasłem (PBKDF2 do klucza)
+* Praca offline — nie wymaga połączenia z siecią
+
+Obsługiwane tagi NFC:
+* NTAG213 (144 bajty)
+* NTAG215 (504 bajty)
+* NTAG216 (888 bajtów)
+* MIFARE Ultralight (48 bajtów)
+* MIFARE Ultralight C (144 bajty)
+
+Wykorzystuje binarny format NFAR v1 z 28-bajtowym nagłówkiem, kontrolą integralności CRC32 i identyfikacją archiwum za pomocą UUID. Fragmenty można skanować w dowolnej kolejności, weryfikacja odbywa się automatycznie.
+
+NFC Archiver to wolne oprogramowanie o otwartym kodzie źródłowym. Bez śledzenia, bez reklam, bez dostępu do sieci.
