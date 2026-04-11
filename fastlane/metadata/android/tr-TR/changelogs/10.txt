@@ -1,0 +1,5 @@
+Android dosya paylaşımı düzeltmesi
+- Telegram ve diğer uygulamalarda gönder düğmesinin devre dışı kalması düzeltildi (MIME türleri eklendi)
+- Android 11+ uyumluluğu için paylaşım intent sorguları eklendi
+- Sürüm ve derleme numarası artık ana ekranda ve Hakkında iletişim kutusunda gösteriliyor
+- Sürüm dinamik olarak okunuyor — artık sabit kodlanmış dizeler yok

@@ -1,0 +1,4 @@
+Yeni uygulama simgesi.
+
+* NFC çipi, radyo dalgaları ve arşiv kutusu içeren yeniden tasarlanmış uygulama simgesi
+* Mağaza listeleri için güncellenmiş tanıtım görseli

@@ -1,0 +1,3 @@
+Lehçe ve Belarusça dil desteği, NFC çakışma düzeltmesi
+- Lehçe ve Belarusça dil desteği eklendi
+- YubiKey ve akıllı kartlarla NFC çakışması düzeltildi — uygulama artık diğer NFC cihazlarının kimlik doğrulama akışlarını ele geçirmiyor

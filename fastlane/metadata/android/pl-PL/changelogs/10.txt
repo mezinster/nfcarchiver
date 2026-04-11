@@ -1,0 +1,5 @@
+Naprawa udostępniania plików na Androidzie
+- Naprawiono wyłączanie przycisku wysyłania w Telegramie i innych aplikacjach (dodano typy MIME)
+- Dodano zapytania intentów udostępniania dla kompatybilności z Androidem 11+
+- Wersja i numer kompilacji są teraz wyświetlane na ekranie głównym i w oknie „O aplikacji"
+- Wersja jest odczytywana dynamicznie — koniec z zakodowanymi na stałe ciągami

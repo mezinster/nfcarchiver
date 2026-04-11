@@ -1,0 +1,8 @@
+Pierwsze wydanie NFC Archiver.
+
+* Archiwizacja plików i tekstu na wielu tagach NFC
+* Odtwarzanie archiwów przez skanowanie tagów w dowolnej kolejności
+* Obsługa kompresji GZIP
+* Szyfrowanie AES-256-GCM z ochroną hasłem
+* Obsługa tagów NTAG213, NTAG215, NTAG216, MIFARE Ultralight
+* Dostępne w języku angielskim, rosyjskim, tureckim, ukraińskim i gruzińskim
