@@ -88,6 +88,12 @@ To release a new version: bump `version: X.Y.Z+N` in `pubspec.yaml` (increment b
 
 Uses Flutter's `gen-l10n` with ARB files in `lib/l10n/`. Supported: English (`app_en.arb`), Russian (`app_ru.arb`), Turkish (`app_tr.arb`), Ukrainian (`app_uk.arb`), Georgian (`app_ka.arb`), Polish (`app_pl.arb`), Belarusian (`app_be.arb`). Run `flutter gen-l10n` after modifying ARB files. All new UI strings must be added to `app_en.arb` (template) and all 6 translation files.
 
+### Fastlane Metadata
+
+Fastlane metadata lives in `fastlane/metadata/android/<locale>/`. Each locale directory must contain `title.txt`, `short_description.txt`, `full_description.txt`, and a `changelogs/` directory. Changelogs use the naming convention `<versionCode>.txt` (matching the build number from `pubspec.yaml`).
+
+**When releasing a new version:** add a changelog file `<versionCode>.txt` to **all 7 locale directories** (`en-US`, `ru-RU`, `tr-TR`, `uk`, `ka-GE`, `pl-PL`, `be-BY`). Without translated changelogs, Google Play and F-Droid fall back to English for non-English users.
+
 ## Apple App Store Publishing
 
 **Goal:** Publish NFC Archiver to the Apple App Store.

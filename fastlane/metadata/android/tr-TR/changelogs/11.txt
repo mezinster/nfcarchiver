@@ -1,0 +1,7 @@
+Kalıcı geri yükleme oturumları ve hata düzeltmesi
+- "Arşivi Geri Yükle" açılırken çökme düzeltildi
+- Tamamlanmamış geri yükleme oturumları artık uygulama yeniden başlatmalarında korunuyor
+- Tarama ekranından tamamlanmamış oturumları görüntüleyin, devam ettirin ve silin
+- Tamamlanan oturumlara dokunarak doğrudan geri yükleyin
+- Üzerine yazmaları önlemek için dosya adlarına arşiv UUID'si eklendi
+- Oturum yönetimi tüm 5 dil için yerelleştirildi
