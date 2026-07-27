@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NFC Archiver — Web (Mifare Classic)</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+      button { font: inherit; padding: 0.4rem 0.9rem; margin: 0.2rem 0; }
+      .row { margin: 0.6rem 0; }
+      #status { padding: 0.6rem; border: 1px solid #ccc; border-radius: 6px; min-height: 1.4rem; white-space: pre-wrap; }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <h1>NFC Archiver — Web</h1>
+    <p>Reads/writes NFAR chunks on Mifare Classic 1K cards via a Chameleon Ultra over Web Bluetooth. Chromium browser required; run on the machine with Bluetooth (not inside WSL).</p>
+    <div class="row"><button id="connect">Connect Chameleon</button> <span id="conn">disconnected</span></div>
+    <fieldset class="row"><legend>Archive a file</legend>
+      <input type="file" id="file" />
+      <label><input type="checkbox" id="compress" checked /> compress</label>
+      <label>password <input type="password" id="apass" placeholder="(optional)" /></label>
+      <button id="archive" disabled>Archive to cards</button>
+    </fieldset>
+    <fieldset class="row"><legend>Restore</legend>
+      <label>save as <input type="text" id="fname" value="restored.bin" /></label>
+      <button id="restore" disabled>Restore from cards</button>
+    </fieldset>
+    <div class="row" id="status">Ready.</div>
+    <script type="module" src="./dist/main.js"></script>
+  </body>
+</html>
