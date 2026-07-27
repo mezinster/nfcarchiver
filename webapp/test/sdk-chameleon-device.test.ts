@@ -46,18 +46,24 @@ test('scanTag returns the first tag UID, or null when none present', async () =>
   assert.equal(await empty.scanTag(), null);
 });
 
-test('scanTag returns null when the SDK throws HF_TAG_NOT_FOUND (status 1)', async () => {
-  const dev = new SdkChameleonDevice(fakeSdk({
-    async cmdHf14aScan() { throw statusError(1, 'Tag not found.'); },
-  }));
-  assert.equal(await dev.scanTag(), null);
+test('scanTag returns null for the whole transient acquisition-error family', async () => {
+  // not-found(1), stat(2), crc(3), collision(4), bcc(5), parity(7) — all mean
+  // "no clean tag this instant", so awaitTag should keep polling, not abort.
+  for (const status of [1, 2, 3, 4, 5, 7]) {
+    const dev = new SdkChameleonDevice(fakeSdk({
+      async cmdHf14aScan() { throw statusError(status, `HF status ${status}`); },
+    }));
+    assert.equal(await dev.scanTag(), null, `status ${status} should scan as null`);
+  }
 });
 
-test('scanTag rethrows any other SDK error', async () => {
-  const dev = new SdkChameleonDevice(fakeSdk({
-    async cmdHf14aScan() { throw statusError(99, 'something else broke'); },
-  }));
-  await assert.rejects(() => dev.scanTag(), /something else broke/);
+test('scanTag rethrows a non-transient error (auth 6, ATS 8, unknown 99)', async () => {
+  for (const status of [6, 8, 99]) {
+    const dev = new SdkChameleonDevice(fakeSdk({
+      async cmdHf14aScan() { throw statusError(status, `status ${status} broke`); },
+    }));
+    await assert.rejects(() => dev.scanTag(), new RegExp(`status ${status} broke`));
+  }
 });
 
 test('readBlock/writeBlock convert key/data to SDK Buffers and pass them through', async () => {

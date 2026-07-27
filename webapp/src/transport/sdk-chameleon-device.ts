@@ -27,7 +27,9 @@
  *    the SDK's own `Buffer.from(...)` (re-exported from the package's main
  *    entry) before being handed to the SDK.
  *  - cmdHf14aScan() throws (does not return []) when no tag is present, with
- *    `.status === HF_TAG_NOT_FOUND` (1) on the thrown error.
+ *    `.status === HF_TAG_NOT_FOUND` (1) on the thrown error. It also throws for
+ *    marginal-coupling anticollision glitches (bad BCC/parity/CRC, collision);
+ *    scanTag treats that whole family as "no tag yet" so awaitTag retries.
  *  - Mifare auth failures (wrong/non-factory key) surface as a thrown error
  *    with `.status === MF_ERR_AUTH` (6) from cmdMf1ReadBlock/cmdMf1WriteBlock.
  */
@@ -39,8 +41,23 @@ import { CardAuthError } from './transport.js';
 /** Mifare Classic key type A. Mirrors the SDK's Mf1KeyType.KEY_A (0x60 / 96). */
 export const MF1_KEY_A = 0x60;
 
-/** SDK status code for "no tag in the field" (cmdHf14aScan throws this). */
-const HF_TAG_NOT_FOUND = 1;
+/**
+ * SDK status codes where the reader could not cleanly acquire a tag *this
+ * instant* — no tag, or a marginal RF frame (bad BCC/parity/CRC, collision,
+ * abnormal status) caused by imperfect coupling/positioning. All are transient:
+ * scanTag reports them as "no tag yet" so awaitTag keeps polling until the card
+ * is read cleanly (or the poll times out), instead of aborting the flow.
+ * A genuinely wrong-key card fails later at the block layer as MF_ERR_AUTH, and
+ * ATS/ISO-14443-4 errors (0x08) are left to surface — a Classic 1K never NAKs ATS.
+ */
+const TRANSIENT_SCAN_STATUSES = new Set<number>([
+  0x01, // HF_TAG_NOT_FOUND
+  0x02, // HF_ERR_STAT
+  0x03, // HF_ERR_CRC
+  0x04, // HF_COLLISION
+  0x05, // HF_ERR_BCC
+  0x07, // HF_ERR_PARITY
+]);
 
 /** SDK status code for a Mifare auth failure (wrong/non-factory key). */
 const MF_ERR_AUTH = 6;
@@ -57,6 +74,14 @@ export interface ChameleonUltraSdk {
 
 function isStatus(err: unknown, status: number): boolean {
   return typeof err === 'object' && err !== null && (err as { status?: unknown }).status === status;
+}
+
+function statusOf(err: unknown): number | undefined {
+  if (typeof err === 'object' && err !== null) {
+    const s = (err as { status?: unknown }).status;
+    if (typeof s === 'number') return s;
+  }
+  return undefined;
 }
 
 export class SdkChameleonDevice implements ChameleonDevice {
@@ -77,7 +102,8 @@ export class SdkChameleonDevice implements ChameleonDevice {
     try {
       tags = await this.sdk.cmdHf14aScan();
     } catch (err) {
-      if (isStatus(err, HF_TAG_NOT_FOUND)) return null;
+      const status = statusOf(err);
+      if (status !== undefined && TRANSIENT_SCAN_STATUSES.has(status)) return null;
       throw err;
     }
     const first = tags[0];
