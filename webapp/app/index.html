@@ -16,6 +16,7 @@
     <h1>NFC Archiver — Web</h1>
     <p>Reads/writes NFAR chunks on Mifare Classic 1K cards via a Chameleon Ultra over Web Bluetooth. Chromium browser required; run on the machine with Bluetooth (not inside WSL).</p>
     <div class="row"><button id="connect">Connect Chameleon</button> <span id="conn">disconnected</span></div>
+    <div class="row"><button id="diagnose" disabled>Diagnose card</button> <span>— read raw UID + BCC of the card on the reader</span></div>
     <fieldset class="row"><legend>Archive a file</legend>
       <input type="file" id="file" />
       <label><input type="checkbox" id="compress" checked /> compress</label>

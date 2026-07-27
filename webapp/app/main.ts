@@ -3,10 +3,11 @@
  * renders progress/errors. No business logic lives here (that is controller.ts).
  */
 
-import { ChameleonUltra } from 'chameleon-ultra.js';
+import { ChameleonUltra, Buffer } from 'chameleon-ultra.js';
 import WebbleAdapter from 'chameleon-ultra.js/plugin/WebbleAdapter';
 import { SdkChameleonDevice } from '../src/transport/sdk-chameleon-device.js';
 import { ChameleonBleTransport } from '../src/transport/chameleon-ble.js';
+import { diagnoseCard, type RawAntiColl } from './diagnostics.js';
 import {
   ArchiveController, RestoreController, OverwriteRequiredError, PasswordRequiredError, WrongArchiveError, NfarFormatError,
 } from './controller.js';
@@ -33,10 +34,14 @@ function humanError(e: unknown): string {
 }
 
 let transport: ChameleonBleTransport | null = null;
+let ultra: ChameleonUltra | null = null;
+
+const hex = (b: Uint8Array): string =>
+  Array.from(b, (x) => x.toString(16).padStart(2, '0').toUpperCase()).join(' ');
 
 $('connect').addEventListener('click', async () => {
   try {
-    const ultra = new ChameleonUltra();
+    ultra = new ChameleonUltra();
     // use() is async (the adapter's install() runs availability checks etc.);
     // it MUST be awaited before connect(), or this.port is still undefined.
     await ultra.use(new WebbleAdapter());
@@ -45,9 +50,47 @@ $('connect').addEventListener('click', async () => {
     $('conn').textContent = 'connected';
     ($('archive') as HTMLButtonElement).disabled = false;
     ($('restore') as HTMLButtonElement).disabled = false;
+    ($('diagnose') as HTMLButtonElement).disabled = false;
     setStatus('Connected. Choose a file to archive, or restore from cards.');
   } catch (e) {
     setStatus(humanError(e));
+  }
+});
+
+// Diagnostic: read the raw UID + BCC of the card on the reader, bypassing the
+// firmware BCC check, to explain "HF tag uid bcc error" failures.
+$('diagnose').addEventListener('click', async () => {
+  if (!ultra) return;
+  const dev = ultra;
+  const raw: RawAntiColl = {
+    async transceive(data, opts) {
+      const resp = await dev.cmdHf14aRaw({
+        data: Buffer.from(data),
+        dataBitLength: opts?.dataBitLength ?? 0,
+        activateRfField: opts?.activateRfField ?? false,
+        keepRfField: opts?.keepRfField ?? false,
+        checkResponseCrc: false,
+        waitResponse: true,
+      });
+      return new Uint8Array(resp);
+    },
+  };
+  setStatus('Hold the card on the reader…');
+  try {
+    const d = await diagnoseCard(raw);
+    const verdict = d.isCascade
+      ? '7-byte UID (cascade tag) — this is not a 4-byte Mifare Classic 1K.'
+      : d.bccValid
+        ? 'BCC OK — this card should work; the earlier error was likely transient positioning.'
+        : 'BCC MISMATCH — malformed block-0 UID (a UID-writable "magic" card). Rewrite block 0 with a correct BCC, or use a standard Classic 1K.';
+    setStatus(
+      `ATQA: ${hex(d.atqa)}\n` +
+      `UID (CL1): ${hex(d.uidCl1)}\n` +
+      `BCC returned: 0x${d.bccReturned.toString(16).padStart(2, '0')}  computed: 0x${d.bccComputed.toString(16).padStart(2, '0')}\n` +
+      verdict,
+    );
+  } catch (e) {
+    setStatus(`Diagnose failed: ${humanError(e)} (hold a card steady on the reader and retry)`);
   }
 });
 
