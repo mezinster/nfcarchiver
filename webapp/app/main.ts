@@ -37,7 +37,9 @@ let transport: ChameleonBleTransport | null = null;
 $('connect').addEventListener('click', async () => {
   try {
     const ultra = new ChameleonUltra();
-    ultra.use(new WebbleAdapter());
+    // use() is async (the adapter's install() runs availability checks etc.);
+    // it MUST be awaited before connect(), or this.port is still undefined.
+    await ultra.use(new WebbleAdapter());
     transport = new ChameleonBleTransport(new SdkChameleonDevice(ultra));
     await transport.connect();
     $('conn').textContent = 'connected';
