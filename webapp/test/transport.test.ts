@@ -2,7 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
 import { archive, restore } from '../src/pipeline.js';
-import { decodeChunk, encodeChunk, TOTAL_OVERHEAD, type Chunk } from '../src/chunk.js';
+import {
+  decodeChunk,
+  encodeChunk,
+  TOTAL_OVERHEAD,
+  FLAG_COMPRESSED,
+  FLAG_ENCRYPTED,
+  type Chunk,
+} from '../src/chunk.js';
 
 test('mock transport stores and returns chunk bytes', async () => {
   const t = new MockTransport(128);
@@ -21,11 +28,21 @@ test('mock transport rejects oversized chunk and empty slot', async () => {
 });
 
 test('end-to-end: archive -> tags -> shuffled scan -> restore', async () => {
-  const original = crypto.getRandomValues(new Uint8Array(500));
+  // Create compressible data: structured text that gzip compresses effectively
+  const words = [];
+  for (let i = 0; i < 400; i++) words.push(`chunk-${i}-payload`);
+  const original = new TextEncoder().encode(words.join(' '));
+
   const t = new MockTransport(256);
   const payloadSize = 256 - TOTAL_OVERHEAD;
 
   const chunks = await archive(original, { payloadSize, compress: true, password: 'e2e-pw' });
+
+  // Verify both compression and encryption flags are set
+  assert.ok(chunks.every((c) => c.flags === (FLAG_COMPRESSED | FLAG_ENCRYPTED)));
+  // Verify multiple chunks are produced (compression + chunking)
+  assert.ok(chunks.length >= 2);
+
   for (const c of chunks) await t.writeChunk(encodeChunk(c));
   assert.equal(t.tagCount, chunks.length);
 
