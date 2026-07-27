@@ -57,7 +57,13 @@ export function nfarTotalLength(header: Uint8Array): number {
   }
   const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
   const payloadSize = view.getUint16(26); // big-endian, per NFAR header layout
-  return TOTAL_OVERHEAD + payloadSize;
+  const total = TOTAL_OVERHEAD + payloadSize;
+  if (total > CARD_CAPACITY_BYTES) {
+    throw new NfarFormatError(
+      `Declared length ${total} exceeds card capacity ${CARD_CAPACITY_BYTES}; card is corrupt or not NFAR`,
+    );
+  }
+  return total;
 }
 
 export function assembleChunkFromBlocks(orderedBlockData: Uint8Array[], totalLength: number): Uint8Array {

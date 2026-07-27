@@ -61,6 +61,15 @@ test('nfarTotalLength reads payloadSize from the header, rejects non-NFAR', () =
   assert.throws(() => nfarTotalLength(bad), NfarFormatError);
 });
 
+test('nfarTotalLength rejects a declared length beyond card capacity', () => {
+  const bytes = chunkOfPayload(10);
+  const header = bytes.slice(0, 28);
+  // Corrupt the payloadSize field (bytes 26-27, big-endian) to its max value.
+  header[26] = 0xff;
+  header[27] = 0xff;
+  assert.throws(() => nfarTotalLength(header), NfarFormatError);
+});
+
 test('assembleChunkFromBlocks concatenates ordered block data and trims to length', () => {
   const bytes = chunkOfPayload(30); // total 62, 4 blocks
   const blocks = chunkToBlocks(bytes).map((b) => b.data);

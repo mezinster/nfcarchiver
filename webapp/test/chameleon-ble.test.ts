@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { ChameleonBleTransport } from '../src/transport/chameleon-ble.js';
 import { FACTORY_KEY_A } from '../src/transport/chameleon-device.js';
 import { CardAuthError, WriteVerifyError, TagTimeoutError } from '../src/transport/transport.js';
+import { NfarFormatError } from '../src/chunk.js';
 import { FakeChameleon } from './fake-chameleon.js';
 import { runTransportContract } from './transport-contract.js';
 import { encodeChunk, type Chunk } from '../src/chunk.js';
@@ -68,6 +69,28 @@ test('write-then-verify catches a corrupted block', async () => {
   await transport.awaitTag();
   device.corruptNextWrite();
   await assert.rejects(() => transport.writeChunk(chunkBytes(30)), WriteVerifyError);
+});
+
+test('readChunk rejects a corrupted payloadSize instead of looping past usable blocks', async () => {
+  const device = new FakeChameleon();
+  const transport = new ChameleonBleTransport(device, { pollMs: 1, defaultTimeoutMs: 200 });
+  await transport.connect();
+  const uid = new Uint8Array([8, 8, 8, 8]);
+  device.place(uid);
+  await transport.awaitTag();
+  await transport.writeChunk(chunkBytes(30)); // small valid chunk
+
+  // Corrupt the payloadSize field (chunk-byte offset 26-27), which lives at
+  // byte index 10-11 of the second usable block (offset 26 - 16 = 10).
+  const secondBlock = USABLE_BLOCK_INDEXES[1]!;
+  const corrupted = device.blockOf(uid, secondBlock).slice();
+  corrupted[10] = 0xff;
+  corrupted[11] = 0xff;
+  await device.writeBlock(secondBlock, FACTORY_KEY_A, corrupted);
+
+  device.place(uid); // same card back in the field
+  await transport.awaitTag();
+  await assert.rejects(() => transport.readChunk(), NfarFormatError);
 });
 
 test('non-factory-key card surfaces CardAuthError', async () => {
