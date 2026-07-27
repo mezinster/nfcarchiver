@@ -19,6 +19,22 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const status = $('status');
 const setStatus = (msg: string) => { status.textContent = msg; };
 
+const progressRow = $('progress-row');
+const bar = $('bar') as HTMLProgressElement;
+const progressLabel = $('progress-label');
+
+/** Show the bar. Pass value=null for an indeterminate (unknown-total) state. */
+function showProgress(label: string, value: number | null, max: number): void {
+  progressRow.hidden = false;
+  bar.max = max;
+  if (value === null) bar.removeAttribute('value'); // indeterminate
+  else bar.value = value;
+  progressLabel.textContent = label;
+}
+function hideProgress(): void {
+  progressRow.hidden = true;
+}
+
 function humanError(e: unknown): string {
   if (e instanceof CardAuthError) return 'Card keys are not factory defaults — this card cannot be used.';
   if (e instanceof WriteVerifyError) return 'Write verification failed — move the card closer and retry.';
@@ -102,25 +118,33 @@ $('archive').addEventListener('click', async () => {
   const compress = ($('compress') as HTMLInputElement).checked;
   const pass = ($('apass') as HTMLInputElement).value;
   const ctrl = new ArchiveController(transport);
+  const renderArchive = (written: number, total: number, done: boolean) => {
+    showProgress(
+      done ? `✓ ${written} of ${total} cards written & verified` : `✓ ${written} of ${total} written & verified — tap the next card`,
+      written,
+      total,
+    );
+    setStatus(done ? `Done — wrote and verified ${written} card(s).` : `Tap card ${written + 1} of ${total} on the reader…`);
+  };
   try {
     const total = await ctrl.prepare({ data, compress, password: pass || undefined });
-    setStatus(`Need ${total} card(s). Tap card 1 of ${total}…`);
+    renderArchive(0, total, false);
     let done = false;
     while (!done) {
       try {
         const res = await ctrl.writeNextCard();
         done = res.done;
-        setStatus(done ? `Done — wrote ${res.progress.written} card(s).` : `Wrote ${res.progress.written} of ${total}. Tap the next card…`);
+        renderArchive(res.progress.written, total, done);
       } catch (e) {
         if (e instanceof TagTimeoutError) {
-          setStatus('No card detected — tap a card on the reader…');
+          setStatus('No card detected — tap a card on the reader (hold it a few mm off)…');
           continue;
         }
         if (e instanceof OverwriteRequiredError) {
           if (confirm('This card already holds data. Overwrite it?')) {
             const res = await ctrl.writeNextCard(undefined, true);
             done = res.done;
-            setStatus(done ? `Done — wrote ${res.progress.written} card(s).` : `Wrote ${res.progress.written} of ${total}. Tap the next card…`);
+            renderArchive(res.progress.written, total, done);
           } else {
             setStatus('Skipped. Tap a different card…');
           }
@@ -128,6 +152,7 @@ $('archive').addEventListener('click', async () => {
       }
     }
   } catch (e) {
+    hideProgress();
     setStatus(humanError(e));
   }
 });
@@ -136,16 +161,26 @@ $('restore').addEventListener('click', async () => {
   if (!transport) return;
   const ctrl = new RestoreController(transport);
   try {
-    setStatus('Tap the first card…');
+    showProgress('Scanning — tap the first card…', null, 1); // total unknown until first card
+    setStatus('Tap the first card on the reader…');
     let done = false;
     while (!done) {
       try {
         const res = await ctrl.scanNextCard();
         done = res.done;
+        if (res.total === null) {
+          showProgress(`Scanning — ${res.collected} collected…`, null, 1);
+        } else {
+          showProgress(
+            done ? `All ${res.total} cards scanned` : `${res.collected} of ${res.total} cards scanned — tap the next card`,
+            res.collected,
+            res.total,
+          );
+        }
         setStatus(done ? 'All cards scanned. Assembling…' : `Collected ${res.collected}${res.total ? ` of ${res.total}` : ''}. Tap the next card…`);
       } catch (e) {
         if (e instanceof TagTimeoutError) {
-          setStatus('No card detected — tap a card on the reader…');
+          setStatus('No card detected — tap a card on the reader (hold it a few mm off)…');
           continue;
         }
         throw e;
@@ -181,6 +216,7 @@ $('restore').addEventListener('click', async () => {
     URL.revokeObjectURL(a.href);
     setStatus(`Restored ${out.length} bytes → ${name}.`);
   } catch (e) {
+    hideProgress();
     setStatus(humanError(e));
   }
 });
