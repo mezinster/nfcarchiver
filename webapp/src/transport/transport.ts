@@ -1,14 +1,45 @@
 /**
- * A Transport moves serialized NFAR chunk bytes to/from physical media:
- * NFC tags via the phone (Web NFC), or Mifare Classic cards via a
- * Chameleon Ultra over Web Bluetooth / Web Serial.
+ * A Transport moves one serialized NFAR chunk to/from the physical card
+ * currently presented to a reader. v2: promise-based tag arrival, UID identity,
+ * and write-then-verify semantics in writeChunk implementations.
  */
+
+export interface PresentedTag {
+  uid: Uint8Array;
+  capacityBytes: number;
+}
+
 export interface Transport {
   readonly name: string;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  /** Usable bytes on the currently presented tag/card. */
-  detectCapacity(): Promise<number>;
-  writeChunk(bytes: Uint8Array): Promise<void>;
+  /** Resolves when a tag enters the field. Rejects TagTimeoutError or AbortError. */
+  awaitTag(opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<PresentedTag>;
+  /** Cheap check: read only the first block and test for NFAR magic+version. */
+  peekIsNfar(): Promise<boolean>;
+  /** Read the chunk from the current tag. Throws NfarFormatError on a non-NFAR card. */
   readChunk(): Promise<Uint8Array>;
+  /** Write the chunk to the current tag, then read back and verify. */
+  writeChunk(bytes: Uint8Array): Promise<void>;
+}
+
+export class CardAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CardAuthError';
+  }
+}
+
+export class WriteVerifyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WriteVerifyError';
+  }
+}
+
+export class TagTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TagTimeoutError';
+  }
 }

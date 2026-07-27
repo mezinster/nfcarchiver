@@ -1,40 +1,64 @@
-import type { Transport } from './transport.js';
+import { NfarFormatError } from '../chunk.js';
+import { CARD_CAPACITY_BYTES, CardCapacityError, firstBlockIsNfar } from '../mifare/card-layout.js';
+import { TagTimeoutError, type PresentedTag, type Transport } from './transport.js';
 
-/** In-memory bank of "tags" for tests and demos. Each writeChunk fills the next tag. */
+function toHexKey(uid: Uint8Array): string {
+  return Array.from(uid, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * In-memory Transport double. Tests script a sequence of taps with enqueueTag;
+ * each awaitTag presents the next one. Card contents are keyed by UID, so
+ * re-enqueuing the same UID presents the same (already-written) card.
+ */
 export class MockTransport implements Transport {
   readonly name = 'mock';
-  private readonly tags: Uint8Array[] = [];
-  private presented = 0;
+  private readonly queue: string[] = [];
+  private readonly cards = new Map<string, Uint8Array>();
+  private active: string | null = null;
 
-  constructor(private readonly capacity = 512) {}
+  /** Present `uid` on the next awaitTag; optionally pre-load its stored chunk bytes. */
+  enqueueTag(uid: Uint8Array, chunkBytes?: Uint8Array): void {
+    const key = toHexKey(uid);
+    this.queue.push(key);
+    if (chunkBytes) this.cards.set(key, chunkBytes.slice());
+  }
 
   async connect(): Promise<void> {}
   async disconnect(): Promise<void> {}
 
-  async detectCapacity(): Promise<number> {
-    return this.capacity;
-  }
-
-  presentTag(index: number): void {
-    this.presented = index;
-  }
-
-  get tagCount(): number {
-    return this.tags.length;
-  }
-
-  async writeChunk(bytes: Uint8Array): Promise<void> {
-    if (bytes.length > this.capacity) {
-      throw new RangeError(`Chunk (${bytes.length} B) exceeds tag capacity (${this.capacity} B)`);
+  async awaitTag(opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<PresentedTag> {
+    if (opts?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    const next = this.queue.shift();
+    if (next === undefined) {
+      throw new TagTimeoutError(`No tag presented within ${opts?.timeoutMs ?? 0}ms`);
     }
-    this.tags.push(bytes.slice());
+    this.active = next;
+    return { uid: Uint8Array.from(next.match(/../g)!.map((h) => parseInt(h, 16))), capacityBytes: CARD_CAPACITY_BYTES };
+  }
+
+  private activeBytes(): Uint8Array | undefined {
+    return this.active === null ? undefined : this.cards.get(this.active);
+  }
+
+  async peekIsNfar(): Promise<boolean> {
+    const b = this.activeBytes();
+    return b !== undefined && b.length >= 16 && firstBlockIsNfar(b.subarray(0, 16));
   }
 
   async readChunk(): Promise<Uint8Array> {
-    const tag = this.tags[this.presented];
-    if (tag === undefined) {
-      throw new RangeError(`No tag at index ${this.presented}`);
+    const b = this.activeBytes();
+    if (b === undefined || !firstBlockIsNfar(b.subarray(0, 16))) {
+      throw new NfarFormatError('Current card contains no NFAR chunk');
     }
-    return tag.slice();
+    return b.slice();
+  }
+
+  async writeChunk(bytes: Uint8Array): Promise<void> {
+    if (this.active === null) throw new TagTimeoutError('No active tag to write');
+    if (bytes.length > CARD_CAPACITY_BYTES) {
+      throw new CardCapacityError(`Chunk ${bytes.length} B exceeds card capacity ${CARD_CAPACITY_BYTES} B`);
+    }
+    this.cards.set(this.active, bytes.slice());
   }
 }
