@@ -1,7 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { Buffer } from 'chameleon-ultra.js';
 import { SdkChameleonDevice, MF1_KEY_A, type ChameleonUltraSdk } from '../src/transport/sdk-chameleon-device.js';
 import { FACTORY_KEY_A } from '../src/transport/chameleon-device.js';
+import { CardAuthError } from '../src/transport/transport.js';
+
+const BRAND = Symbol.for('taichunmin.buffer');
+
+/** True only for the SDK's own branded Buffer, never a plain Uint8Array. */
+function isSdkBuffer(v: unknown): boolean {
+  return typeof v === 'object' && v !== null && typeof (v as Record<symbol, unknown>)[BRAND] === 'function';
+}
+
+function statusError(status: number, message = `status ${status}`): Error {
+  return Object.assign(new Error(message), { status });
+}
 
 function fakeSdk(overrides: Partial<ChameleonUltraSdk> = {}): ChameleonUltraSdk & { calls: unknown[] } {
   const calls: unknown[] = [];
@@ -11,9 +24,17 @@ function fakeSdk(overrides: Partial<ChameleonUltraSdk> = {}): ChameleonUltraSdk 
     isConnected() { return connected; },
     async connect() { connected = true; },
     async disconnect() { connected = false; },
-    async cmdHf14aScan() { calls.push(['scan']); return [{ uid: new Uint8Array([1, 2, 3, 4]) }]; },
-    async cmdMf1ReadBlock({ block, keyType, key }) { calls.push(['read', block, keyType, [...key]]); return new Uint8Array(16).fill(block); },
-    async cmdMf1WriteBlock({ block, keyType, key, data }) { calls.push(['write', block, keyType, [...key], [...data]]); },
+    async cmdHf14aScan() { calls.push(['scan']); return [{ uid: Buffer.from(new Uint8Array([1, 2, 3, 4])) }]; },
+    async cmdMf1ReadBlock(opts) {
+      assert.ok(isSdkBuffer(opts.key), 'key must be an SDK Buffer, not a plain Uint8Array');
+      calls.push(['read', opts.block, opts.keyType, [...opts.key]]);
+      return Buffer.from(new Uint8Array(16).fill(opts.block));
+    },
+    async cmdMf1WriteBlock(opts) {
+      assert.ok(isSdkBuffer(opts.key), 'key must be an SDK Buffer, not a plain Uint8Array');
+      assert.ok(isSdkBuffer(opts.data), 'data must be an SDK Buffer, not a plain Uint8Array');
+      calls.push(['write', opts.block, opts.keyType, [...opts.key], [...opts.data]]);
+    },
     ...overrides,
   } as ChameleonUltraSdk & { calls: unknown[] };
 }
@@ -25,13 +46,46 @@ test('scanTag returns the first tag UID, or null when none present', async () =>
   assert.equal(await empty.scanTag(), null);
 });
 
-test('readBlock/writeBlock use key type A and pass the key through', async () => {
+test('scanTag returns null when the SDK throws HF_TAG_NOT_FOUND (status 1)', async () => {
+  const dev = new SdkChameleonDevice(fakeSdk({
+    async cmdHf14aScan() { throw statusError(1, 'Tag not found.'); },
+  }));
+  assert.equal(await dev.scanTag(), null);
+});
+
+test('scanTag rethrows any other SDK error', async () => {
+  const dev = new SdkChameleonDevice(fakeSdk({
+    async cmdHf14aScan() { throw statusError(99, 'something else broke'); },
+  }));
+  await assert.rejects(() => dev.scanTag(), /something else broke/);
+});
+
+test('readBlock/writeBlock convert key/data to SDK Buffers and pass them through', async () => {
   const sdk = fakeSdk();
   const dev = new SdkChameleonDevice(sdk);
   await dev.readBlock(4, FACTORY_KEY_A);
   await dev.writeBlock(4, FACTORY_KEY_A, new Uint8Array(16).fill(9));
   assert.deepEqual(sdk.calls[0], ['read', 4, MF1_KEY_A, [...FACTORY_KEY_A]]);
   assert.deepEqual(sdk.calls[1], ['write', 4, MF1_KEY_A, [...FACTORY_KEY_A], [...new Uint8Array(16).fill(9)]]);
+});
+
+test('readBlock/writeBlock surface an auth-failure status (6) as CardAuthError', async () => {
+  const readDev = new SdkChameleonDevice(fakeSdk({
+    async cmdMf1ReadBlock() { throw statusError(6, 'auth failed'); },
+  }));
+  await assert.rejects(() => readDev.readBlock(4, FACTORY_KEY_A), CardAuthError);
+
+  const writeDev = new SdkChameleonDevice(fakeSdk({
+    async cmdMf1WriteBlock() { throw statusError(6, 'auth failed'); },
+  }));
+  await assert.rejects(() => writeDev.writeBlock(4, FACTORY_KEY_A, new Uint8Array(16)), CardAuthError);
+});
+
+test('readBlock/writeBlock rethrow non-auth SDK errors', async () => {
+  const readDev = new SdkChameleonDevice(fakeSdk({
+    async cmdMf1ReadBlock() { throw statusError(2, 'not supported'); },
+  }));
+  await assert.rejects(() => readDev.readBlock(4, FACTORY_KEY_A), /not supported/);
 });
 
 test('connect/disconnect delegate to the SDK', async () => {

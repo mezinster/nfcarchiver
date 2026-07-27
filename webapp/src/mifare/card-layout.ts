@@ -6,7 +6,7 @@
  * per-block framing is added.
  */
 
-import { NFAR_MAGIC, NFAR_VERSION, TOTAL_OVERHEAD, NfarFormatError } from '../chunk.js';
+import { NFAR_MAGIC, NFAR_VERSION, TOTAL_OVERHEAD, HEADER_SIZE, NfarFormatError } from '../chunk.js';
 
 export const BLOCK_SIZE = 16;
 
@@ -52,8 +52,8 @@ export function nfarTotalLength(header: Uint8Array): number {
   if (!firstBlockIsNfar(header)) {
     throw new NfarFormatError('Not an NFAR card: magic or version mismatch');
   }
-  if (header.length < 28) {
-    throw new NfarFormatError(`Header too short: need 28 bytes, got ${header.length}`);
+  if (header.length < HEADER_SIZE) {
+    throw new NfarFormatError(`Header too short: need ${HEADER_SIZE} bytes, got ${header.length}`);
   }
   const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
   const payloadSize = view.getUint16(26); // big-endian, per NFAR header layout

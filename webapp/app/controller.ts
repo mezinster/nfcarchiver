@@ -20,7 +20,6 @@ export interface ArchiveProgress {
   total: number;
   written: number;
   awaiting: number | null;
-  needsOverwriteConfirm: boolean;
 }
 
 export class OverwriteRequiredError extends Error {
@@ -37,8 +36,23 @@ export class PasswordRequiredError extends Error {
   }
 }
 
+export class WrongArchiveError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WrongArchiveError';
+  }
+}
+
 function uidHex(uid: Uint8Array): string {
   return Array.from(uid, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }
 
 export class ArchiveController {
@@ -59,8 +73,8 @@ export class ArchiveController {
     return this.chunks.length;
   }
 
-  private progress(awaiting: number | null, needsOverwriteConfirm: boolean): ArchiveProgress {
-    return { total: this.chunks.length, written: this.written, awaiting, needsOverwriteConfirm };
+  private progress(awaiting: number | null): ArchiveProgress {
+    return { total: this.chunks.length, written: this.written, awaiting };
   }
 
   /**
@@ -70,11 +84,11 @@ export class ArchiveController {
    * true, throws OverwriteRequiredError without writing.
    */
   async writeNextCard(signal?: AbortSignal, confirmOverwrite = false): Promise<{ done: boolean; progress: ArchiveProgress }> {
-    if (this.written >= this.chunks.length) return { done: true, progress: this.progress(null, false) };
+    if (this.written >= this.chunks.length) return { done: true, progress: this.progress(null) };
     const tag = await this.transport.awaitTag({ signal });
     const key = uidHex(tag.uid);
     if (this.writtenUids.has(key)) {
-      return { done: false, progress: this.progress(this.written, false) };
+      return { done: false, progress: this.progress(this.written) };
     }
     if (!confirmOverwrite && (await this.transport.peekIsNfar())) {
       throw new OverwriteRequiredError('This card already holds NFAR data; confirm to overwrite');
@@ -83,7 +97,7 @@ export class ArchiveController {
     this.writtenUids.add(key);
     this.written += 1;
     const done = this.written >= this.chunks.length;
-    return { done, progress: this.progress(done ? null : this.written, false) };
+    return { done, progress: this.progress(done ? null : this.written) };
   }
 }
 
@@ -92,6 +106,7 @@ export class RestoreController {
   private readonly seenUids = new Set<string>();
   private total: number | null = null;
   private encrypted = false;
+  private archiveId: Uint8Array | null = null;
 
   constructor(private readonly transport: Transport) {}
 
@@ -100,11 +115,15 @@ export class RestoreController {
     const key = uidHex(tag.uid);
     if (!this.seenUids.has(key)) {
       const chunk = decodeChunk(await this.transport.readChunk());
+      if (this.archiveId !== null && !bytesEqual(chunk.archiveId, this.archiveId)) {
+        throw new WrongArchiveError('This card belongs to a different archive');
+      }
       this.seenUids.add(key);
       if (!this.collected.has(chunk.chunkIndex)) {
         this.collected.set(chunk.chunkIndex, chunk);
         this.total = chunk.totalChunks;
         this.encrypted = (chunk.flags & FLAG_ENCRYPTED) !== 0;
+        if (this.archiveId === null) this.archiveId = chunk.archiveId;
       }
     }
     const done = this.total !== null && this.collected.size >= this.total;

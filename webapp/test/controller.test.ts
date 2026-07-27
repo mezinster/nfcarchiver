@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
 import { encodeChunk } from '../src/chunk.js';
-import { ArchiveController, RestoreController, PasswordRequiredError, OverwriteRequiredError } from '../app/controller.js';
+import { ArchiveController, RestoreController, PasswordRequiredError, OverwriteRequiredError, WrongArchiveError } from '../app/controller.js';
+import { DecryptionError } from '../src/crypto.js';
 
 const uid = (n: number) => new Uint8Array([0xa0, 0, 0, n]);
 // Random 2000 bytes: incompressible, so with compress:false it reliably needs
@@ -74,4 +75,65 @@ test('restore collects chunks and demands a password when encrypted', async () =
   assert.ok(done);
   await assert.rejects(() => rctrl.finish(), PasswordRequiredError);
   assert.deepEqual(await rctrl.finish('pw'), multiCardData);
+});
+
+test('restore rejects a card from a different archive', async () => {
+  const rt = new MockTransport();
+  const rctrl = new RestoreController(rt);
+  const chunkA = encodeChunk({
+    archiveId: new Uint8Array(16).fill(1), totalChunks: 2, chunkIndex: 0,
+    payload: new Uint8Array([1]), crc32: 0, flags: 0,
+  });
+  const chunkB = encodeChunk({
+    archiveId: new Uint8Array(16).fill(2), totalChunks: 2, chunkIndex: 1,
+    payload: new Uint8Array([2]), crc32: 0, flags: 0,
+  });
+  rt.enqueueTag(uid(0), chunkA);
+  const first = await rctrl.scanNextCard();
+  assert.equal(first.collected, 1);
+  rt.enqueueTag(uid(1), chunkB);
+  await assert.rejects(() => rctrl.scanNextCard(), WrongArchiveError);
+});
+
+test('finish() is safely retryable after a wrong password', async () => {
+  const src = new MockTransport();
+  const actrl = new ArchiveController(src);
+  const total = await actrl.prepare({ data: multiCardData, compress: false, password: 'pw' });
+  const stored: Uint8Array[] = [];
+  for (let i = 0; i < total; i++) {
+    src.enqueueTag(uid(i));
+    await actrl.writeNextCard();
+    src.enqueueTag(uid(i));
+    await src.awaitTag();
+    stored.push(await src.readChunk());
+  }
+
+  const rt = new MockTransport();
+  const rctrl = new RestoreController(rt);
+  for (let i = 0; i < total; i++) rt.enqueueTag(uid(i), stored[i]!);
+  let done = false, guard = 0;
+  while (!done && guard++ < 50) ({ done } = await rctrl.scanNextCard());
+  assert.ok(done);
+  await assert.rejects(() => rctrl.finish('wrong'), DecryptionError);
+  assert.deepEqual(await rctrl.finish('pw'), multiCardData);
+});
+
+test('writeNextCard/scanNextCard reject with AbortError when the signal is already aborted', async () => {
+  const controller = new AbortController();
+  controller.abort();
+
+  const t1 = new MockTransport();
+  const actrl = new ArchiveController(t1);
+  await actrl.prepare({ data: new Uint8Array([1, 2, 3]), compress: false });
+  await assert.rejects(
+    () => actrl.writeNextCard(controller.signal),
+    (e: unknown) => e instanceof DOMException && e.name === 'AbortError',
+  );
+
+  const t2 = new MockTransport();
+  const rctrl = new RestoreController(t2);
+  await assert.rejects(
+    () => rctrl.scanNextCard(controller.signal),
+    (e: unknown) => e instanceof DOMException && e.name === 'AbortError',
+  );
 });

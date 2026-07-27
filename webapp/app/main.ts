@@ -8,10 +8,11 @@ import WebbleAdapter from 'chameleon-ultra.js/plugin/WebbleAdapter';
 import { SdkChameleonDevice } from '../src/transport/sdk-chameleon-device.js';
 import { ChameleonBleTransport } from '../src/transport/chameleon-ble.js';
 import {
-  ArchiveController, RestoreController, OverwriteRequiredError, PasswordRequiredError, NfarFormatError,
+  ArchiveController, RestoreController, OverwriteRequiredError, PasswordRequiredError, WrongArchiveError, NfarFormatError,
 } from './controller.js';
 import { CardCapacityError } from '../src/mifare/card-layout.js';
 import { CardAuthError, WriteVerifyError, TagTimeoutError } from '../src/transport/transport.js';
+import { DecryptionError } from '../src/crypto.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const status = $('status');
@@ -25,6 +26,8 @@ function humanError(e: unknown): string {
   if (e instanceof NfarFormatError) return 'This card holds no NFAR archive data.';
   if (e instanceof OverwriteRequiredError) return 'This card already holds data.';
   if (e instanceof PasswordRequiredError) return 'This archive is encrypted — enter a password.';
+  if (e instanceof WrongArchiveError) return 'This card belongs to a different archive.';
+  if (e instanceof DecryptionError) return 'Wrong password.';
   if (e instanceof DOMException && e.name === 'AbortError') return 'Cancelled.';
   return e instanceof Error ? e.message : String(e);
 }
@@ -64,6 +67,10 @@ $('archive').addEventListener('click', async () => {
         done = res.done;
         setStatus(done ? `Done — wrote ${res.progress.written} card(s).` : `Wrote ${res.progress.written} of ${total}. Tap the next card…`);
       } catch (e) {
+        if (e instanceof TagTimeoutError) {
+          setStatus('No card detected — tap a card on the reader…');
+          continue;
+        }
         if (e instanceof OverwriteRequiredError) {
           if (confirm('This card already holds data. Overwrite it?')) {
             const res = await ctrl.writeNextCard(undefined, true);
@@ -87,18 +94,39 @@ $('restore').addEventListener('click', async () => {
     setStatus('Tap the first card…');
     let done = false;
     while (!done) {
-      const res = await ctrl.scanNextCard();
-      done = res.done;
-      setStatus(done ? 'All cards scanned. Assembling…' : `Collected ${res.collected}${res.total ? ` of ${res.total}` : ''}. Tap the next card…`);
+      try {
+        const res = await ctrl.scanNextCard();
+        done = res.done;
+        setStatus(done ? 'All cards scanned. Assembling…' : `Collected ${res.collected}${res.total ? ` of ${res.total}` : ''}. Tap the next card…`);
+      } catch (e) {
+        if (e instanceof TagTimeoutError) {
+          setStatus('No card detected — tap a card on the reader…');
+          continue;
+        }
+        throw e;
+      }
     }
-    let out: Uint8Array;
-    try {
-      out = await ctrl.finish();
-    } catch (e) {
-      if (e instanceof PasswordRequiredError) {
-        const pw = prompt('This archive is encrypted. Enter password:') ?? undefined;
+    let out: Uint8Array | undefined;
+    let pw: string | undefined;
+    const maxPasswordAttempts = 5;
+    for (let attempt = 0; attempt < maxPasswordAttempts; attempt++) {
+      try {
         out = await ctrl.finish(pw);
-      } else { throw e; }
+        break;
+      } catch (e) {
+        if (e instanceof PasswordRequiredError || e instanceof DecryptionError) {
+          const promptMsg = e instanceof DecryptionError ? 'Wrong password. Enter password:' : 'This archive is encrypted. Enter password:';
+          const entered = prompt(promptMsg) ?? undefined;
+          if (entered === undefined) { setStatus('Cancelled.'); return; }
+          pw = entered;
+          continue;
+        }
+        throw e;
+      }
+    }
+    if (out === undefined) {
+      setStatus('Too many failed password attempts.');
+      return;
     }
     const name = ($('fname') as HTMLInputElement).value || 'restored.bin';
     const a = document.createElement('a');
