@@ -66,6 +66,15 @@ void main() {
       CompressionService.instance.decompress(fromHex(j['gzipped'] as String));
   check(bytesEqual(gunzipped, original), 'gzip decompression');
 
+  final originalText = fromHex(j['originalText'] as String);
+  final gzippedText = fromHex(j['gzippedText'] as String);
+  final gunzippedText = CompressionService.instance.decompress(gzippedText);
+  check(
+    bytesEqual(gunzippedText, originalText) &&
+        gzippedText.length < originalText.length,
+    'gzip decompression (compressed data)',
+  );
+
   check(
     ChecksumService.instance.calculate(original) == j['crc32OfOriginal'],
     'CRC-32 agreement',

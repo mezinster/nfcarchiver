@@ -18,6 +18,8 @@ interface Fixture {
   encrypted: string;
   gzipped: string;
   crc32OfOriginal: number;
+  originalText: string;
+  gzippedText: string;
 }
 
 // dist/test/ -> ../../test/fixtures (fixtures are not compiled by tsc)
@@ -44,6 +46,14 @@ test('TS decrypts a Dart-encrypted blob (incl. password trimming)', async () => 
 
 test('TS decompresses Dart gzip output', async () => {
   assert.deepEqual(await gzipDecompress(fromHex(fixture.gzipped)), original);
+});
+
+test('TS decompresses Dart gzip output (compressed data)', async () => {
+  const originalText = fromHex(fixture.originalText);
+  const gzippedText = fromHex(fixture.gzippedText);
+  assert.deepEqual(await gzipDecompress(gzippedText), originalText);
+  // Sanity check: proves the block is actually compressed, not stored.
+  assert.ok(gzippedText.length < originalText.length);
 });
 
 test('TS CRC-32 matches Dart over the original data', () => {

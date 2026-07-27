@@ -22,6 +22,9 @@ export class DecryptionError extends Error {
 
 async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
   // The Dart implementation trims the password before UTF-8 encoding.
+  // Note: JS `trim()` and Dart `trim()` differ on U+0085 (NEL), which Dart
+  // trims and JS does not — irrelevant for real passwords, documented here
+  // for byte-compat completeness.
   const material = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(password.trim()),
