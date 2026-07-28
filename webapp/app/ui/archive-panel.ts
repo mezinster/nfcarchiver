@@ -5,6 +5,7 @@ import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
 import { currentTransport, onConnectionChange } from './device.js';
 import { humanError } from './errors.js';
+import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -79,6 +80,7 @@ export function initArchivePanel(): void {
     try {
       const total = await ctrl.prepare({ data: src.data, fileName: src.fileName, compress, password: pass || undefined, payloadSize: selectedPayloadSize() });
       render(0, total, false);
+      log.info('archive', 'Prepared', { cards: total });
       let done = false;
       while (!done) {
         try {
@@ -97,6 +99,7 @@ export function initArchivePanel(): void {
           } else { throw e; }
         }
       }
+      log.info('archive', 'Write complete', { cards: total });
     } catch (e) {
       hideProgress();
       setStatus(humanError(e));
