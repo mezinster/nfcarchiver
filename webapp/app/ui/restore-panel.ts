@@ -5,6 +5,7 @@ import { DecryptionError } from '../../src/crypto.js';
 import { currentTransport, onConnectionChange } from './device.js';
 import { renderArchiveList } from './restore-view.js';
 import { humanError } from './errors.js';
+import { filesController } from './files-panel.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -81,6 +82,22 @@ export function initRestorePanel(): void {
         a.click();
         URL.revokeObjectURL(a.href);
         setStatus(`Restored ${result.data.length} bytes → ${name}.`);
+        // Persist a re-downloadable Files entry (non-fatal on failure — the
+        // download already succeeded). Encrypted archives store ciphertext.
+        try {
+          const meta = ctrl.detectedArchives().find((d) => d.archiveId === chosenId);
+          if (meta) {
+            await filesController.saveRestored({
+              id: chosenId,
+              name: result.fileName ?? name,
+              size: result.data.length,
+              isEncrypted: meta.isEncrypted,
+              isCompressed: meta.isCompressed,
+              totalChunks: meta.totalChunks,
+              payload: ctrl.assembledPayload(chosenId),
+            });
+          }
+        } catch { /* history save failed; the restore/download still succeeded */ }
       } catch (e) {
         setStatus(humanError(e));
       }
