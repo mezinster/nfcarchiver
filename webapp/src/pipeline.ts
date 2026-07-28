@@ -33,17 +33,29 @@ export async function archive(data: Uint8Array, options: ArchiveOptions): Promis
   return createChunks(payload, options.payloadSize, flags, options.archiveId);
 }
 
-export async function restore(chunks: Chunk[], password?: string): Promise<Uint8Array> {
-  let data = assembleChunks(chunks);
-  const flags = chunks[0]!.flags;
-  if ((flags & FLAG_ENCRYPTED) !== 0) {
+export async function restoreFromPayload(
+  payload: Uint8Array,
+  opts: { isEncrypted: boolean; isCompressed: boolean },
+  password?: string,
+): Promise<Uint8Array> {
+  let data = payload;
+  if (opts.isEncrypted) {
     if (password === undefined) {
       throw new DecryptionError('Archive is encrypted; password required');
     }
     data = await decrypt(data, password);
   }
-  if ((flags & FLAG_COMPRESSED) !== 0) {
+  if (opts.isCompressed) {
     data = await gzipDecompress(data);
   }
   return data;
+}
+
+export async function restore(chunks: Chunk[], password?: string): Promise<Uint8Array> {
+  const flags = chunks[0]!.flags;
+  return restoreFromPayload(
+    assembleChunks(chunks),
+    { isEncrypted: (flags & FLAG_ENCRYPTED) !== 0, isCompressed: (flags & FLAG_COMPRESSED) !== 0 },
+    password,
+  );
 }
