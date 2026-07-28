@@ -11,26 +11,17 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:nfc_archiver/core/constants/nfar_format.dart';
 import 'package:nfc_archiver/core/services/checksum_service.dart';
 import 'package:nfc_archiver/core/services/chunker_service.dart';
 import 'package:nfc_archiver/core/services/compression_service.dart';
 import 'package:nfc_archiver/core/services/encryption_service.dart';
+import 'package:nfc_archiver/features/archive/data/archive_repository.dart';
 
 String hexOf(List<int> bytes) =>
     bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
-Uint8List prependFilename(Uint8List data, String fileName) {
-  final nameBytes = utf8.encode(fileName);
-  final name = nameBytes.length > 255 ? nameBytes.sublist(0, 255) : nameBytes;
-  final out = Uint8List(2 + name.length + data.length);
-  out[0] = (name.length >> 8) & 0xFF;
-  out[1] = name.length & 0xFF;
-  out.setRange(2, 2 + name.length, name);
-  out.setRange(2 + name.length, out.length, data);
-  return out;
-}
-
-void main() {
+Future<void> main() async {
   final original = Uint8List.fromList(List.generate(200, (i) => i % 251));
   // Deliberately padded: proves both sides trim before key derivation.
   const password = '  interop-password  ';
@@ -50,17 +41,18 @@ void main() {
 
   const wrappedFileName = 'my report.txt';
   final wrappedOriginal = Uint8List.fromList(utf8.encode('report body ' * 100));
-  final wrapped = prependFilename(wrappedOriginal, wrappedFileName);
-  final wrappedCompressed = CompressionService.instance.compress(wrapped);
-  final wrappedEncrypted =
-      EncryptionService.instance.encrypt(wrappedCompressed, password);
-  final wrappedChunks = ChunkerService.instance
-      .createChunksWithSize(
-        data: wrappedEncrypted,
-        payloadSize: 720,
-        flags: 0x03, // FLAG_COMPRESSED | FLAG_ENCRYPTED
-      )
-      .chunks;
+  // Exercise the real Android archive path — ArchiveRepository.createArchiveFromBytes
+  // — rather than a hand-rolled replica, so wrapper/flag drift can't hide. This is
+  // constructible in a plain CLI: it (and its core services) have no NFC/Flutter
+  // plugin dependency, only pure-Dart packages (equatable, uuid, pointycastle).
+  final wrappedResult = await ArchiveRepository.instance.createArchiveFromBytes(
+    data: wrappedOriginal,
+    fileName: wrappedFileName,
+    tagType: NfcTagType.generic1k,
+    compress: true,
+    password: password,
+  );
+  final wrappedChunks = wrappedResult.chunks;
 
   final json = const JsonEncoder.withIndent('  ').convert({
     'payloadSize': 64,

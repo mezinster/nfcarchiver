@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
-import { encodeChunk } from '../src/chunk.js';
+import { decodeChunk, encodeChunk } from '../src/chunk.js';
 import { ArchiveController, RestoreController, PasswordRequiredError, OverwriteRequiredError } from '../app/controller.js';
 import { DecryptionError } from '../src/crypto.js';
+import { NfarAssemblyError } from '../src/chunker.js';
 
 const uid = (n: number) => new Uint8Array([0xa0, 0, 0, n]);
 const multiCardData = crypto.getRandomValues(new Uint8Array(2000)); // incompressible -> multiple cards
@@ -92,17 +93,41 @@ test('multi-archive detection groups by archive ID and dedups by UID', async () 
 
   const rt = new MockTransport();
   const rctrl = new RestoreController(rt);
-  // Interleave the two archives' cards, then re-tap the very first card (dedup).
-  a.forEach((bytes, i) => rt.enqueueTag(new Uint8Array([1, 0, 0, i]), bytes));
-  b.forEach((bytes, i) => rt.enqueueTag(new Uint8Array([2, 0, 0, i]), bytes));
-  rt.enqueueTag(new Uint8Array([1, 0, 0, 0]), a[0]!); // duplicate scan
 
+  // Tap archive A's first card for real.
+  rt.enqueueTag(new Uint8Array([1, 0, 0, 0]), a[0]!);
   let list = await rctrl.scanNextCard();
-  for (let i = 0; i < a.length + b.length; i++) list = await rctrl.scanNextCard();
+
+  // Re-tap the SAME UID, but this time the "card" on the reader holds a corrupted
+  // payload (same archiveId/chunkIndex, flipped payload byte, stale CRC) -- MockTransport
+  // stores card contents keyed by UID, so this really does replace what a later read of
+  // that UID would return. If the UID dedup guard were removed, RestoreController would
+  // read this and clobber chunk 0 of archive A's group, and assembly below would fail
+  // with a CRC mismatch. With the guard, the second tap of an already-seen UID is never
+  // read, so the group (and the eventual restore) is unaffected.
+  const decoded0 = decodeChunk(a[0]!);
+  const corrupted = encodeChunk({
+    ...decoded0,
+    payload: decoded0.payload.map((byte, i) => (i === 0 ? byte ^ 0xff : byte)),
+  });
+  rt.enqueueTag(new Uint8Array([1, 0, 0, 0]), corrupted);
+  list = await rctrl.scanNextCard();
+
+  // Now scan the rest of archive A and all of archive B.
+  for (let i = 1; i < a.length; i++) {
+    rt.enqueueTag(new Uint8Array([1, 0, 0, i]), a[i]!);
+    list = await rctrl.scanNextCard();
+  }
+  for (let i = 0; i < b.length; i++) {
+    rt.enqueueTag(new Uint8Array([2, 0, 0, i]), b[i]!);
+    list = await rctrl.scanNextCard();
+  }
   assert.equal(list.length, 2);
   assert.ok(list.every((d) => d.complete));
 
   const archiveA = list.find((d) => d.totalChunks === a.length)!;
+  assert.equal(archiveA.isCompressed, false);
+  assert.equal(archiveA.shortId.length, 8);
   const restored = await rctrl.restore(archiveA.archiveId);
   assert.equal(restored.fileName, 'a.bin');
   assert.deepEqual(restored.data, multiCardData);
@@ -117,7 +142,7 @@ test('restoring an incomplete archive throws', async () => {
   let list = await rctrl.scanNextCard();
   for (let i = 1; i < stored.length - 1; i++) list = await rctrl.scanNextCard();
   assert.ok(!list[0]!.complete);
-  await assert.rejects(() => rctrl.restore(list[0]!.archiveId));
+  await assert.rejects(() => rctrl.restore(list[0]!.archiveId), NfarAssemblyError);
 });
 
 test('writeNextCard/scanNextCard reject with AbortError when the signal is already aborted', async () => {

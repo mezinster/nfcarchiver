@@ -211,55 +211,69 @@ $('scan').addEventListener('click', async () => {
   let pickedId: string | null = null;
   ($('scan') as HTMLButtonElement).disabled = true;
   ($('stop-scan') as HTMLButtonElement).disabled = false;
+  hideProgress();
   setStatus('Scanning — tap cards on the reader…');
-  const onPick = (id: string) => { pickedId = id; scanAbort?.abort(); };
+  const onPick = (id: string) => {
+    pickedId = id;
+    // Freeze the picked-from UI immediately: a re-tap during the password
+    // prompt or PBKDF2 await below must not be able to swap the archive.
+    $('archives').querySelectorAll('button').forEach((b) => { (b as HTMLButtonElement).disabled = true; });
+    scanAbort?.abort();
+  };
 
+  // Single outer try/finally: #scan/#stop-scan are only flipped back once the
+  // whole click (scan loop + any restore/password-retry phase) is done, so a
+  // second scan can never start while a restore is still in flight.
   try {
-    for (;;) {
-      try {
-        const list = await ctrl.scanNextCard(scanAbort.signal);
-        renderArchives(list, onPick);
-        setStatus(`Detected ${list.length} archive(s). Tap more cards, or Restore a complete one.`);
-      } catch (e) {
-        if (e instanceof TagTimeoutError) continue;
-        if (e instanceof DOMException && e.name === 'AbortError') break;
-        throw e;
+    try {
+      for (;;) {
+        try {
+          const list = await ctrl.scanNextCard(scanAbort.signal);
+          renderArchives(list, onPick);
+          setStatus(`Detected ${list.length} archive(s). Tap more cards, or Restore a complete one.`);
+        } catch (e) {
+          if (e instanceof TagTimeoutError) continue;
+          if (e instanceof DOMException && e.name === 'AbortError') break;
+          throw e;
+        }
       }
+    } catch (e) {
+      setStatus(humanError(e));
+      return;
     }
-  } catch (e) {
-    setStatus(humanError(e));
+
+    if (!pickedId) { setStatus('Stopped scanning.'); return; }
+    const chosenId = pickedId;
+
+    try {
+      let pw: string | undefined;
+      let result: { data: Uint8Array; fileName: string | null } | undefined;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try { result = await ctrl.restore(chosenId, pw); break; }
+        catch (e) {
+          if (e instanceof PasswordRequiredError || e instanceof DecryptionError) {
+            const entered = prompt(e instanceof DecryptionError ? 'Wrong password. Enter password:' : 'This archive is encrypted. Enter password:') ?? undefined;
+            if (entered === undefined) { setStatus('Cancelled.'); return; }
+            pw = entered; continue;
+          }
+          throw e;
+        }
+      }
+      if (!result) { setStatus('Too many failed password attempts.'); return; }
+      const name = result.fileName ?? (($('fname') as HTMLInputElement).value || 'restored.bin');
+      if (result.fileName) ($('fname') as HTMLInputElement).value = result.fileName;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([result.data as BlobPart]));
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setStatus(`Restored ${result.data.length} bytes → ${name}.`);
+    } catch (e) {
+      setStatus(humanError(e));
+    }
   } finally {
     ($('stop-scan') as HTMLButtonElement).disabled = true;
     ($('scan') as HTMLButtonElement).disabled = false;
-  }
-
-  if (!pickedId) { setStatus('Stopped scanning.'); return; }
-
-  try {
-    let pw: string | undefined;
-    let result: { data: Uint8Array; fileName: string | null } | undefined;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try { result = await ctrl.restore(pickedId, pw); break; }
-      catch (e) {
-        if (e instanceof PasswordRequiredError || e instanceof DecryptionError) {
-          const entered = prompt(e instanceof DecryptionError ? 'Wrong password. Enter password:' : 'This archive is encrypted. Enter password:') ?? undefined;
-          if (entered === undefined) { setStatus('Cancelled.'); return; }
-          pw = entered; continue;
-        }
-        throw e;
-      }
-    }
-    if (!result) { setStatus('Too many failed password attempts.'); return; }
-    const name = result.fileName ?? (($('fname') as HTMLInputElement).value || 'restored.bin');
-    if (result.fileName) ($('fname') as HTMLInputElement).value = result.fileName;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([result.data as BlobPart]));
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    setStatus(`Restored ${result.data.length} bytes → ${name}.`);
-  } catch (e) {
-    setStatus(humanError(e));
   }
 });
 
