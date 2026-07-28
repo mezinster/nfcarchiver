@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
 import { decodeChunk, encodeChunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
-import { ArchiveController, RestoreController, PasswordRequiredError, OverwriteRequiredError } from '../app/controller.js';
+import { ArchiveController, RestoreController, PasswordRequiredError, OverwriteRequiredError, RechunkTooLateError } from '../app/controller.js';
 import { DecryptionError } from '../src/crypto.js';
 import { NfarAssemblyError } from '../src/chunker.js';
 
@@ -195,6 +195,54 @@ test('assembledPayload returns the pre-decrypt bytes for a detected group', asyn
 test('assembledPayload throws for an unknown archive id', () => {
   const rctrl = new RestoreController(new MockTransport());
   assert.throws(() => rctrl.assembledPayload('does-not-exist'));
+});
+
+test('rechunkForCapacity grows the chunk count for a smaller card and refuses after a write', async () => {
+  const t = new MockTransport();
+  t.maxChunkPayload = 73; // simulate an NTAG213-sized card so writeNextCard won't re-rechunk
+  const ctrl = new ArchiveController(t);
+  const big = await ctrl.prepare({ data: multiCardData, fileName: 'x.bin', compress: false, payloadSize: 720 });
+  const small = ctrl.rechunkForCapacity(73);
+  assert.ok(small > big, `expected more chunks after shrinking: ${small} > ${big}`);
+  t.enqueueTag(uid(0));
+  await ctrl.writeNextCard(); // 73 === current payloadSize -> no auto-rechunk; writes card 0
+  assert.throws(() => ctrl.rechunkForCapacity(428), RechunkTooLateError);
+});
+
+test('writeNextCard auto-rechunks to the tapped card and still restores byte-identically', async () => {
+  const t = new MockTransport();
+  t.maxChunkPayload = 73; // the tapped card is much smaller than the selected NTAG216
+  const ctrl = new ArchiveController(t);
+  const originalTotal = await ctrl.prepare({ data: multiCardData, fileName: 'x.bin', compress: false, payloadSize: 812 });
+
+  const stored: Uint8Array[] = [];
+  let done = false, i = 0, guard = 0;
+  let firstRechunk: { total: number; payloadSize: number } | undefined;
+  while (!done && guard++ < 1000) {
+    t.enqueueTag(uid(i));
+    const res = await ctrl.writeNextCard();
+    if (res.rechunkedTo && firstRechunk === undefined) firstRechunk = res.rechunkedTo;
+    done = res.done;
+    t.enqueueTag(uid(i)); await t.awaitTag(); stored.push(await t.readChunk()); // read back this card
+    i++;
+  }
+  assert.ok(firstRechunk, 'the first tap reported a re-chunk');
+  assert.equal(firstRechunk!.payloadSize, 73);
+  assert.ok(firstRechunk!.total > originalTotal, `more, smaller cards: ${firstRechunk!.total} > ${originalTotal}`);
+  assert.equal(stored.length, firstRechunk!.total);
+  // all written cards share one archiveId (coherent archive)
+  const ids = new Set(stored.map((b) => decodeChunk(b).archiveId.join(',')));
+  assert.equal(ids.size, 1);
+
+  // restore the small-card pile -> byte-identical to the original data
+  const rt = new MockTransport();
+  const rctrl = new RestoreController(rt);
+  stored.forEach((b, j) => rt.enqueueTag(uid(j), b));
+  let list = await rctrl.scanNextCard();
+  for (let j = 1; j < stored.length; j++) list = await rctrl.scanNextCard();
+  assert.ok(list[0]!.complete);
+  const result = await rctrl.restore(list[0]!.archiveId);
+  assert.deepEqual(result.data, multiCardData);
 });
 
 test('writeNextCard/scanNextCard reject with AbortError when the signal is already aborted', async () => {

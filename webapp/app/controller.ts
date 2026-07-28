@@ -7,7 +7,7 @@
 import { archive, restore } from '../src/pipeline.js';
 import { decodeChunk, encodeChunk, FLAG_COMPRESSED, FLAG_ENCRYPTED, type Chunk } from '../src/chunk.js';
 import { NfarFormatError } from '../src/chunk.js';
-import { assembleChunks } from '../src/chunker.js';
+import { assembleChunks, createChunks } from '../src/chunker.js';
 import { NdefFormatError } from '../src/nfc/ndef.js';
 import { wrapWithFilename, unwrapFilename } from '../src/filename.js';
 import { formatArchiveId } from '../src/archive-id.js';
@@ -51,6 +51,13 @@ export class PasswordRequiredError extends Error {
   }
 }
 
+export class RechunkTooLateError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RechunkTooLateError';
+  }
+}
+
 function uidHex(uid: Uint8Array): string {
   return Array.from(uid, (b) => b.toString(16).padStart(2, '0')).join('');
 }
@@ -58,6 +65,7 @@ function uidHex(uid: Uint8Array): string {
 export class ArchiveController {
   private chunks: Chunk[] = [];
   private written = 0;
+  private payloadSize = 0;
   private readonly writtenUids = new Set<string>();
 
   constructor(private readonly transport: Transport) {}
@@ -69,8 +77,20 @@ export class ArchiveController {
       compress: req.compress,
       password: req.password,
     });
+    this.payloadSize = req.payloadSize;
     this.written = 0;
     this.writtenUids.clear();
+    return this.chunks.length;
+  }
+
+  /** Re-split the already-processed payload to a new per-card size, preserving the
+   *  archiveId (no re-encrypt). Only valid before any card is written. */
+  rechunkForCapacity(newPayloadSize: number): number {
+    if (this.written > 0) throw new RechunkTooLateError('Cannot re-chunk after writing has started');
+    const payload = assembleChunks(this.chunks);
+    const { flags, archiveId } = this.chunks[0]!;
+    this.chunks = createChunks(payload, newPayloadSize, flags, archiveId);
+    this.payloadSize = newPayloadSize;
     return this.chunks.length;
   }
 
@@ -78,12 +98,17 @@ export class ArchiveController {
     return { total: this.chunks.length, written: this.written, awaiting };
   }
 
-  async writeNextCard(signal?: AbortSignal, confirmOverwrite = false): Promise<{ done: boolean; progress: ArchiveProgress }> {
+  async writeNextCard(signal?: AbortSignal, confirmOverwrite = false): Promise<{ done: boolean; progress: ArchiveProgress; rechunkedTo?: { total: number; payloadSize: number } }> {
     if (this.written >= this.chunks.length) return { done: true, progress: this.progress(null) };
     const tag = await this.transport.awaitTag({ signal });
     const key = uidHex(tag.uid);
     if (this.writtenUids.has(key)) {
       return { done: false, progress: this.progress(this.written) };
+    }
+    let rechunkedTo: { total: number; payloadSize: number } | undefined;
+    if (this.written === 0 && tag.maxChunkPayload !== this.payloadSize) {
+      const total = this.rechunkForCapacity(tag.maxChunkPayload);
+      rechunkedTo = { total, payloadSize: tag.maxChunkPayload };
     }
     if (!confirmOverwrite && (await this.transport.peekIsNfar())) {
       throw new OverwriteRequiredError('This card already holds NFAR data; confirm to overwrite');
@@ -92,7 +117,7 @@ export class ArchiveController {
     this.writtenUids.add(key);
     this.written += 1;
     const done = this.written >= this.chunks.length;
-    return { done, progress: this.progress(done ? null : this.written) };
+    return { done, progress: this.progress(done ? null : this.written), ...(rechunkedTo ? { rechunkedTo } : {}) };
   }
 }
 
