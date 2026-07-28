@@ -16,6 +16,7 @@ export function initLogPanel(): void {
     row.textContent = formatLogLine(e);
     row.hidden = LEVELS[e.level] < minLevel();
     box.appendChild(row);
+    while (box.children.length > 1000) box.firstChild?.remove();
     if (autoscroll.checked) box.scrollTop = box.scrollHeight;
   };
 

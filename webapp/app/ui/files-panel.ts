@@ -14,7 +14,7 @@ export const filesController = new FilesController(new IdbFileStore());
 
 async function download(id: string, setStatus: (m: string) => void): Promise<void> {
   let pw: string | undefined;
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt <= 5; attempt++) {
     try {
       const { data, name } = await filesController.prepareDownload(id, pw);
       const a = document.createElement('a');
@@ -27,6 +27,7 @@ async function download(id: string, setStatus: (m: string) => void): Promise<voi
       return;
     } catch (e) {
       if (e instanceof PasswordRequiredError || e instanceof DecryptionError) {
+        if (attempt === 5) break;
         const entered = prompt(e instanceof DecryptionError ? 'Wrong password. Enter password:' : 'This file is encrypted. Enter password:') ?? undefined;
         if (entered === undefined) { setStatus('Cancelled.'); return; }
         pw = entered; continue;
