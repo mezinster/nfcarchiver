@@ -1,0 +1,55 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  wrapType2Tlv, readType2Ndef, NtagType, ntagUserBytes, detectNtagType, ntagChunkPayloadSize,
+} from '../src/nfc/type2.js';
+import { encodeNdefMime, NdefFormatError } from '../src/nfc/ndef.js';
+import { TOTAL_OVERHEAD } from '../src/chunk.js';
+
+test('short TLV: 0x03, 1-byte length, ndef, 0xFE; round-trips', () => {
+  const ndef = new Uint8Array([1, 2, 3, 4]);
+  const tlv = wrapType2Tlv(ndef);
+  assert.equal(tlv[0], 0x03);
+  assert.equal(tlv[1], 4);
+  assert.deepEqual([...tlv.subarray(2, 6)], [1, 2, 3, 4]);
+  assert.equal(tlv[6], 0xfe);
+  assert.deepEqual([...readType2Ndef(tlv)], [1, 2, 3, 4]);
+});
+
+test('long TLV: 0x03, 0xFF, 2-byte BE length for ndef >= 255', () => {
+  const ndef = new Uint8Array(300).fill(7);
+  const tlv = wrapType2Tlv(ndef);
+  assert.deepEqual([...tlv.subarray(0, 4)], [0x03, 0xff, 0x01, 0x2c]); // 300 BE
+  assert.deepEqual([...readType2Ndef(tlv)], [...ndef]);
+});
+
+test('readType2Ndef skips lock/memory TLVs and finds the NDEF TLV', () => {
+  const ndef = new Uint8Array([9, 9]);
+  // 0x01 (lock) len 2 + two bytes, then the NDEF TLV
+  const mem = new Uint8Array([0x01, 0x02, 0xaa, 0xbb, 0x03, 0x02, 9, 9, 0xfe, 0, 0]);
+  assert.deepEqual([...readType2Ndef(mem)], [...ndef]);
+});
+
+test('readType2Ndef throws when there is no NDEF TLV before the terminator', () => {
+  assert.throws(() => readType2Ndef(new Uint8Array([0xfe, 0, 0])), NdefFormatError);
+});
+
+test('detectNtagType reads the GET_VERSION storage byte', () => {
+  const v = (storage: number) => new Uint8Array([0x00, 0x04, 0x04, 0x02, 0x01, 0x00, storage, 0x03]);
+  assert.equal(detectNtagType(v(0x0f)), NtagType.NTAG213);
+  assert.equal(detectNtagType(v(0x11)), NtagType.NTAG215);
+  assert.equal(detectNtagType(v(0x13)), NtagType.NTAG216);
+  assert.equal(detectNtagType(v(0x99)), null);
+});
+
+test('ntagChunkPayloadSize is the max payload whose wrapped chunk fits user memory', () => {
+  for (const t of [NtagType.NTAG213, NtagType.NTAG215, NtagType.NTAG216]) {
+    const p = ntagChunkPayloadSize(t);
+    const cap = ntagUserBytes(t);
+    // A full chunk of this payload, NDEF+TLV-wrapped, must fit; one more byte must not.
+    const wrappedLen = (payload: number) => wrapType2Tlv(encodeNdefMime(new Uint8Array(TOTAL_OVERHEAD + payload))).length;
+    assert.ok(wrappedLen(p) <= cap, `${t}: payload ${p} wraps to ${wrappedLen(p)} > ${cap}`);
+    assert.ok(wrappedLen(p + 1) > cap, `${t}: payload ${p + 1} should overflow ${cap}`);
+    assert.ok(p > 0);
+  }
+});
