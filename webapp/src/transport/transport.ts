@@ -43,3 +43,10 @@ export class TagTimeoutError extends Error {
     this.name = 'TagTimeoutError';
   }
 }
+
+export class UnsupportedTagError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnsupportedTagError';
+  }
+}
