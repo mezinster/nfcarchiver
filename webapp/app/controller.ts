@@ -7,6 +7,7 @@
 import { archive, restore } from '../src/pipeline.js';
 import { decodeChunk, encodeChunk, FLAG_COMPRESSED, FLAG_ENCRYPTED, type Chunk } from '../src/chunk.js';
 import { NfarFormatError } from '../src/chunk.js';
+import { assembleChunks } from '../src/chunker.js';
 import { NdefFormatError } from '../src/nfc/ndef.js';
 import { wrapWithFilename, unwrapFilename } from '../src/filename.js';
 import { formatArchiveId } from '../src/archive-id.js';
@@ -156,6 +157,14 @@ export class RestoreController {
     }
     const raw = await restore([...group.chunks.values()], password);
     return unwrapFilename(raw);
+  }
+
+  /** Assembled chunk payload for a detected group — the pre-decrypt bytes
+   *  (ciphertext when the archive is encrypted). Used to persist a Files entry. */
+  assembledPayload(archiveId: string): Uint8Array {
+    const group = this.groups.get(archiveId);
+    if (group === undefined) throw new Error(`No detected archive ${archiveId}`);
+    return assembleChunks([...group.chunks.values()]);
   }
 }
 
