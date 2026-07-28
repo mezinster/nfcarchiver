@@ -49,14 +49,6 @@ export class PasswordRequiredError extends Error {
   }
 }
 
-/** Retained for compatibility; multi-archive detection no longer throws this. */
-export class WrongArchiveError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'WrongArchiveError';
-  }
-}
-
 function uidHex(uid: Uint8Array): string {
   return Array.from(uid, (b) => b.toString(16).padStart(2, '0')).join('');
 }

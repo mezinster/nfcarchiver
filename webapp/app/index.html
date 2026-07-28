@@ -12,6 +12,8 @@
       #progress-row progress { width: 100%; height: 1.1rem; vertical-align: middle; }
       #progress-label { display: block; font-size: 0.9rem; color: #555; margin-top: 0.2rem; }
       .hidden { display: none; }
+      #cardcount { font-size: 0.9rem; color: #555; margin: 0.3rem 0; }
+      #archives .arch { border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem 0.6rem; margin: 0.3rem 0; display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
     </style>
   </head>
   <body>
@@ -19,15 +21,19 @@
     <p>Reads/writes NFAR chunks on Mifare Classic 1K cards via a Chameleon Ultra over Web Bluetooth. Chromium browser required; run on the machine with Bluetooth (not inside WSL).</p>
     <div class="row"><button id="connect">Connect Chameleon</button> <span id="conn">disconnected</span></div>
     <div class="row"><button id="diagnose" disabled>Diagnose card</button> <span>— read raw UID + BCC of the card on the reader</span></div>
-    <fieldset class="row"><legend>Archive a file</legend>
-      <input type="file" id="file" />
+    <fieldset class="row"><legend>Archive a file or text</legend>
+      <div class="row"><input type="file" id="file" /></div>
+      <div class="row"><label>or text:</label><br /><textarea id="text" rows="3" style="width:100%" placeholder="Type text to archive as text_note.txt"></textarea></div>
       <label><input type="checkbox" id="compress" checked /> compress</label>
       <label>password <input type="password" id="apass" placeholder="(optional)" /></label>
+      <div id="cardcount"></div>
       <button id="archive" disabled>Archive to cards</button>
     </fieldset>
     <fieldset class="row"><legend>Restore</legend>
+      <button id="scan" disabled>Scan cards</button>
+      <button id="stop-scan" disabled>Stop</button>
+      <div id="archives"></div>
       <label>save as <input type="text" id="fname" value="restored.bin" /></label>
-      <button id="restore" disabled>Restore from cards</button>
     </fieldset>
     <div class="row" id="progress-row" hidden><progress id="bar"></progress><span id="progress-label"></span></div>
     <div class="row" id="status">Ready.</div>
