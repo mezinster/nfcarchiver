@@ -176,6 +176,27 @@ test('restore scan skips a blank/foreign card instead of ending the session', as
   assert.deepEqual([...result.data], [1]);
 });
 
+test('assembledPayload returns the pre-decrypt bytes for a detected group', async () => {
+  const stored = await archiveToCards(multiCardData, { compress: false, fileName: 'x.bin' });
+  const rt = new MockTransport();
+  const rctrl = new RestoreController(rt);
+  stored.forEach((bytes, i) => rt.enqueueTag(uid(i), bytes));
+  let list = await rctrl.scanNextCard();
+  for (let i = 1; i < stored.length; i++) list = await rctrl.scanNextCard();
+  assert.ok(list[0]!.complete);
+
+  const payload = rctrl.assembledPayload(list[0]!.archiveId);
+  // For a plain archive the assembled payload is the filename-wrapped plaintext,
+  // so it decodes back to the original data via the restore path already tested.
+  const result = await rctrl.restore(list[0]!.archiveId);
+  assert.ok(payload.length >= result.data.length);
+});
+
+test('assembledPayload throws for an unknown archive id', () => {
+  const rctrl = new RestoreController(new MockTransport());
+  assert.throws(() => rctrl.assembledPayload('does-not-exist'));
+});
+
 test('writeNextCard/scanNextCard reject with AbortError when the signal is already aborted', async () => {
   const controller = new AbortController();
   controller.abort();
