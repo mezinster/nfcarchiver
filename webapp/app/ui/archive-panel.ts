@@ -2,6 +2,7 @@
 import { ArchiveController, OverwriteRequiredError } from '../controller.js';
 import { TagTimeoutError } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
+import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
 import { currentTransport, onConnectionChange } from './device.js';
 import { humanError } from './errors.js';
 
@@ -34,7 +35,7 @@ export function initArchivePanel(): void {
     if (!src) { el.textContent = ''; return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const encrypted = ($('apass') as HTMLInputElement).value.length > 0;
-    el.textContent = `≈ ${await estimateCardCount(src.data, src.fileName, { compress, encrypted })} card(s)`;
+    el.textContent = `≈ ${await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: CARD_PAYLOAD_SIZE })} card(s)`;
   };
   const scheduleCounter = () => { clearTimeout(counterTimer); counterTimer = setTimeout(updateCounter, 200); };
 
@@ -67,7 +68,7 @@ export function initArchivePanel(): void {
       setStatus(done ? `Done — wrote and verified ${written} card(s).` : `Tap card ${written + 1} of ${total} on the reader…`);
     };
     try {
-      const total = await ctrl.prepare({ data: src.data, fileName: src.fileName, compress, password: pass || undefined });
+      const total = await ctrl.prepare({ data: src.data, fileName: src.fileName, compress, password: pass || undefined, payloadSize: CARD_PAYLOAD_SIZE });
       render(0, total, false);
       let done = false;
       while (!done) {

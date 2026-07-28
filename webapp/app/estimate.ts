@@ -7,12 +7,11 @@
 import { wrapWithFilename } from '../src/filename.js';
 import { gzipCompress } from '../src/gzip.js';
 import { ENCRYPTION_OVERHEAD } from '../src/crypto.js';
-import { CARD_PAYLOAD_SIZE } from '../src/mifare/card-layout.js';
 
 export async function estimateCardCount(
   data: Uint8Array,
   fileName: string,
-  opts: { compress: boolean; encrypted: boolean },
+  opts: { compress: boolean; encrypted: boolean; payloadSize: number },
 ): Promise<number> {
   if (data.length === 0) return 0;
   const wrapped = wrapWithFilename(data, fileName);
@@ -22,5 +21,5 @@ export async function estimateCardCount(
     if (gz.length < wrapped.length) processed = gz;
   }
   const size = processed.length + (opts.encrypted ? ENCRYPTION_OVERHEAD : 0);
-  return Math.ceil(size / CARD_PAYLOAD_SIZE);
+  return Math.ceil(size / opts.payloadSize);
 }

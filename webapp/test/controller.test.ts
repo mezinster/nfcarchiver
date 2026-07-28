@@ -15,7 +15,7 @@ async function archiveToCards(
 ): Promise<Uint8Array[]> {
   const src = new MockTransport();
   const ctrl = new ArchiveController(src);
-  const total = await ctrl.prepare({ data, fileName: opts.fileName ?? 'blob.bin', compress: opts.compress, password: opts.password });
+  const total = await ctrl.prepare({ data, fileName: opts.fileName ?? 'blob.bin', compress: opts.compress, password: opts.password, payloadSize: 720 });
   const stored: Uint8Array[] = [];
   for (let i = 0; i < total; i++) {
     src.enqueueTag(uid(i));
@@ -30,7 +30,7 @@ async function archiveToCards(
 test('archive writes each card once and reports progress', async () => {
   const t = new MockTransport();
   const ctrl = new ArchiveController(t);
-  const total = await ctrl.prepare({ data: multiCardData, fileName: 'blob.bin', compress: false });
+  const total = await ctrl.prepare({ data: multiCardData, fileName: 'blob.bin', compress: false, payloadSize: 720 });
   assert.ok(total >= 2, `expected multiple cards, got ${total}`);
   for (let i = 0; i < total; i++) t.enqueueTag(uid(i));
   let done = false, guard = 0;
@@ -41,7 +41,7 @@ test('archive writes each card once and reports progress', async () => {
 test('archive skips a re-tapped card it already wrote', async () => {
   const t = new MockTransport();
   const ctrl = new ArchiveController(t);
-  const total = await ctrl.prepare({ data: multiCardData, fileName: 'blob.bin', compress: false });
+  const total = await ctrl.prepare({ data: multiCardData, fileName: 'blob.bin', compress: false, payloadSize: 720 });
   assert.ok(total >= 2);
   t.enqueueTag(uid(0));
   const first = await ctrl.writeNextCard();
@@ -55,7 +55,7 @@ test('archive skips a re-tapped card it already wrote', async () => {
 test('archive requires explicit confirmation to overwrite an NFAR card', async () => {
   const t = new MockTransport();
   const ctrl = new ArchiveController(t);
-  await ctrl.prepare({ data: multiCardData, fileName: 'blob.bin', compress: false });
+  await ctrl.prepare({ data: multiCardData, fileName: 'blob.bin', compress: false, payloadSize: 720 });
   const existingNfar = encodeChunk({
     archiveId: new Uint8Array(16).fill(1), totalChunks: 1, chunkIndex: 0,
     payload: new Uint8Array([1]), crc32: 0, flags: 0,
@@ -151,7 +151,7 @@ test('writeNextCard/scanNextCard reject with AbortError when the signal is alrea
 
   const t1 = new MockTransport();
   const actrl = new ArchiveController(t1);
-  await actrl.prepare({ data: new Uint8Array([1, 2, 3]), fileName: 'x.bin', compress: false });
+  await actrl.prepare({ data: new Uint8Array([1, 2, 3]), fileName: 'x.bin', compress: false, payloadSize: 720 });
   await assert.rejects(
     () => actrl.writeNextCard(controller.signal),
     (e: unknown) => e instanceof DOMException && e.name === 'AbortError',

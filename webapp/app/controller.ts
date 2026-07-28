@@ -6,7 +6,6 @@
 
 import { archive, restore } from '../src/pipeline.js';
 import { decodeChunk, encodeChunk, FLAG_COMPRESSED, FLAG_ENCRYPTED, type Chunk } from '../src/chunk.js';
-import { CARD_PAYLOAD_SIZE } from '../src/mifare/card-layout.js';
 import { NfarFormatError } from '../src/chunk.js';
 import { wrapWithFilename, unwrapFilename } from '../src/filename.js';
 import { formatArchiveId } from '../src/archive-id.js';
@@ -17,6 +16,7 @@ export interface ArchiveRequest {
   fileName: string;
   compress: boolean;
   password?: string;
+  payloadSize: number;
 }
 
 export interface ArchiveProgress {
@@ -63,7 +63,7 @@ export class ArchiveController {
   async prepare(req: ArchiveRequest): Promise<number> {
     const wrapped = wrapWithFilename(req.data, req.fileName);
     this.chunks = await archive(wrapped, {
-      payloadSize: CARD_PAYLOAD_SIZE,
+      payloadSize: req.payloadSize,
       compress: req.compress,
       password: req.password,
     });
