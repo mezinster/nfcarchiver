@@ -7,6 +7,7 @@
 import { archive, restore } from '../src/pipeline.js';
 import { decodeChunk, encodeChunk, FLAG_COMPRESSED, FLAG_ENCRYPTED, type Chunk } from '../src/chunk.js';
 import { NfarFormatError } from '../src/chunk.js';
+import { NdefFormatError } from '../src/nfc/ndef.js';
 import { wrapWithFilename, unwrapFilename } from '../src/filename.js';
 import { formatArchiveId } from '../src/archive-id.js';
 import type { Transport } from '../src/transport/transport.js';
@@ -111,7 +112,18 @@ export class RestoreController {
     const tag = await this.transport.awaitTag({ signal });
     const uid = uidHex(tag.uid);
     if (!this.seenUids.has(uid)) {
-      const chunk = decodeChunk(await this.transport.readChunk());
+      let chunk: Chunk;
+      try {
+        chunk = decodeChunk(await this.transport.readChunk());
+      } catch (e) {
+        // A blank/foreign/undecodable card in the pile shouldn't end the scan:
+        // remember its UID (so it isn't re-read on a re-tap) and skip it.
+        if (e instanceof NfarFormatError || e instanceof NdefFormatError) {
+          this.seenUids.add(uid);
+          return this.detectedArchives();
+        }
+        throw e; // a transient I/O failure — let the caller decide
+      }
       const id = formatArchiveId(chunk.archiveId);
       let group = this.groups.get(id);
       if (group === undefined) {

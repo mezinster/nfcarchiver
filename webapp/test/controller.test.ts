@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
 import { decodeChunk, encodeChunk } from '../src/chunk.js';
+import { crc32 } from '../src/crc32.js';
 import { ArchiveController, RestoreController, PasswordRequiredError, OverwriteRequiredError } from '../app/controller.js';
 import { DecryptionError } from '../src/crypto.js';
 import { NfarAssemblyError } from '../src/chunker.js';
@@ -143,6 +144,36 @@ test('restoring an incomplete archive throws', async () => {
   for (let i = 1; i < stored.length - 1; i++) list = await rctrl.scanNextCard();
   assert.ok(!list[0]!.complete);
   await assert.rejects(() => rctrl.restore(list[0]!.archiveId), NfarAssemblyError);
+});
+
+test('restore scan skips a blank/foreign card instead of ending the session', async () => {
+  const rt = new MockTransport();
+  const rctrl = new RestoreController(rt);
+
+  // A valid single-chunk archive (real CRC so it also restores).
+  const payload = new Uint8Array([1]);
+  const good = encodeChunk({
+    archiveId: new Uint8Array(16).fill(5), totalChunks: 1, chunkIndex: 0,
+    payload, crc32: crc32(payload), flags: 0,
+  });
+  rt.enqueueTag(uid(0), good);
+  let list = await rctrl.scanNextCard();
+  assert.equal(list.length, 1);
+
+  // A blank/foreign card (no NFAR bytes) — readChunk throws NfarFormatError.
+  // It must be skipped, not thrown, so the scan session survives.
+  rt.enqueueTag(uid(1));
+  list = await rctrl.scanNextCard();
+  assert.equal(list.length, 1); // the foreign card added no archive
+
+  // Re-tapping the foreign card is deduped (no repeated read attempt).
+  rt.enqueueTag(uid(1));
+  list = await rctrl.scanNextCard();
+  assert.equal(list.length, 1);
+
+  // The good archive still restores.
+  const result = await rctrl.restore(list[0]!.archiveId);
+  assert.deepEqual([...result.data], [1]);
 });
 
 test('writeNextCard/scanNextCard reject with AbortError when the signal is already aborted', async () => {

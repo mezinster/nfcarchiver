@@ -56,10 +56,14 @@ export function initRestorePanel(): void {
             renderArchives(list, onPick);
             setStatus(`Detected ${list.length} archive(s). Tap more cards, or Restore a complete one.`);
           } catch (e) {
+            // Only an abort (Stop / Restore pick) ends the scan; every per-tap
+            // failure just skips that card so the session — and its Restore
+            // buttons — stay alive.
+            if (e instanceof DOMException && e.name === 'AbortError') break;
             if (e instanceof TagTimeoutError) continue;
             if (e instanceof UnsupportedTagError) { setStatus('Unsupported tag — tap a Mifare Classic 1K or NTAG.'); continue; }
-            if (e instanceof DOMException && e.name === 'AbortError') break;
-            throw e;
+            setStatus(`Skipped a card: ${humanError(e)}`);
+            continue;
           }
         }
       } catch (e) {
