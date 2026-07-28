@@ -112,7 +112,13 @@
       </section>
 
       <section id="panel-files" role="tabpanel" hidden>
-        <div class="card"><p class="muted">No local history yet — archived files aren't stored in the browser in this version.</p></div>
+        <div class="card">
+          <div id="files"></div>
+          <p id="files-empty" class="muted">No restored files yet. Restore an archive and it'll appear here.</p>
+          <div style="margin-top:0.6rem"><span id="files-info" class="muted"></span>
+            &nbsp;&nbsp;<button id="files-clear">Clear all</button></div>
+          <p id="files-status" class="muted"></p>
+        </div>
       </section>
 
       <section id="panel-about" role="tabpanel" hidden>
