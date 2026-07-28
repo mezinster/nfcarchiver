@@ -42,7 +42,7 @@ export class AutoTransport implements Transport {
       if (tag !== null) {
         if (tag.sak === 0x08) this.active = this.classic;
         else if (tag.sak === 0x00) this.active = this.ntag;
-        else throw new UnsupportedTagError(`Unsupported tag (SAK 0x${tag.sak.toString(16)})`);
+        else { this.active = null; throw new UnsupportedTagError(`Unsupported tag (SAK 0x${tag.sak.toString(16)})`); }
         // The chosen delegate re-reads the present tag for capacity/type.
         return this.active.awaitTag({ ...opts, timeoutMs });
       }

@@ -4,11 +4,11 @@
  */
 
 import { CardCapacityError } from '../mifare/card-layout.js';
-import { encodeNdefMime, decodeNdefMime } from '../nfc/ndef.js';
+import { encodeNdefMime, decodeNdefMime, NdefFormatError } from '../nfc/ndef.js';
 import { wrapType2Tlv, readType2Ndef, detectNtagType, ntagUserBytes, ntagChunkPayloadSize, type NtagType } from '../nfc/type2.js';
 import type { ChameleonDevice } from './chameleon-device.js';
-import { NfarFormatError } from '../chunk.js';
-import { TagTimeoutError, WriteVerifyError, type PresentedTag, type Transport } from './transport.js';
+import { NfarFormatError, TOTAL_OVERHEAD } from '../chunk.js';
+import { TagTimeoutError, UnsupportedTagError, WriteVerifyError, type PresentedTag, type Transport } from './transport.js';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const NDEF_START_PAGE = 4;
@@ -37,9 +37,14 @@ export class NtagTransport implements Transport {
   }
 
   private async detectType(): Promise<NtagType> {
-    const v = await this.device.transceive14a(new Uint8Array([0x60]), { autoSelect: true, appendCrc: true, checkResponseCrc: true });
+    let v: Uint8Array;
+    try {
+      v = await this.device.transceive14a(new Uint8Array([0x60]), { autoSelect: true, appendCrc: true, checkResponseCrc: true });
+    } catch {
+      throw new UnsupportedTagError('Tag does not support NTAG GET_VERSION');
+    }
     const t = detectNtagType(v);
-    if (t === null) throw new NfarFormatError('Unsupported NTAG (GET_VERSION storage byte unrecognized)');
+    if (t === null) throw new UnsupportedTagError('Unsupported NTAG (GET_VERSION storage byte unrecognized)');
     return t;
   }
 
@@ -75,8 +80,9 @@ export class NtagTransport implements Transport {
     try {
       await this.readChunk();
       return true;
-    } catch {
-      return false;
+    } catch (e) {
+      if (e instanceof NfarFormatError || e instanceof NdefFormatError) return false;
+      throw e;
     }
   }
 
@@ -94,7 +100,7 @@ export class NtagTransport implements Transport {
 
   async writeChunk(bytes: Uint8Array): Promise<void> {
     const type = await this.detectType();
-    if (bytes.length > 32 + ntagChunkPayloadSize(type)) {
+    if (bytes.length > TOTAL_OVERHEAD + ntagChunkPayloadSize(type)) {
       throw new CardCapacityError(`Chunk ${bytes.length} B exceeds ${type} capacity`);
     }
     const tlv = wrapType2Tlv(encodeNdefMime(bytes));
@@ -102,6 +108,8 @@ export class NtagTransport implements Transport {
     padded.set(tlv);
     const pageCount = padded.length / 4;
     for (let p = 0; p < pageCount; p++) {
+      // NTAG WRITE returns a 4-bit ACK/NAK with no CRC, so checkResponseCrc is
+      // intentionally omitted here (unlike the READ/GET_VERSION transceives above).
       await this.device.transceive14a(
         new Uint8Array([0xa2, NDEF_START_PAGE + p, ...padded.subarray(p * 4, p * 4 + 4)]),
         { autoSelect: true, appendCrc: true },

@@ -15,7 +15,7 @@ export interface Transport {
   disconnect(): Promise<void>;
   /** Resolves when a tag enters the field. Rejects TagTimeoutError or AbortError. */
   awaitTag(opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<PresentedTag>;
-  /** Cheap check: read only the first block and test for NFAR magic+version. */
+  /** Whether the current tag holds an NFAR chunk. */
   peekIsNfar(): Promise<boolean>;
   /** Read the chunk from the current tag. Throws NfarFormatError on a non-NFAR card. */
   readChunk(): Promise<Uint8Array>;

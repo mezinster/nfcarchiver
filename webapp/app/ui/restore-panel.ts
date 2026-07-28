@@ -1,6 +1,6 @@
 /** Restore tab: scan a pile of cards, detect archives, pick a complete one to restore. */
 import { RestoreController, PasswordRequiredError, type DetectedArchive } from '../controller.js';
-import { TagTimeoutError } from '../../src/transport/transport.js';
+import { TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
 import { DecryptionError } from '../../src/crypto.js';
 import { currentTransport, onConnectionChange } from './device.js';
 import { humanError } from './errors.js';
@@ -57,6 +57,7 @@ export function initRestorePanel(): void {
             setStatus(`Detected ${list.length} archive(s). Tap more cards, or Restore a complete one.`);
           } catch (e) {
             if (e instanceof TagTimeoutError) continue;
+            if (e instanceof UnsupportedTagError) { setStatus('Unsupported tag — tap a Mifare Classic 1K or NTAG.'); continue; }
             if (e instanceof DOMException && e.name === 'AbortError') break;
             throw e;
           }

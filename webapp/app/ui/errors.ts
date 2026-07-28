@@ -8,7 +8,7 @@ import { NdefFormatError } from '../../src/nfc/ndef.js';
 export function humanError(e: unknown): string {
   if (e instanceof CardAuthError) return 'Card keys are not factory defaults — this card cannot be used.';
   if (e instanceof WriteVerifyError) return 'Write verification failed — move the card closer and retry.';
-  if (e instanceof CardCapacityError) return 'A chunk is too large for a 1K card (internal error).';
+  if (e instanceof CardCapacityError) return 'This is too large for the selected tag — pick a larger tag type.';
   if (e instanceof TagTimeoutError) return 'No card detected — tap a card on the reader.';
   if (e instanceof NfarFormatError) return 'This card holds no NFAR archive data.';
   if (e instanceof OverwriteRequiredError) return 'This card already holds data.';

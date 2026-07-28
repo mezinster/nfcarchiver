@@ -1,6 +1,6 @@
 /** Archive tab: file/text source, live card counter, write-and-verify with progress. */
 import { ArchiveController, OverwriteRequiredError } from '../controller.js';
-import { TagTimeoutError } from '../../src/transport/transport.js';
+import { TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
 import { currentTransport, onConnectionChange } from './device.js';
@@ -87,6 +87,7 @@ export function initArchivePanel(): void {
           render(res.progress.written, total, done);
         } catch (e) {
           if (e instanceof TagTimeoutError) { setStatus('No card detected — tap a card (hold it a few mm off)…'); continue; }
+          if (e instanceof UnsupportedTagError) { setStatus('Unsupported tag — tap a Mifare Classic 1K or NTAG.'); continue; }
           if (e instanceof OverwriteRequiredError) {
             if (confirm('This card already holds data. Overwrite it?')) {
               const res = await ctrl.writeNextCard(undefined, true);
