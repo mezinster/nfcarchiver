@@ -28,9 +28,10 @@ webapp/
   src/log/
     logger.ts           # dependency-free Logger (ring buffer + pub/sub) + `log` singleton; unit-tested under node
   app/ui/
-    log-panel.ts        # subscribes to `log`, renders the Log tab, Clear/Copy/Download/level-filter/auto-scroll
-    restore-panel.ts    # MODIFIED: decouple restore from the scan loop + emit log events
-    device.ts           # MODIFIED: log connect/disconnect
+    log-panel.ts             # subscribes to `log`, renders the Log tab, Clear/Copy/Download/level-filter/auto-scroll
+    restore-orchestrator.ts  # NEW: DOM-light restore/scan orchestration behind an injected IO seam (unit-tested with a DOM stub)
+    restore-panel.ts         # MODIFIED: thin IO adapter — builds the real DOM/browser IO, wires Scan/Stop, runs the scan-step loop
+    device.ts                # MODIFIED: log connect/disconnect
     archive-panel.ts    # MODIFIED (light): log archive prepare/write-complete
     files-panel.ts      # MODIFIED (light): log download/delete/clear
     shell.ts            # MODIFIED: add 'log' to the TABS tuple
@@ -78,22 +79,44 @@ Behavior:
 - `subscribe` fires only on new appends and returns an unsubscribe function; a subscriber added after entries exist calls `snapshot()` once to backfill (the panel does this on mount).
 - `clear()` empties the buffer and does **not** notify subscribers. The Log panel owns the Clear button: it calls `log.clear()` then re-renders empty from `snapshot()`. This keeps the subscriber contract to a single append event — no separate clear/reset channel is needed.
 
-### Restore decoupling (`app/ui/restore-panel.ts`)
+### Restore decoupling — orchestrator seam (`app/ui/restore-orchestrator.ts` + `restore-panel.ts`)
 
-Restructure `initRestorePanel` so `RestoreController` and the detected archives outlive the scan loop, and restoring is a standalone action:
+The bug lives in DOM glue, so to make the fix regression-testable it is extracted into a DOM-light **`RestoreOrchestrator`** that depends only on an injected IO seam (real DOM in the browser, stubs in tests). `restore-panel.ts` becomes the thin adapter that builds the real IO and runs the scan-step loop.
 
-- Panel-scoped state: `let ctrl: RestoreController | null`, `let scanAbort: AbortController | null`, `let restoring = false`.
-- **`restoreArchive(id: string)`** — standalone async function, the `onPick` handler passed to `renderArchiveList`. It:
-  1. returns early (with a log line) if `ctrl` is null or `restoring` is already true (prevents overlapping restores / double password prompts);
-  2. sets `restoring = true`, logs `restore` "clicked" `{id}`;
-  3. runs the existing password-retry loop (`ctrl.restore(id, pw)` with `PasswordRequiredError`/`DecryptionError` → `prompt` → retry, max 5), triggers the Blob download, then the non-fatal Files-capture (`filesController.saveRestored` with `ctrl.assembledPayload(id)`), logging start/success/error/download/capture;
-  4. `finally` sets `restoring = false`.
-- **Scan** click: build `ctrl = new RestoreController(transport)`; clear the archives container (`renderArchiveList($('archives'), [], restoreArchive)`); create `scanAbort`; run the accumulate-and-render loop that ends **only** on `AbortError` (Stop) — it never breaks on a pick; per-tap `TagTimeoutError`/`UnsupportedTagError`/other errors continue as today. Each `scanNextCard` return calls `renderArchiveList($('archives'), list, restoreArchive)` and logs the detection summary.
-- **Stop** click: `scanAbort?.abort()` — stops accumulating; `ctrl` and the rendered archives (and their working Restore buttons) persist.
+**`RestoreOrchestrator` (`app/ui/restore-orchestrator.ts`)**
 
-Result: restore archive A, then B, then C from one scan, and restore after Stop, all work — because each button calls `restoreArchive` directly against the still-live `ctrl`, independent of scan-loop state. `restoreArchive` reads the outer `ctrl` variable, so it always targets the current scan session; clearing the container at scan start removes stale rows from a prior session.
+```ts
+export interface RestoreIO {
+  container: HTMLElement;                          // the #archives list element (real or a DOM stub)
+  files: { saveRestored(e: Omit<StoredFile, 'createdAt'>): Promise<void> };
+  promptPassword(message: string): string | null;  // wraps window.prompt (null = cancelled)
+  download(data: Uint8Array, name: string): void;   // wraps the Blob/anchor download
+  fallbackName(): string;                           // e.g. the #fname value or 'restored.bin'
+  setFileName(name: string): void;                  // reflect a recovered filename back into the UI
+  setStatus(msg: string): void;
+  log: Logger;
+}
 
-Concurrency note: while scanning continues, a restore may run concurrently; this is safe because `RestoreController.restore`/`assembledPayload` snapshot the group's chunks (`[...group.chunks.values()]`) at call time, and the transport is used only by the scan loop (restore is in-memory compute). The `restoring` guard serializes user-triggered restores.
+export class RestoreOrchestrator {
+  constructor(io: RestoreIO);
+  startSession(transport: Transport): void;   // new RestoreController(transport); clear container via renderArchiveList(container, [], onPick)
+  scanStep(signal: AbortSignal): Promise<void>;// ONE scanNextCard(signal) + renderArchiveList(container, list, onPick=restoreArchive) + detection log; throws AbortError/TagTimeoutError/… to the caller
+  restoreArchive(id: string): Promise<void>;   // standalone restore, the onPick handler; callable anytime
+}
+```
+
+- `restoreArchive(id)`: returns early (with a log line) if there is no active controller or `restoring` is already true (a private guard that prevents overlapping restores / double password prompts); otherwise sets `restoring = true`, logs `restore` "clicked" `{id}`, runs the password-retry loop (`ctrl.restore(id, pw)`; on `PasswordRequiredError`/`DecryptionError` → `io.promptPassword(message)` → retry, max 5; a `null` prompt cancels), calls `io.download(data, name)` and `io.setFileName` on a recovered name, then the non-fatal Files capture (`io.files.saveRestored({ … payload: ctrl.assembledPayload(id) })`), logging start/success/error/download/capture, and clears `restoring` in `finally`.
+- `scanStep(signal)`: one `ctrl.scanNextCard(signal)` then `renderArchiveList(io.container, list, (id) => this.restoreArchive(id))` and a detection log. It does not swallow errors — the panel's loop routes them.
+
+**`restore-panel.ts` (thin adapter)**
+
+- Builds a `RestoreIO` from the real DOM (`#archives` container, `#restore-status`, `#fname`), `filesController`, a `promptPassword` over `window.prompt` with the encrypted/wrong-password messages, a `download` over Blob+anchor, and the `log` singleton; constructs one `RestoreOrchestrator`.
+- **Scan** click: `orch.startSession(currentTransport())`; create `scanAbort`; loop `for(;;){ try { await orch.scanStep(scanAbort.signal) } catch (e) { AbortError → break; TagTimeoutError → continue; UnsupportedTagError → status+continue; else → status+continue } }`; `finally` re-enables Scan / disables Stop and logs scan stopped.
+- **Stop** click: `scanAbort?.abort()` — stops accumulating; the orchestrator, its controller, and the rendered archives (with working Restore buttons) persist.
+
+Result: restore archive A, then B, then C from one scan, and restore after Stop, all work — each button calls `orch.restoreArchive` directly against the still-live controller, independent of scan-loop state. `startSession` clears the container so a new scan drops stale rows.
+
+Concurrency: a restore may overlap a running scan safely — `RestoreController.restore`/`assembledPayload` snapshot the group's chunks (`[...group.chunks.values()]`) at call time, and the transport is used only by the scan loop (restore is in-memory compute). The `restoring` guard serializes user-triggered restores.
 
 ### Log tab UI (`app/ui/log-panel.ts` + `index.html` + `shell.ts`)
 
@@ -125,8 +148,15 @@ Module calls `log.info(cat, msg, data)` → `Logger` appends to the ring buffer 
 
 ## Testing
 
-- `src/log/logger.ts` unit tests (under `node --test`): append then `snapshot()` returns entries oldest-first with monotonic `seq`; ring-buffer eviction at capacity (e.g. capacity 3, push 5 → last 3 kept); `subscribe` fires on each append and the returned unsubscribe stops further calls; `clear()` empties the buffer; `setMirrorToConsole(true)` forwards to console (spy) and default is silent; a throwing subscriber does not break `log.*` or other subscribers.
-- `log-panel.ts` and the `restore-panel.ts` refactor are DOM glue. The Restore buttons' click reliability (fire `onPick` per click, across re-renders, per row id) is already covered by `test/restore-view.test.ts`; the multi-restore / restore-after-stop behavior is verified live via the new Log tab trace (the event sequence is the acceptance evidence) and by code review. No new DOM harness is added for the panels (YAGNI — the reusable renderer is already tested, and the fix is a wiring change).
+- **`src/log/logger.ts`** unit tests (under `node --test`): append then `snapshot()` returns entries oldest-first with monotonic `seq`; ring-buffer eviction at capacity (e.g. capacity 3, push 5 → last 3 kept); `subscribe` fires on each append and the returned unsubscribe stops further calls; `clear()` empties the buffer; `setMirrorToConsole(true)` forwards to `console` (spy) and the default is silent; a throwing subscriber does not break `log.*` or other subscribers.
+
+- **`app/ui/restore-orchestrator.ts`** — a DOM-stub regression test (`test/restore-orchestrator.test.ts`) that reproduces the exact bug and proves the fix. It reuses the minimal `makeDoc()` DOM stub from `test/restore-view.test.ts` (same shape: `createElement`, `children`, `append/appendChild/remove`, `get/setAttribute`, `addEventListener`, `click`) for the `container`, and a `MockTransport` for detection:
+  - Build the orchestrator with a stub `RestoreIO`: the stub `container`; a `download` capturing `{data, name}` calls; a `promptPassword` returning a scripted password; a `files` whose `saveRestored` records entries; capturing `setStatus`/`setFileName`/`fallbackName`; a fresh `Logger`.
+  - `startSession(mock)`, enqueue a **plain** archive A and an **encrypted** archive B (built with an `archiveToCards`-style helper), then call `scanStep(new AbortController().signal)` repeatedly until both are complete — driving detection deterministically without touching the infinite panel loop (`MockTransport.awaitTag` throws `TagTimeoutError` when idle, so the test never runs an unbounded loop).
+  - Find A's Restore button in the stub container (`[data-archive-id]` row → button child), `.click()` it, await, and assert `download` fired with A's original bytes + filename and a Files entry was saved. Then click **B**'s button (encrypted → `promptPassword` supplies the password) and assert the decrypted original bytes. Then click **A's button again** and assert it restores a **second** time — this is the regression assertion: the pre-fix one-shot handler restored only once, so a re-click doing nothing (no new `download` call) would fail this test.
+  - A `scanStep`-free assertion: after detection, call `restoreArchive(id)` directly (simulating "restore after Stop") and confirm it still downloads — proving restore does not depend on an active scan loop.
+
+- **`log-panel.ts`** and the thin `restore-panel.ts` adapter remain DOM glue; the reusable renderer's click reliability is covered by `test/restore-view.test.ts`, the orchestration by the test above, and the live Log-tab trace is the manual acceptance evidence. No further DOM harness is added for the thin adapter (YAGNI).
 
 ## Out of scope (YAGNI)
 
