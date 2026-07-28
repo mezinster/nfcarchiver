@@ -25,8 +25,12 @@ Distributed data archive on NFC tags. A mobile application for Android and iOS t
 | NTAG216 | 888 bytes | ~850 bytes |
 | MIFARE Ultralight | 48 bytes | ~10 bytes |
 | MIFARE Ultralight C | 144 bytes | ~106 bytes |
+| MIFARE Classic 1K | 1 KB (752 usable) | ~720 bytes† |
 
-*After subtracting NFAR header (28 bytes) and NDEF overhead (~10 bytes)
+*After subtracting NFAR header (28 bytes) and NDEF overhead (~10 bytes)  
+†MIFARE Classic 1K support was added via the [web app](webapp/), which drives a [Chameleon Ultra](https://github.com/RfidResearchGroup/ChameleonUltra) reader/writer. Classic cards hold raw 16-byte blocks (47 usable = 752 bytes) with no NDEF layer, so only the 28-byte NFAR header and 4-byte CRC are deducted.
+
+> **Note:** This list is not exhaustive — more tag types are supported than shown here, and coverage continues to grow.
 
 ### NFAR v1 Data Format
 
@@ -185,7 +189,8 @@ MIT
 
 ### Author
 
-Created with Claude Code.
+Built by [Evgeny Mezin](https://github.com/mezinster), directing Claude Code as a
+coding assistant throughout.
 
 ---
 
@@ -210,8 +215,12 @@ Created with Claude Code.
 | NTAG216 | 888 байт | ~850 байт |
 | MIFARE Ultralight | 48 байт | ~10 байт |
 | MIFARE Ultralight C | 144 байт | ~106 байт |
+| MIFARE Classic 1K | 1 КБ (752 доступно) | ~720 байт† |
 
-*После вычета заголовка NFAR (28 байт) и NDEF overhead (~10 байт)
+*После вычета заголовка NFAR (28 байт) и NDEF overhead (~10 байт)  
+†Поддержка MIFARE Classic 1K добавлена через [веб-приложение](webapp/), которое управляет ридером/райтером [Chameleon Ultra](https://github.com/RfidResearchGroup/ChameleonUltra). Карты Classic хранят необработанные 16-байтные блоки (47 доступных = 752 байта) без слоя NDEF, поэтому вычитаются только 28-байтный заголовок NFAR и 4-байтный CRC.
+
+> **Примечание:** список неполный — поддерживается больше типов меток, чем показано здесь, и охват продолжает расширяться.
 
 ### Формат данных NFAR v1
 
@@ -371,4 +380,5 @@ MIT
 
 ### Автор
 
-Создано с помощью Claude Code.
+Разработано [Евгением Мезиным](https://github.com/mezinster) — при участии Claude Code
+в роли ассистента, под руководством автора на всех этапах.
