@@ -10,7 +10,7 @@ import { NdefFormatError } from '../src/nfc/ndef.js';
 test('humanError maps each typed error to a plain-language message', () => {
   assert.match(humanError(new CardAuthError('x')), /factory defaults/i);
   assert.match(humanError(new WriteVerifyError('x')), /verification failed/i);
-  assert.match(humanError(new CardCapacityError('x')), /too large/i);
+  assert.match(humanError(new CardCapacityError('x')), /smaller than the ones already written/i);
   assert.match(humanError(new TagTimeoutError('x')), /no card detected/i);
   assert.match(humanError(new NfarFormatError('x')), /no nfar archive/i);
   assert.match(humanError(new OverwriteRequiredError('x')), /already holds data/i);

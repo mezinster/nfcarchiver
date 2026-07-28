@@ -3,6 +3,7 @@ import { ArchiveController, OverwriteRequiredError } from '../controller.js';
 import { TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
+import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
 import { currentTransport, onConnectionChange } from './device.js';
 import { humanError } from './errors.js';
 
@@ -10,6 +11,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 function selectedPayloadSize(): number {
   const v = ($('target-tag') as HTMLSelectElement).value;
+  if (v === 'auto') return CARD_PAYLOAD_SIZE; // nominal preview size; the real card decides on tap
   if (v === 'NTAG213') return ntagChunkPayloadSize(NtagType.NTAG213);
   if (v === 'NTAG215') return ntagChunkPayloadSize(NtagType.NTAG215);
   if (v === 'NTAG216') return ntagChunkPayloadSize(NtagType.NTAG216);
@@ -43,7 +45,9 @@ export function initArchivePanel(): void {
     if (!src) { el.textContent = ''; return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const encrypted = ($('apass') as HTMLInputElement).value.length > 0;
-    el.textContent = `≈ ${await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: selectedPayloadSize() })} card(s)`;
+    const count = await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: selectedPayloadSize() });
+    const isAuto = ($('target-tag') as HTMLSelectElement).value === 'auto';
+    el.textContent = `≈ ${count} card(s)${isAuto ? ' (est.) — adapts to the tapped card' : ''}`;
   };
   const scheduleCounter = () => { clearTimeout(counterTimer); counterTimer = setTimeout(updateCounter, 200); };
 
@@ -77,12 +81,17 @@ export function initArchivePanel(): void {
       setStatus(done ? `Done — wrote and verified ${written} card(s).` : `Tap card ${written + 1} of ${total} on the reader…`);
     };
     try {
-      const total = await ctrl.prepare({ data: src.data, fileName: src.fileName, compress, password: pass || undefined, payloadSize: selectedPayloadSize() });
+      let total = await ctrl.prepare({ data: src.data, fileName: src.fileName, compress, password: pass || undefined, payloadSize: selectedPayloadSize() });
       render(0, total, false);
       let done = false;
       while (!done) {
         try {
           const res = await ctrl.writeNextCard();
+          if (res.rechunkedTo) {
+            const orig = total;
+            total = res.rechunkedTo.total;
+            setStatus(`Card holds ${res.rechunkedTo.payloadSize} B/chunk — writing ${total} card(s) instead of ${orig}.`);
+          }
           done = res.done;
           render(res.progress.written, total, done);
         } catch (e) {
