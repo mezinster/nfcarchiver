@@ -3,40 +3,115 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>NFC Archiver — Web (Mifare Classic)</title>
+    <title>NFC Archiver</title>
     <style>
-      body { font: 15px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
-      button { font: inherit; padding: 0.4rem 0.9rem; margin: 0.2rem 0; }
-      .row { margin: 0.6rem 0; }
-      #status { padding: 0.6rem; border: 1px solid #ccc; border-radius: 6px; min-height: 1.4rem; white-space: pre-wrap; }
-      #progress-row progress { width: 100%; height: 1.1rem; vertical-align: middle; }
-      #progress-label { display: block; font-size: 0.9rem; color: #555; margin-top: 0.2rem; }
-      .hidden { display: none; }
-      #cardcount { font-size: 0.9rem; color: #555; margin: 0.3rem 0; }
-      #archives .arch { border: 1px solid #ddd; border-radius: 6px; padding: 0.4rem 0.6rem; margin: 0.3rem 0; display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
+      :root {
+        --primary: #1565c0; --on-primary: #fff; --primary-container: #d6e3ff; --on-primary-container: #001a41;
+        --surface: #fdfcff; --surface-variant: #e1e2ec; --on-surface: #1a1c1e; --outline: #74777f;
+        --error-container: #ffdad6; --on-error-container: #410002;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary: #a9c7ff; --on-primary: #002e69; --primary-container: #004494; --on-primary-container: #d6e3ff;
+          --surface: #1a1c1e; --surface-variant: #43474e; --on-surface: #e3e2e6; --outline: #8e9199;
+          --error-container: #93000a; --on-error-container: #ffdad6;
+        }
+      }
+      :root[data-theme="light"] {
+        --primary: #1565c0; --on-primary: #fff; --primary-container: #d6e3ff; --on-primary-container: #001a41;
+        --surface: #fdfcff; --surface-variant: #e1e2ec; --on-surface: #1a1c1e; --outline: #74777f;
+        --error-container: #ffdad6; --on-error-container: #410002;
+      }
+      :root[data-theme="dark"] {
+        --primary: #a9c7ff; --on-primary: #002e69; --primary-container: #004494; --on-primary-container: #d6e3ff;
+        --surface: #1a1c1e; --surface-variant: #43474e; --on-surface: #e3e2e6; --outline: #8e9199;
+        --error-container: #93000a; --on-error-container: #ffdad6;
+      }
+      * { box-sizing: border-box; }
+      body { font: 15px/1.5 system-ui, sans-serif; margin: 0; background: var(--surface); color: var(--on-surface); }
+      header { display: flex; align-items: center; gap: 0.6rem; padding: 0.8rem 1rem; background: var(--primary); color: var(--on-primary); }
+      header h1 { font-size: 1.15rem; margin: 0; flex: 1; }
+      header svg { width: 28px; height: 28px; fill: currentColor; }
+      #theme-toggle { background: transparent; border: 1px solid currentColor; color: inherit; border-radius: 8px; cursor: pointer; padding: 0.3rem 0.6rem; }
+      main { max-width: 40rem; margin: 0 auto; padding: 1rem; }
+      button { font: inherit; }
+      .filled { background: var(--primary); color: var(--on-primary); border: none; border-radius: 16px; padding: 0.8rem 1rem; width: 100%; cursor: pointer; }
+      .filled:disabled { opacity: 0.45; cursor: default; }
+      input[type="text"], input[type="password"], textarea { background: var(--surface); color: var(--on-surface); border: 1px solid var(--outline); border-radius: 12px; padding: 0.5rem 0.7rem; font: inherit; }
+      textarea { width: 100%; }
+      #device-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.6rem 1rem; background: var(--surface-variant); }
+      #device-bar button { border-radius: 10px; border: 1px solid var(--outline); background: var(--surface); color: var(--on-surface); padding: 0.4rem 0.8rem; cursor: pointer; }
+      #device-status { flex-basis: 100%; margin: 0; white-space: pre-wrap; font: 13px/1.4 ui-monospace, monospace; color: var(--on-surface); }
+      #tabs { display: flex; border-bottom: 2px solid var(--surface-variant); }
+      #tabs button { flex: 1; background: transparent; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; padding: 0.7rem 0.5rem; color: var(--on-surface); cursor: pointer; }
+      #tabs button[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+      section[role="tabpanel"] { padding-top: 1rem; }
+      section[hidden] { display: none; }
+      .card { background: var(--surface); border: 1px solid var(--surface-variant); border-radius: 16px; padding: 1rem; margin: 0.6rem 0; }
+      .status { padding: 0.6rem; border: 1px solid var(--surface-variant); border-radius: 12px; min-height: 1.4rem; white-space: pre-wrap; margin-top: 0.6rem; }
+      .cardcount { font-size: 0.9rem; color: var(--outline); margin: 0.3rem 0; }
+      progress { width: 100%; height: 1.1rem; vertical-align: middle; }
+      .progress-label { display: block; font-size: 0.9rem; color: var(--outline); margin-top: 0.2rem; }
+      #archives .arch { border: 1px solid var(--surface-variant); border-radius: 12px; padding: 0.5rem 0.7rem; margin: 0.4rem 0; display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
+      #archives .arch button { border-radius: 10px; border: 1px solid var(--outline); background: var(--primary-container); color: var(--on-primary-container); padding: 0.35rem 0.8rem; cursor: pointer; }
+      #about-content h3 { margin: 1rem 0 0.3rem; }
+      #about-content .muted { color: var(--outline); }
+      label { display: inline-flex; align-items: center; gap: 0.35rem; }
     </style>
   </head>
   <body>
-    <h1>NFC Archiver — Web</h1>
-    <p>Reads/writes NFAR chunks on Mifare Classic 1K cards via a Chameleon Ultra over Web Bluetooth. Chromium browser required; run on the machine with Bluetooth (not inside WSL).</p>
-    <div class="row"><button id="connect">Connect Chameleon</button> <span id="conn">disconnected</span></div>
-    <div class="row"><button id="diagnose" disabled>Diagnose card</button> <span>— read raw UID + BCC of the card on the reader</span></div>
-    <fieldset class="row"><legend>Archive a file or text</legend>
-      <div class="row"><input type="file" id="file" /></div>
-      <div class="row"><label>or text:</label><br /><textarea id="text" rows="3" style="width:100%" placeholder="Type text to archive as text_note.txt"></textarea></div>
-      <label><input type="checkbox" id="compress" checked /> compress</label>
-      <label>password <input type="password" id="apass" placeholder="(optional)" /></label>
-      <div id="cardcount"></div>
-      <button id="archive" disabled>Archive to cards</button>
-    </fieldset>
-    <fieldset class="row"><legend>Restore</legend>
-      <button id="scan" disabled>Scan cards</button>
-      <button id="stop-scan" disabled>Stop</button>
-      <div id="archives"></div>
-      <label>save as <input type="text" id="fname" value="restored.bin" /></label>
-    </fieldset>
-    <div class="row" id="progress-row" hidden><progress id="bar"></progress><span id="progress-label"></span></div>
-    <div class="row" id="status">Ready.</div>
+    <header>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-1 14H5V6h14v12zM7.5 9.5A1.5 1.5 0 0 1 9 8h6a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 15 16H9a1.5 1.5 0 0 1-1.5-1.5v-5zM9 9.5v5h6v-5H9z"/></svg>
+      <h1>NFC Archiver</h1>
+      <button id="theme-toggle" title="Toggle light/dark">◑</button>
+    </header>
+
+    <div id="device-bar">
+      <button id="connect">Connect Chameleon</button>
+      <span id="conn">disconnected</span>
+      <button id="diagnose" disabled>Diagnose card</button>
+      <pre id="device-status"></pre>
+    </div>
+
+    <main>
+      <div id="tabs" role="tablist">
+        <button role="tab" data-tab="archive" aria-selected="true">Archive</button>
+        <button role="tab" data-tab="restore" aria-selected="false">Restore</button>
+        <button role="tab" data-tab="files" aria-selected="false">Files</button>
+        <button role="tab" data-tab="about" aria-selected="false">About</button>
+      </div>
+
+      <section id="panel-archive" role="tabpanel">
+        <div class="card">
+          <div><input type="file" id="file" /></div>
+          <div style="margin-top:0.6rem"><label>or text:</label><br /><textarea id="text" rows="3" placeholder="Type text to archive as text_note.txt"></textarea></div>
+          <div style="margin-top:0.6rem"><label><input type="checkbox" id="compress" checked /> compress</label>
+            &nbsp;&nbsp;<label>password <input type="password" id="apass" placeholder="(optional)" /></label></div>
+          <div id="cardcount" class="cardcount"></div>
+          <button id="archive" class="filled" disabled>Archive to cards</button>
+        </div>
+        <div class="card" id="archive-progress-row" hidden><progress id="archive-bar"></progress><span id="archive-progress-label" class="progress-label"></span></div>
+        <div class="status" id="archive-status">Connect a Chameleon, then choose a file or type text.</div>
+      </section>
+
+      <section id="panel-restore" role="tabpanel" hidden>
+        <div class="card">
+          <button id="scan" class="filled" disabled>Scan cards</button>
+          <button id="stop-scan" class="filled" disabled style="margin-top:0.5rem">Stop</button>
+          <div id="archives"></div>
+          <div style="margin-top:0.6rem"><label>save as <input type="text" id="fname" value="restored.bin" /></label></div>
+        </div>
+        <div class="status" id="restore-status">Connect a Chameleon, then scan a pile of cards.</div>
+      </section>
+
+      <section id="panel-files" role="tabpanel" hidden>
+        <div class="card"><p class="muted">No local history yet — archived files aren't stored in the browser in this version.</p></div>
+      </section>
+
+      <section id="panel-about" role="tabpanel" hidden>
+        <div id="about-content"></div>
+      </section>
+    </main>
     <script type="module" src="./dist/main.js"></script>
   </body>
 </html>
