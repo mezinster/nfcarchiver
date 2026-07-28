@@ -87,13 +87,14 @@ export function initArchivePanel(): void {
       while (!done) {
         try {
           const res = await ctrl.writeNextCard();
+          let rechunkNote: string | undefined;
           if (res.rechunkedTo) {
-            const orig = total;
+            rechunkNote = `Card holds ${res.rechunkedTo.payloadSize} B/chunk — writing ${res.rechunkedTo.total} card(s) instead of ${total}.`;
             total = res.rechunkedTo.total;
-            setStatus(`Card holds ${res.rechunkedTo.payloadSize} B/chunk — writing ${total} card(s) instead of ${orig}.`);
           }
           done = res.done;
           render(res.progress.written, total, done);
+          if (rechunkNote) setStatus(rechunkNote);
         } catch (e) {
           if (e instanceof TagTimeoutError) { setStatus('No card detected — tap a card (hold it a few mm off)…'); continue; }
           if (e instanceof UnsupportedTagError) { setStatus('Unsupported tag — tap a Mifare Classic 1K or NTAG.'); continue; }
