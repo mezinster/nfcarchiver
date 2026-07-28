@@ -7,8 +7,8 @@ const SECTIONS: Array<{ h: string; body: string[] }> = [
     'A distributed data archive system using NFC tags. Store files across multiple tags and restore them later — fully in your browser.',
   ] },
   { h: 'Supported tags', body: [
-    'Mifare Classic 1K, via a Chameleon Ultra over Web Bluetooth.',
-    "(NTAG / MIFARE Ultralight via the phone's own NFC will come with the future Web NFC support.)",
+    'Mifare Classic 1K and NTAG213/215/216, via a Chameleon Ultra over Web Bluetooth.',
+    '(Writing NTAG with the phone’s own NFC — no Chameleon — will come with the future Web NFC support.)',
   ] },
   { h: 'Privacy', body: [
     'Everything runs client-side. Your files, text, and passwords never leave the browser — there is no server, no upload, and no tracking.',

@@ -85,6 +85,13 @@
         <div class="card">
           <div><input type="file" id="file" /></div>
           <div style="margin-top:0.6rem"><label>or text:</label><br /><textarea id="text" rows="3" placeholder="Type text to archive as text_note.txt"></textarea></div>
+          <div style="margin-top:0.6rem"><label>target tag
+            <select id="target-tag">
+              <option value="720">Mifare Classic 1K</option>
+              <option value="NTAG213">NTAG213</option>
+              <option value="NTAG215">NTAG215</option>
+              <option value="NTAG216">NTAG216</option>
+            </select></label></div>
           <div style="margin-top:0.6rem"><label><input type="checkbox" id="compress" checked /> compress</label>
             &nbsp;&nbsp;<label>password <input type="password" id="apass" placeholder="(optional)" /></label></div>
           <div id="cardcount" class="cardcount"></div>

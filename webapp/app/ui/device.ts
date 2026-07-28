@@ -7,7 +7,7 @@
 import { ChameleonUltra, Buffer } from 'chameleon-ultra.js';
 import WebbleAdapter from 'chameleon-ultra.js/plugin/WebbleAdapter';
 import { SdkChameleonDevice } from '../../src/transport/sdk-chameleon-device.js';
-import { ChameleonBleTransport } from '../../src/transport/chameleon-ble.js';
+import { AutoTransport } from '../../src/transport/auto-transport.js';
 import { diagnoseCard, type RawAntiColl } from '../diagnostics.js';
 import { humanError } from './errors.js';
 
@@ -16,10 +16,10 @@ const hex = (b: Uint8Array): string =>
   Array.from(b, (x) => x.toString(16).padStart(2, '0').toUpperCase()).join(' ');
 
 let ultra: ChameleonUltra | null = null;
-let transport: ChameleonBleTransport | null = null;
+let transport: AutoTransport | null = null;
 const listeners: Array<(connected: boolean) => void> = [];
 
-export function currentTransport(): ChameleonBleTransport | null {
+export function currentTransport(): AutoTransport | null {
   return transport;
 }
 
@@ -36,7 +36,7 @@ export function initDeviceBar(): void {
       // use() is async (the adapter's install() runs availability checks etc.);
       // it MUST be awaited before connect(), or this.port is still undefined.
       await ultra.use(new WebbleAdapter());
-      transport = new ChameleonBleTransport(new SdkChameleonDevice(ultra));
+      transport = new AutoTransport(new SdkChameleonDevice(ultra));
       await transport.connect();
       $('conn').textContent = 'connected';
       ($('diagnose') as HTMLButtonElement).disabled = false;

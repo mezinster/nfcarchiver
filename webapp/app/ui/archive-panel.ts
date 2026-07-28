@@ -2,11 +2,19 @@
 import { ArchiveController, OverwriteRequiredError } from '../controller.js';
 import { TagTimeoutError } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
-import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
+import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
 import { currentTransport, onConnectionChange } from './device.js';
 import { humanError } from './errors.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+function selectedPayloadSize(): number {
+  const v = ($('target-tag') as HTMLSelectElement).value;
+  if (v === 'NTAG213') return ntagChunkPayloadSize(NtagType.NTAG213);
+  if (v === 'NTAG215') return ntagChunkPayloadSize(NtagType.NTAG215);
+  if (v === 'NTAG216') return ntagChunkPayloadSize(NtagType.NTAG216);
+  return Number(v); // "720" for Mifare Classic 1K
+}
 
 export function initArchivePanel(): void {
   const setStatus = (msg: string) => { $('archive-status').textContent = msg; };
@@ -35,7 +43,7 @@ export function initArchivePanel(): void {
     if (!src) { el.textContent = ''; return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const encrypted = ($('apass') as HTMLInputElement).value.length > 0;
-    el.textContent = `≈ ${await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: CARD_PAYLOAD_SIZE })} card(s)`;
+    el.textContent = `≈ ${await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: selectedPayloadSize() })} card(s)`;
   };
   const scheduleCounter = () => { clearTimeout(counterTimer); counterTimer = setTimeout(updateCounter, 200); };
 
@@ -46,6 +54,7 @@ export function initArchivePanel(): void {
     updateCounter();
   });
   for (const id of ['text', 'compress', 'apass']) $(id).addEventListener('input', scheduleCounter);
+  $('target-tag').addEventListener('change', scheduleCounter);
 
   onConnectionChange((connected) => {
     ($('archive') as HTMLButtonElement).disabled = !connected;
@@ -68,7 +77,7 @@ export function initArchivePanel(): void {
       setStatus(done ? `Done — wrote and verified ${written} card(s).` : `Tap card ${written + 1} of ${total} on the reader…`);
     };
     try {
-      const total = await ctrl.prepare({ data: src.data, fileName: src.fileName, compress, password: pass || undefined, payloadSize: CARD_PAYLOAD_SIZE });
+      const total = await ctrl.prepare({ data: src.data, fileName: src.fileName, compress, password: pass || undefined, payloadSize: selectedPayloadSize() });
       render(0, total, false);
       let done = false;
       while (!done) {
