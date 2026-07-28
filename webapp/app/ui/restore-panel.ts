@@ -1,28 +1,12 @@
 /** Restore tab: scan a pile of cards, detect archives, pick a complete one to restore. */
-import { RestoreController, PasswordRequiredError, type DetectedArchive } from '../controller.js';
+import { RestoreController, PasswordRequiredError } from '../controller.js';
 import { TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
 import { DecryptionError } from '../../src/crypto.js';
 import { currentTransport, onConnectionChange } from './device.js';
+import { renderArchiveList } from './restore-view.js';
 import { humanError } from './errors.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-
-function renderArchives(list: DetectedArchive[], onPick: (id: string) => void): void {
-  const container = $('archives');
-  container.innerHTML = '';
-  for (const a of list) {
-    const row = document.createElement('div');
-    row.className = 'arch';
-    const label = document.createElement('span');
-    label.textContent = `Archive ${a.shortId}…  ${a.isEncrypted ? '🔒 encrypted' : 'unencrypted'}  ·  ${a.received} / ${a.totalChunks} card(s)${a.complete ? ' ✓' : ''}`;
-    const btn = document.createElement('button');
-    btn.textContent = 'Restore';
-    btn.disabled = !a.complete;
-    btn.addEventListener('click', () => onPick(a.archiveId));
-    row.append(label, btn);
-    container.appendChild(row);
-  }
-}
 
 export function initRestorePanel(): void {
   const setStatus = (msg: string) => { $('restore-status').textContent = msg; };
@@ -53,7 +37,7 @@ export function initRestorePanel(): void {
         for (;;) {
           try {
             const list = await ctrl.scanNextCard(scanAbort.signal);
-            renderArchives(list, onPick);
+            renderArchiveList($('archives'), list, onPick);
             setStatus(`Detected ${list.length} archive(s). Tap more cards, or Restore a complete one.`);
           } catch (e) {
             // Only an abort (Stop / Restore pick) ends the scan; every per-tap
