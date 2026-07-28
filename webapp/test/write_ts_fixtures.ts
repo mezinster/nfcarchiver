@@ -10,6 +10,8 @@ import { encodeChunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
 import { encrypt } from '../src/crypto.js';
 import { gzipCompress } from '../src/gzip.js';
+import { wrapWithFilename } from '../src/filename.js';
+import { archive } from '../src/pipeline.js';
 import { toHex } from './hex.js';
 
 const original = new Uint8Array(200).map((_, i) => i % 251);
@@ -23,6 +25,12 @@ const encrypted = await encrypt(original, password);
 const gzipped = await gzipCompress(original);
 const gzippedText = await gzipCompress(textPayload);
 
+const wrappedFileName = 'web report.txt';
+const wrappedOriginal = new TextEncoder().encode('web body '.repeat(120));
+const wrappedChunks = (await archive(wrapWithFilename(wrappedOriginal, wrappedFileName), {
+  payloadSize: 720, compress: true, password,
+})).map((c) => toHex(encodeChunk(c)));
+
 const fixture = {
   payloadSize: 64,
   original: toHex(original),
@@ -33,6 +41,10 @@ const fixture = {
   crc32OfOriginal: crc32(original),
   originalText: toHex(textPayload),
   gzippedText: toHex(gzippedText),
+  wrappedFileName,
+  wrappedOriginal: toHex(wrappedOriginal),
+  wrappedPassword: password,
+  wrappedChunks,
 };
 
 const outPath = join(dirname(fileURLToPath(import.meta.url)), '../../test/fixtures/ts_generated.json');

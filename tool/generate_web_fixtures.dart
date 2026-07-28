@@ -19,6 +19,17 @@ import 'package:nfc_archiver/core/services/encryption_service.dart';
 String hexOf(List<int> bytes) =>
     bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
+Uint8List prependFilename(Uint8List data, String fileName) {
+  final nameBytes = utf8.encode(fileName);
+  final name = nameBytes.length > 255 ? nameBytes.sublist(0, 255) : nameBytes;
+  final out = Uint8List(2 + name.length + data.length);
+  out[0] = (name.length >> 8) & 0xFF;
+  out[1] = name.length & 0xFF;
+  out.setRange(2, 2 + name.length, name);
+  out.setRange(2 + name.length, out.length, data);
+  return out;
+}
+
 void main() {
   final original = Uint8List.fromList(List.generate(200, (i) => i % 251));
   // Deliberately padded: proves both sides trim before key derivation.
@@ -37,6 +48,20 @@ void main() {
   final gzipped = CompressionService.instance.compress(original);
   final crc = ChecksumService.instance.calculate(original);
 
+  const wrappedFileName = 'my report.txt';
+  final wrappedOriginal = Uint8List.fromList(utf8.encode('report body ' * 100));
+  final wrapped = prependFilename(wrappedOriginal, wrappedFileName);
+  final wrappedCompressed = CompressionService.instance.compress(wrapped);
+  final wrappedEncrypted =
+      EncryptionService.instance.encrypt(wrappedCompressed, password);
+  final wrappedChunks = ChunkerService.instance
+      .createChunksWithSize(
+        data: wrappedEncrypted,
+        payloadSize: 720,
+        flags: 0x03, // FLAG_COMPRESSED | FLAG_ENCRYPTED
+      )
+      .chunks;
+
   final json = const JsonEncoder.withIndent('  ').convert({
     'payloadSize': 64,
     'original': hexOf(original),
@@ -47,6 +72,10 @@ void main() {
     'crc32OfOriginal': crc,
     'originalText': hexOf(textPayload),
     'gzippedText': hexOf(CompressionService.instance.compress(textPayload)),
+    'wrappedFileName': wrappedFileName,
+    'wrappedOriginal': hexOf(wrappedOriginal),
+    'wrappedPassword': password,
+    'wrappedChunks': wrappedChunks.map((c) => hexOf(c.toBytes())).toList(),
   });
 
   final out = File('webapp/test/fixtures/dart_generated.json')

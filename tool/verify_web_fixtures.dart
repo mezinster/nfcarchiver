@@ -30,6 +30,18 @@ bool bytesEqual(List<int> a, List<int> b) {
   return true;
 }
 
+({String fileName, Uint8List data})? extractFilename(Uint8List data) {
+  if (data.length < 2) return null;
+  final len = (data[0] << 8) | data[1];
+  if (len == 0 || len > 255 || data.length < 2 + len) return null;
+  try {
+    final name = utf8.decode(data.sublist(2, 2 + len));
+    return (fileName: name, data: Uint8List.sublistView(data, 2 + len));
+  } catch (_) {
+    return null;
+  }
+}
+
 var failures = 0;
 
 void check(bool condition, String label) {
@@ -78,6 +90,21 @@ void main() {
   check(
     ChecksumService.instance.calculate(original) == j['crc32OfOriginal'],
     'CRC-32 agreement',
+  );
+
+  final wrappedChunks = (j['wrappedChunks'] as List)
+      .map((h) => Chunk.fromBytes(fromHex(h as String)))
+      .toList();
+  final wrappedAssembled = ChunkerService.instance.assembleChunks(wrappedChunks);
+  final wrappedDecrypted = EncryptionService.instance
+      .decrypt(wrappedAssembled, j['wrappedPassword'] as String);
+  final wrappedPlain = CompressionService.instance.decompress(wrappedDecrypted);
+  final extracted = extractFilename(wrappedPlain);
+  check(
+    extracted != null &&
+        extracted.fileName == j['wrappedFileName'] &&
+        bytesEqual(extracted.data, fromHex(j['wrappedOriginal'] as String)),
+    'filename-wrapped archive from TS (name + data)',
   );
 
   if (failures > 0) {

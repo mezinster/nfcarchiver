@@ -8,6 +8,8 @@ import { decodeChunk, encodeChunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
 import { decrypt } from '../src/crypto.js';
 import { gzipDecompress } from '../src/gzip.js';
+import { restore } from '../src/pipeline.js';
+import { unwrapFilename } from '../src/filename.js';
 import { fromHex } from './hex.js';
 
 interface Fixture {
@@ -20,6 +22,10 @@ interface Fixture {
   crc32OfOriginal: number;
   originalText: string;
   gzippedText: string;
+  wrappedFileName: string;
+  wrappedOriginal: string;
+  wrappedPassword: string;
+  wrappedChunks: string[];
 }
 
 // dist/test/ -> ../../test/fixtures (fixtures are not compiled by tsc)
@@ -58,4 +64,12 @@ test('TS decompresses Dart gzip output (compressed data)', async () => {
 
 test('TS CRC-32 matches Dart over the original data', () => {
   assert.equal(crc32(original), fixture.crc32OfOriginal);
+});
+
+test('TS restores a Dart filename-wrapped, compressed+encrypted archive and recovers the name', async () => {
+  const chunks = fixture.wrappedChunks.map((h) => decodeChunk(fromHex(h)));
+  const raw = await restore(chunks, fixture.wrappedPassword);
+  const { fileName, data } = unwrapFilename(raw);
+  assert.equal(fileName, fixture.wrappedFileName);
+  assert.deepEqual(data, fromHex(fixture.wrappedOriginal));
 });
