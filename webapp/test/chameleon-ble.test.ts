@@ -8,7 +8,7 @@ import { FakeChameleon } from './fake-chameleon.js';
 import { runTransportContract } from './transport-contract.js';
 import { encodeChunk, type Chunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
-import { USABLE_BLOCK_INDEXES } from '../src/mifare/card-layout.js';
+import { USABLE_BLOCK_INDEXES, CARD_PAYLOAD_SIZE } from '../src/mifare/card-layout.js';
 
 function chunkBytes(payloadLen: number): Uint8Array {
   const payload = new Uint8Array(payloadLen).map((_, i) => (i + 5) % 256);
@@ -34,6 +34,7 @@ test('connect delegates to the device; awaitTag polls scanTag', async () => {
   setTimeout(() => device.place(uid), 5); // tag arrives after a couple polls
   const tag = await transport.awaitTag();
   assert.deepEqual(tag.uid, uid);
+  assert.equal(tag.maxChunkPayload, CARD_PAYLOAD_SIZE);
 });
 
 test('awaitTag honors AbortSignal', async () => {

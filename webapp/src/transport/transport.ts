@@ -6,7 +6,8 @@
 
 export interface PresentedTag {
   uid: Uint8Array;
-  capacityBytes: number;
+  capacityBytes: number;   // raw user memory (informational)
+  maxChunkPayload: number; // max NFAR chunk-payload this card holds
 }
 
 export interface Transport {

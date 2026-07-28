@@ -49,6 +49,7 @@ test('write then read-back an NDEF-wrapped chunk on a simulated NTAG215', async 
   device.placeNtag(uid, NtagType.NTAG215);
   const tag = await t.awaitTag();
   assert.equal(tag.capacityBytes, 504);
+  assert.equal(tag.maxChunkPayload, ntagChunkPayloadSize(NtagType.NTAG215));
   assert.equal(await t.peekIsNfar(), false);
 
   const bytes = chunkBytes(200);
