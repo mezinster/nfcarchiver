@@ -56,7 +56,7 @@ export class NtagTransport implements Transport {
       const tag = await this.device.scanTag();
       if (tag !== null) {
         const type = await this.detectType();
-        return { uid: tag.uid, capacityBytes: ntagUserBytes(type) };
+        return { uid: tag.uid, capacityBytes: ntagUserBytes(type), maxChunkPayload: ntagChunkPayloadSize(type) };
       }
       if (Date.now() >= deadline) throw new TagTimeoutError(`No tag presented within ${timeoutMs}ms`);
       await delay(this.pollMs);

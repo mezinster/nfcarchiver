@@ -1,5 +1,5 @@
 import { NfarFormatError } from '../chunk.js';
-import { CARD_CAPACITY_BYTES, CardCapacityError, firstBlockIsNfar } from '../mifare/card-layout.js';
+import { CARD_CAPACITY_BYTES, CARD_PAYLOAD_SIZE, CardCapacityError, firstBlockIsNfar } from '../mifare/card-layout.js';
 import { TagTimeoutError, type PresentedTag, type Transport } from './transport.js';
 
 function toHexKey(uid: Uint8Array): string {
@@ -16,6 +16,8 @@ export class MockTransport implements Transport {
   private readonly queue: string[] = [];
   private readonly cards = new Map<string, Uint8Array>();
   private active: string | null = null;
+  /** Simulated per-card NFAR chunk-payload capacity; tests set this to model a small chip. */
+  maxChunkPayload = CARD_PAYLOAD_SIZE;
 
   /** Present `uid` on the next awaitTag; optionally pre-load its stored chunk bytes. */
   enqueueTag(uid: Uint8Array, chunkBytes?: Uint8Array): void {
@@ -34,7 +36,7 @@ export class MockTransport implements Transport {
       throw new TagTimeoutError(`No tag presented within ${opts?.timeoutMs ?? 0}ms`);
     }
     this.active = next;
-    return { uid: Uint8Array.from(next.match(/../g)!.map((h) => parseInt(h, 16))), capacityBytes: CARD_CAPACITY_BYTES };
+    return { uid: Uint8Array.from(next.match(/../g)!.map((h) => parseInt(h, 16))), capacityBytes: CARD_CAPACITY_BYTES, maxChunkPayload: this.maxChunkPayload };
   }
 
   private activeBytes(): Uint8Array | undefined {

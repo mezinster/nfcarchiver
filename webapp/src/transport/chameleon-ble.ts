@@ -6,7 +6,7 @@
 
 import { NfarFormatError } from '../chunk.js';
 import {
-  BLOCK_SIZE, CARD_CAPACITY_BYTES, USABLE_BLOCK_INDEXES,
+  BLOCK_SIZE, CARD_CAPACITY_BYTES, CARD_PAYLOAD_SIZE, USABLE_BLOCK_INDEXES,
   chunkToBlocks, firstBlockIsNfar, nfarTotalLength, assembleChunkFromBlocks,
 } from '../mifare/card-layout.js';
 import { FACTORY_KEY_A, type ChameleonDevice } from './chameleon-device.js';
@@ -44,7 +44,7 @@ export class ChameleonBleTransport implements Transport {
     for (;;) {
       if (opts?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       const tag = await this.device.scanTag();
-      if (tag !== null) return { uid: tag.uid, capacityBytes: CARD_CAPACITY_BYTES };
+      if (tag !== null) return { uid: tag.uid, capacityBytes: CARD_CAPACITY_BYTES, maxChunkPayload: CARD_PAYLOAD_SIZE };
       if (Date.now() >= deadline) throw new TagTimeoutError(`No tag presented within ${timeoutMs}ms`);
       await delay(this.pollMs);
     }
