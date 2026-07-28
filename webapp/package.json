@@ -1,0 +1,22 @@
+{
+  "name": "nfcarchiver-web-core",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test 'dist/test/**/*.test.js'",
+    "fixtures": "tsc && node dist/test/write_ts_fixtures.js",
+    "app": "esbuild app/main.ts --bundle --format=esm --outdir=app/dist --servedir=app --serve=localhost:8000"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "chameleon-ultra.js": "^0.4.7"
+  }
+}

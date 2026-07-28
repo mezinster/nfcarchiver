@@ -110,6 +110,40 @@ lib/
 - **pointycastle** — cryptography (AES-256-GCM, PBKDF2)
 - **go_router** — navigation
 
+### Web version (`webapp/`)
+
+A browser port of NFC Archiver lives in [`webapp/`](webapp/). It runs entirely
+client-side (no server) and drives a **Chameleon Ultra** reader/writer over **Web
+Bluetooth** to read and write physical cards from Chromium browsers on desktop and
+Android.
+
+- **Media:** Mifare Classic 1K (720 B payload/card) and NTAG213/215/216 (Type-2 /
+  NDEF). Tag type is auto-detected on tap.
+- **Cross-compatible with this app:** the on-tag bytes match exactly — the same
+  NFAR chunk format, the same filename wrapper, and, for NTAG, the same NDEF MIME
+  record (`application/vnd.nfcarchiver.chunk`). A tag written on the phone restores
+  in the browser and vice versa; an NTAG written in the browser is a standard NDEF
+  tag readable by any NFC phone.
+- **Features:** file **and** text archiving, GZIP compression, AES-256-GCM
+  encryption, filename preservation, a live "≈ N cards" estimate, multi-archive
+  scan-then-pick restore, and a Chameleon "Diagnose card" tool. The UI is a
+  branded, themed, tabbed shell.
+
+```bash
+cd webapp
+source ~/.nvm/nvm.sh && nvm use --lts   # Node ≥ 22 (crypto.subtle, CompressionStream)
+npm install
+npm test        # dependency-free NFAR core + transports, tested against a fake device
+npm run app     # serves http://localhost:8000 — open in Chrome/Edge on the Bluetooth host
+```
+
+Web Bluetooth is Chromium-only (not Firefox or iOS Safari), and — inside WSL — the
+browser must run on the Windows host. Status: a working prototype; the archive →
+cards → restore round trip is validated on real hardware. See
+[`webapp/README.md`](webapp/README.md) for architecture, the SDK/hardware notes,
+and the parity roadmap (localization, an offline file manager, and phone-native
+Web NFC writing are still to come).
+
 ### F-Droid Publishing
 
 This app went through 13 iterations of its [F-Droid metadata MR](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/32729) before acceptance. Here are the key challenges encountered:
@@ -260,6 +294,41 @@ lib/
 - **nfc_manager** — NFC операции
 - **pointycastle** — криптография (AES-256-GCM, PBKDF2)
 - **go_router** — навигация
+
+### Веб-версия (`webapp/`)
+
+Браузерный порт NFC Archiver находится в [`webapp/`](webapp/). Работает полностью
+на стороне клиента (без сервера) и управляет ридером/райтером **Chameleon Ultra**
+через **Web Bluetooth**, читая и записывая физические карты из браузеров на базе
+Chromium на десктопе и Android.
+
+- **Носители:** Mifare Classic 1K (720 Б полезной нагрузки на карту) и
+  NTAG213/215/216 (Type-2 / NDEF). Тип метки определяется автоматически при
+  касании.
+- **Совместимость с этим приложением:** байты на метке полностью совпадают — тот
+  же формат чанка NFAR, та же обёртка имени файла и, для NTAG, та же запись NDEF
+  MIME (`application/vnd.nfcarchiver.chunk`). Метка, записанная на телефоне,
+  восстанавливается в браузере и наоборот; NTAG, записанный в браузере — обычная
+  NDEF-метка, читаемая любым NFC-телефоном.
+- **Возможности:** архивация файлов **и** текста, GZIP-сжатие, шифрование
+  AES-256-GCM, сохранение имени файла, живая оценка «≈ N карт», восстановление
+  нескольких архивов (скан → выбор), инструмент «Diagnose card». Интерфейс —
+  брендированная вкладочная оболочка с темой.
+
+```bash
+cd webapp
+source ~/.nvm/nvm.sh && nvm use --lts   # Node ≥ 22 (crypto.subtle, CompressionStream)
+npm install
+npm test        # ядро NFAR без зависимостей + транспорты, тесты против фейкового устройства
+npm run app     # http://localhost:8000 — открыть в Chrome/Edge на хосте с Bluetooth
+```
+
+Web Bluetooth работает только в Chromium (не Firefox и не iOS Safari), а внутри
+WSL браузер должен запускаться на Windows-хосте. Статус: рабочий прототип; цикл
+архивация → карты → восстановление проверен на реальном железе. Подробности —
+архитектура, заметки по SDK/железу и план паритета (локализация, офлайн
+файловый менеджер и запись через Web NFC с телефона ещё впереди) — в
+[`webapp/README.md`](webapp/README.md).
 
 ### Публикация в F-Droid
 

@@ -94,6 +94,17 @@ Fastlane metadata lives in `fastlane/metadata/android/<locale>/`. Each locale di
 
 **When releasing a new version:** add a changelog file `<versionCode>.txt` to **all 7 locale directories** (`en-US`, `ru-RU`, `tr-TR`, `uk`, `ka-GE`, `pl-PL`, `be-BY`). Without translated changelogs, Google Play and F-Droid fall back to English for non-English users.
 
+## Web App (`webapp/`)
+
+A browser port that drives a Chameleon Ultra over Web Bluetooth to read/write NFAR archives on physical cards — see [`webapp/README.md`](webapp/README.md) for the full picture. Key facts for working in it:
+
+- **TypeScript + esbuild, no UI framework.** The core (`webapp/src/`) is dependency-free and uses only web-platform globals (`crypto.subtle`, `CompressionStream`, `DataView`), so it runs both in the browser and under `node --test`.
+- **On-tag bytes are byte-compatible with the Flutter app** — same NFAR chunk format, same filename wrapper (`_prependFilenameMetadata`), and for NTAG the same NDEF MIME record (`application/vnd.nfcarchiver.chunk`). Cross-language interop is proven by `tool/generate_web_fixtures.dart` / `tool/verify_web_fixtures.dart`, which use the app's production `lib/core` services.
+- **Media:** Mifare Classic 1K (`card-layout.ts`, 47 usable blocks = 752 B) and NTAG213/215/216 (`nfc/ndef.ts` + `nfc/type2.ts`). `AutoTransport` routes each tapped tag by SAK. `FakeChameleon` simulates both media so all transports are tested without hardware.
+- **Dependency fence:** the only runtime dep, `chameleon-ultra.js`, may be imported ONLY in `src/transport/sdk-chameleon-device.ts` and `app/ui/device.ts`. The core stays dependency-free.
+- **Commands (Node ≥ 22 required):** `source ~/.nvm/nvm.sh && nvm use --lts` first (the shell default is Node 14). `rm -rf dist && npm test` (the `tsc && node --test` chain doesn't clean stale compiled tests). `npm run app` serves it on `localhost:8000`. Web Bluetooth is Chromium-only; inside WSL the browser must run on the Windows host.
+- **Status:** working prototype, validated on real hardware. Deferred: localization, an IndexedDB file manager (Files tab is a placeholder), phone-native Web NFC writing.
+
 ## Apple App Store Publishing
 
 **Goal:** Publish NFC Archiver to the Apple App Store.
