@@ -56,15 +56,16 @@ export class RestoreOrchestrator {
     try {
       let pw: string | undefined;
       let result: { data: Uint8Array; fileName: string | null } | undefined;
-      for (let attempt = 0; attempt < 5; attempt++) {
+      // attempt 0 tries with no password (unencrypted archives succeed here);
+      // then up to 5 user-entered passwords are each actually tried.
+      for (let attempt = 0; attempt <= 5; attempt++) {
         try { result = await ctrl.restore(id, pw); break; }
         catch (e) {
-          if (e instanceof PasswordRequiredError || e instanceof DecryptionError) {
-            const entered = this.io.promptPassword(e instanceof DecryptionError ? 'Wrong password. Enter password:' : 'This archive is encrypted. Enter password:');
-            if (entered === null) { this.io.setStatus('Cancelled.'); this.io.log.info('restore', 'Cancelled', { id }); return; }
-            pw = entered; continue;
-          }
-          throw e;
+          if (!(e instanceof PasswordRequiredError || e instanceof DecryptionError)) throw e;
+          if (attempt === 5) break; // 5 passwords already tried
+          const entered = this.io.promptPassword(e instanceof DecryptionError ? 'Wrong password. Enter password:' : 'This archive is encrypted. Enter password:');
+          if (entered === null) { this.io.setStatus('Cancelled.'); this.io.log.info('restore', 'Cancelled', { id }); return; }
+          pw = entered;
         }
       }
       if (!result) { this.io.setStatus('Too many failed password attempts.'); this.io.log.warn('restore', 'Too many password attempts', { id }); return; }

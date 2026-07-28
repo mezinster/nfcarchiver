@@ -136,3 +136,20 @@ test('restoreArchive ignores a wrong-then-cancelled password without downloading
   await (container as unknown as StubEl).children[0]!.children[1]!.click();
   assert.equal(downloads.length, 0, 'cancelled restore downloads nothing');
 });
+
+test('restoreArchive tries the last entered password (no off-by-one)', async () => {
+  const secret = crypto.getRandomValues(new Uint8Array(800));
+  const cards = await archiveToCards(secret, { compress: false, password: 'pw', fileName: 's.bin' });
+  const doc = makeDoc();
+  const container = doc.createElement('div');
+  const answers = ['wrong', 'wrong', 'wrong', 'wrong', 'pw'] as Array<string | null>;
+  const { io, downloads } = makeIO(container, { promptPassword: () => answers.shift() ?? null });
+  const orch = new RestoreOrchestrator(io);
+  const rt = new MockTransport();
+  orch.startSession(rt);
+  cards.forEach((b, i) => rt.enqueueTag(new Uint8Array([4, 0, 0, i]), b));
+  for (let i = 0; i < cards.length; i++) await orch.scanStep(signal());
+  await (container as unknown as StubEl).children[0]!.children[1]!.click();
+  assert.equal(downloads.length, 1, 'the 5th (correct) password is actually tried');
+  assert.deepEqual(downloads[0]!.data, secret);
+});
