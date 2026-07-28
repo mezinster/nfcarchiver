@@ -32,8 +32,18 @@ export class IdbFileStore implements FileStore {
     return new Promise<T>((resolve, reject) => {
       const tx = db.transaction(STORE, mode);
       const req = fn(tx.objectStore(STORE));
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error ?? new Error('IndexedDB request failed'));
+      let result: T;
+      req.onsuccess = () => {
+        result = req.result;
+      };
+      // Resolve only once the transaction actually COMMITS. A readwrite request can
+      // fire onsuccess and the surrounding transaction can still abort at commit time
+      // (e.g. QuotaExceededError) -- resolving on req.onsuccess alone would report
+      // success for a record that never persisted. oncomplete fires after onsuccess,
+      // so this is correct for readonly reads too.
+      tx.oncomplete = () => resolve(result);
+      tx.onerror = () => reject(tx.error ?? req.error ?? new Error('IndexedDB transaction failed'));
+      tx.onabort = () => reject(tx.error ?? req.error ?? new Error('IndexedDB transaction failed'));
     });
   }
 
