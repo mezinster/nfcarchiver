@@ -189,7 +189,8 @@ MIT
 
 ### Author
 
-Created with Claude Code.
+Built by [Evgeny Mezin](https://github.com/mezinster), directing Claude Code as a
+coding assistant throughout.
 
 ---
 
@@ -379,4 +380,5 @@ MIT
 
 ### Автор
 
-Создано с помощью Claude Code.
+Разработано [Евгением Мезиным](https://github.com/mezinster) — при участии Claude Code
+в роли ассистента, под руководством автора на всех этапах.
