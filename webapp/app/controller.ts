@@ -1,17 +1,20 @@
 /**
- * DOM-free state machines for the archive and restore flows. The UI glue
- * (main.ts) drives these and renders their progress; they touch only a
- * Transport, so they are unit-tested against MockTransport.
+ * DOM-free state machines for the archive and restore flows. They touch only a
+ * Transport and are unit-tested against MockTransport. The filename wrapper
+ * (matching the Flutter app) is applied here, above the unchanged core.
  */
 
 import { archive, restore } from '../src/pipeline.js';
-import { decodeChunk, encodeChunk, FLAG_ENCRYPTED, type Chunk } from '../src/chunk.js';
+import { decodeChunk, encodeChunk, FLAG_COMPRESSED, FLAG_ENCRYPTED, type Chunk } from '../src/chunk.js';
 import { CARD_PAYLOAD_SIZE } from '../src/mifare/card-layout.js';
 import { NfarFormatError } from '../src/chunk.js';
+import { wrapWithFilename, unwrapFilename } from '../src/filename.js';
+import { formatArchiveId } from '../src/archive-id.js';
 import type { Transport } from '../src/transport/transport.js';
 
 export interface ArchiveRequest {
   data: Uint8Array;
+  fileName: string;
   compress: boolean;
   password?: string;
 }
@@ -20,6 +23,16 @@ export interface ArchiveProgress {
   total: number;
   written: number;
   awaiting: number | null;
+}
+
+export interface DetectedArchive {
+  archiveId: string;
+  shortId: string;
+  totalChunks: number;
+  received: number;
+  isEncrypted: boolean;
+  isCompressed: boolean;
+  complete: boolean;
 }
 
 export class OverwriteRequiredError extends Error {
@@ -36,6 +49,7 @@ export class PasswordRequiredError extends Error {
   }
 }
 
+/** Retained for compatibility; multi-archive detection no longer throws this. */
 export class WrongArchiveError extends Error {
   constructor(message: string) {
     super(message);
@@ -47,14 +61,6 @@ function uidHex(uid: Uint8Array): string {
   return Array.from(uid, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false;
-  }
-  return true;
-}
-
 export class ArchiveController {
   private chunks: Chunk[] = [];
   private written = 0;
@@ -63,7 +69,8 @@ export class ArchiveController {
   constructor(private readonly transport: Transport) {}
 
   async prepare(req: ArchiveRequest): Promise<number> {
-    this.chunks = await archive(req.data, {
+    const wrapped = wrapWithFilename(req.data, req.fileName);
+    this.chunks = await archive(wrapped, {
       payloadSize: CARD_PAYLOAD_SIZE,
       compress: req.compress,
       password: req.password,
@@ -77,12 +84,6 @@ export class ArchiveController {
     return { total: this.chunks.length, written: this.written, awaiting };
   }
 
-  /**
-   * Present the next card and write the next unwritten chunk to it.
-   * A card whose UID was already written is skipped (returns not-done, no write).
-   * If the presented card already holds NFAR data and confirmOverwrite is not
-   * true, throws OverwriteRequiredError without writing.
-   */
   async writeNextCard(signal?: AbortSignal, confirmOverwrite = false): Promise<{ done: boolean; progress: ArchiveProgress }> {
     if (this.written >= this.chunks.length) return { done: true, progress: this.progress(null) };
     const tag = await this.transport.awaitTag({ signal });
@@ -101,41 +102,56 @@ export class ArchiveController {
   }
 }
 
+interface ArchiveGroup {
+  archiveId: Uint8Array;
+  totalChunks: number;
+  flags: number;
+  chunks: Map<number, Chunk>;
+}
+
 export class RestoreController {
-  private readonly collected = new Map<number, Chunk>();
+  private readonly groups = new Map<string, ArchiveGroup>(); // keyed by formatted UUID
   private readonly seenUids = new Set<string>();
-  private total: number | null = null;
-  private encrypted = false;
-  private archiveId: Uint8Array | null = null;
 
   constructor(private readonly transport: Transport) {}
 
-  async scanNextCard(signal?: AbortSignal): Promise<{ done: boolean; collected: number; total: number | null }> {
+  async scanNextCard(signal?: AbortSignal): Promise<DetectedArchive[]> {
     const tag = await this.transport.awaitTag({ signal });
-    const key = uidHex(tag.uid);
-    if (!this.seenUids.has(key)) {
+    const uid = uidHex(tag.uid);
+    if (!this.seenUids.has(uid)) {
       const chunk = decodeChunk(await this.transport.readChunk());
-      if (this.archiveId !== null && !bytesEqual(chunk.archiveId, this.archiveId)) {
-        throw new WrongArchiveError('This card belongs to a different archive');
+      const id = formatArchiveId(chunk.archiveId);
+      let group = this.groups.get(id);
+      if (group === undefined) {
+        group = { archiveId: chunk.archiveId, totalChunks: chunk.totalChunks, flags: chunk.flags, chunks: new Map() };
+        this.groups.set(id, group);
       }
-      this.seenUids.add(key);
-      if (!this.collected.has(chunk.chunkIndex)) {
-        this.collected.set(chunk.chunkIndex, chunk);
-        this.total = chunk.totalChunks;
-        this.encrypted = (chunk.flags & FLAG_ENCRYPTED) !== 0;
-        if (this.archiveId === null) this.archiveId = chunk.archiveId;
-      }
+      group.chunks.set(chunk.chunkIndex, chunk);
+      this.seenUids.add(uid);
     }
-    const done = this.total !== null && this.collected.size >= this.total;
-    return { done, collected: this.collected.size, total: this.total };
+    return this.detectedArchives();
   }
 
-  async finish(password?: string): Promise<Uint8Array> {
-    if (this.encrypted && password === undefined) {
+  detectedArchives(): DetectedArchive[] {
+    return [...this.groups.entries()].map(([id, g]) => ({
+      archiveId: id,
+      shortId: id.slice(0, 8),
+      totalChunks: g.totalChunks,
+      received: g.chunks.size,
+      isEncrypted: (g.flags & FLAG_ENCRYPTED) !== 0,
+      isCompressed: (g.flags & FLAG_COMPRESSED) !== 0,
+      complete: g.chunks.size >= g.totalChunks,
+    }));
+  }
+
+  async restore(archiveId: string, password?: string): Promise<{ data: Uint8Array; fileName: string | null }> {
+    const group = this.groups.get(archiveId);
+    if (group === undefined) throw new Error(`No detected archive ${archiveId}`);
+    if ((group.flags & FLAG_ENCRYPTED) !== 0 && password === undefined) {
       throw new PasswordRequiredError('This archive is encrypted; a password is required');
     }
-    const chunks = [...this.collected.values()];
-    return restore(chunks, password);
+    const raw = await restore([...group.chunks.values()], password);
+    return unwrapFilename(raw);
   }
 }
 
