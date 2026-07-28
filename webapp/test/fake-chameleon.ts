@@ -1,6 +1,7 @@
 import type { ChameleonDevice } from '../src/transport/chameleon-device.js';
 import { FACTORY_KEY_A } from '../src/transport/chameleon-device.js';
 import { CardAuthError } from '../src/transport/transport.js';
+import { NtagType } from '../src/nfc/type2.js';
 
 function hex(u: Uint8Array): string {
   return Array.from(u, (b) => b.toString(16).padStart(2, '0')).join('');
@@ -9,14 +10,11 @@ function keysEqual(a: Uint8Array, b: Uint8Array): boolean {
   return a.length === b.length && a.every((x, i) => x === b[i]);
 }
 
-class NotImplementedError extends Error {
-  constructor(m: string) {
-    super(m);
-    this.name = 'NotImplementedError';
-  }
-}
+// page counts: 213=45, 215=135, 216=231
+const NTAG_PAGES: Record<NtagType, number> = { NTAG213: 45, NTAG215: 135, NTAG216: 231 };
+const NTAG_STORAGE: Record<NtagType, number> = { NTAG213: 0x0f, NTAG215: 0x11, NTAG216: 0x13 };
 
-interface Card { image: Uint8Array; keyA: Uint8Array; sak: number }
+interface Card { image: Uint8Array; keyA: Uint8Array; sak: number; ntag?: { type: NtagType; pages: Uint8Array } }
 
 /** In-memory Chameleon Ultra over simulated 1K card images (64 x 16 bytes). */
 export class FakeChameleon implements ChameleonDevice {
@@ -35,6 +33,18 @@ export class FakeChameleon implements ChameleonDevice {
   place(uid: Uint8Array): void {
     const key = hex(uid);
     if (!this.cards.has(key)) this.defineCard(uid);
+    this.field = key;
+  }
+  /** Idempotent like place(): defines the NTAG only if new, so re-presenting the
+   *  same UID keeps its written pages (needed for write→read-back tests). */
+  placeNtag(uid: Uint8Array, type: NtagType): void {
+    const key = hex(uid);
+    if (!this.cards.has(key)) {
+      this.cards.set(key, {
+        image: new Uint8Array(64 * 16), keyA: FACTORY_KEY_A, sak: 0x00,
+        ntag: { type, pages: new Uint8Array(NTAG_PAGES[type] * 4) },
+      });
+    }
     this.field = key;
   }
   remove(): void {
@@ -62,8 +72,24 @@ export class FakeChameleon implements ChameleonDevice {
     return { uid: Uint8Array.from(this.field.match(/../g)!.map((h) => parseInt(h, 16))), sak: card.sak };
   }
 
-  async transceive14a(): Promise<Uint8Array> {
-    throw new NotImplementedError('transceive14a not simulated for this card');
+  async transceive14a(data: Uint8Array): Promise<Uint8Array> {
+    const card = this.current();
+    const ntag = card.ntag;
+    if (!ntag) throw new CardAuthError('Not an NTAG card in field');
+    const cmd = data[0];
+    if (cmd === 0x60) { // GET_VERSION
+      return new Uint8Array([0x00, 0x04, 0x04, 0x02, 0x01, 0x00, NTAG_STORAGE[ntag.type], 0x03]);
+    }
+    if (cmd === 0x30) { // READ page..page+3 (16 bytes)
+      const page = data[1]!;
+      return ntag.pages.slice(page * 4, page * 4 + 16);
+    }
+    if (cmd === 0xa2) { // WRITE one page
+      const page = data[1]!;
+      ntag.pages.set(data.subarray(2, 6), page * 4);
+      return new Uint8Array([0x0a]); // ACK
+    }
+    throw new CardAuthError(`Unsupported NTAG command 0x${cmd?.toString(16)}`);
   }
 
   private current(): Card {
