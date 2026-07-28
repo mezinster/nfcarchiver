@@ -1,0 +1,5 @@
+Naprawa potoku Fastlane.
+
+* Naprawiono strukturę metadanych dla poprawnego wyświetlania zrzutów ekranu w F-Droid
+* Obrazy przeniesiono do folderu lokalizacji en-US
+* Naprawiono wyświetlanie wersji w oknie dialogowym „O aplikacji"

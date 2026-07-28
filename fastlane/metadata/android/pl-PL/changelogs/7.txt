@@ -1,0 +1,6 @@
+Menedżer plików dla odtworzonych plików.
+
+* Nowy ekran menedżera plików do przeglądania, udostępniania i usuwania plików
+* Wskaźnik pamięci na ekranie głównym pokazuje liczbę plików i łączny rozmiar
+* Przycisk usuwania pliku na ekranie zakończenia odtwarzania
+* Ekran główny jest teraz przewijalny na mniejszych urządzeniach

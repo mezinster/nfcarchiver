@@ -1,0 +1,5 @@
+Fastlane boru hattı düzeltmesi.
+
+* F-Droid'de ekran görüntülerinin doğru yayılması için meta veri yapısı düzeltildi
+* Görseller en-US yerel ayar klasörüne taşındı
+* Hakkında iletişim kutusundaki sürüm gösterimi düzeltildi

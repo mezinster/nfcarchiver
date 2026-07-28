@@ -1,0 +1,4 @@
+Nowa ikona aplikacji.
+
+* Przeprojektowana ikona z chipem NFC, falami radiowymi i pudełkiem archiwalnym
+* Zaktualizowana grafika promocyjna dla stron sklepu

@@ -1,0 +1,8 @@
+NFC Archiver'ın ilk sürümü.
+
+* Dosyaları ve metinleri birden fazla NFC etiketine arşivleyin
+* Etiketleri herhangi bir sırada tarayarak arşivleri geri yükleyin
+* GZIP sıkıştırma desteği
+* Parola korumalı AES-256-GCM şifreleme
+* NTAG213, NTAG215, NTAG216, MIFARE Ultralight etiket desteği
+* İngilizce, Rusça, Türkçe, Ukraynaca ve Gürcüce dillerinde kullanılabilir

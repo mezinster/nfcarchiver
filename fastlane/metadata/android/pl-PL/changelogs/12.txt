@@ -1,0 +1,3 @@
+Polski i białoruski, naprawa konfliktu NFC
+- Dodano obsługę języka polskiego i białoruskiego
+- Naprawiono konflikt NFC z YubiKey i kartami inteligetnymi — aplikacja nie przejmuje już przepływów uwierzytelniania z innych urządzeń NFC

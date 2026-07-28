@@ -1,0 +1,6 @@
+Geri yüklenen dosyalar için Dosya Yöneticisi.
+
+* Dosyaları görüntülemek, paylaşmak ve silmek için yeni dosya yöneticisi ekranı
+* Ana ekranda dosya sayısını ve toplam boyutu gösteren depolama göstergesi
+* Geri yükleme tamamlama ekranında dosya silme düğmesi
+* Ana ekran artık küçük cihazlarda kaydırılabilir

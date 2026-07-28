@@ -1,0 +1,7 @@
+Trwałe sesje odtwarzania i naprawa błędów
+- Naprawiono awarię przy otwieraniu „Odtwórz archiwum"
+- Niedokończone sesje odtwarzania są teraz zachowywane między restartami aplikacji
+- Przeglądanie, wznawianie i usuwanie niedokończonych sesji z ekranu skanowania
+- Dotknij ukończonej sesji, aby odtworzyć bezpośrednio
+- UUID archiwum dodano do nazw plików, aby zapobiec nadpisywaniu
+- Zarządzanie sesjami zlokalizowane dla wszystkich 5 języków
