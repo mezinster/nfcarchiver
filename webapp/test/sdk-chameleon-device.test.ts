@@ -24,7 +24,11 @@ function fakeSdk(overrides: Partial<ChameleonUltraSdk> = {}): ChameleonUltraSdk 
     isConnected() { return connected; },
     async connect() { connected = true; },
     async disconnect() { connected = false; },
-    async cmdHf14aScan() { calls.push(['scan']); return [{ uid: Buffer.from(new Uint8Array([1, 2, 3, 4])) }]; },
+    async cmdHf14aScan() {
+      calls.push(['scan']);
+      return [{ uid: Buffer.from(new Uint8Array([1, 2, 3, 4])), sak: Buffer.from(new Uint8Array([0x08])) }];
+    },
+    async cmdHf14aRaw() { calls.push(['raw']); return new Uint8Array(); },
     async cmdMf1ReadBlock(opts) {
       assert.ok(isSdkBuffer(opts.key), 'key must be an SDK Buffer, not a plain Uint8Array');
       calls.push(['read', opts.block, opts.keyType, [...opts.key]]);
@@ -39,9 +43,9 @@ function fakeSdk(overrides: Partial<ChameleonUltraSdk> = {}): ChameleonUltraSdk 
   } as ChameleonUltraSdk & { calls: unknown[] };
 }
 
-test('scanTag returns the first tag UID, or null when none present', async () => {
+test('scanTag returns the first tag UID + SAK, or null when none present', async () => {
   const dev = new SdkChameleonDevice(fakeSdk());
-  assert.deepEqual(await dev.scanTag(), new Uint8Array([1, 2, 3, 4]));
+  assert.deepEqual(await dev.scanTag(), { uid: new Uint8Array([1, 2, 3, 4]), sak: 0x08 });
   const empty = new SdkChameleonDevice(fakeSdk({ async cmdHf14aScan() { return []; } }));
   assert.equal(await empty.scanTag(), null);
 });

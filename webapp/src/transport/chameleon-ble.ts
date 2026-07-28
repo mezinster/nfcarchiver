@@ -43,8 +43,8 @@ export class ChameleonBleTransport implements Transport {
     const deadline = Date.now() + timeoutMs;
     for (;;) {
       if (opts?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-      const uid = await this.device.scanTag();
-      if (uid !== null) return { uid, capacityBytes: CARD_CAPACITY_BYTES };
+      const tag = await this.device.scanTag();
+      if (tag !== null) return { uid: tag.uid, capacityBytes: CARD_CAPACITY_BYTES };
       if (Date.now() >= deadline) throw new TagTimeoutError(`No tag presented within ${timeoutMs}ms`);
       await delay(this.pollMs);
     }

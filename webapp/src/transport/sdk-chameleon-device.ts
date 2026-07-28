@@ -67,7 +67,17 @@ export interface ChameleonUltraSdk {
   isConnected(): boolean;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  cmdHf14aScan(): Promise<{ uid: Uint8Array }[]>;
+  cmdHf14aScan(): Promise<{ uid: Uint8Array; sak: Uint8Array }[]>;
+  // `data` is optional here (not required) to match the real SDK's
+  // cmdHf14aRaw(opts: { data?: Buffer; ... }) — chameleon-ultra.js@0.4.7 dts.
+  // Requiring it broke structural assignability at the app/ui/device.ts wire-up
+  // (ChameleonUltra -> ChameleonUltraSdk): a required property can't be
+  // satisfied by a source type where that property is optional. transceive14a
+  // below always passes `data`, so behavior is unaffected.
+  cmdHf14aRaw(opts: {
+    data?: Uint8Array; appendCrc?: boolean; autoSelect?: boolean; checkResponseCrc?: boolean;
+    activateRfField?: boolean; keepRfField?: boolean; waitResponse?: boolean;
+  }): Promise<Uint8Array>;
   cmdMf1ReadBlock(known: { block: number; keyType: number; key: Uint8Array }): Promise<Uint8Array>;
   cmdMf1WriteBlock(opts: { block: number; keyType: number; key: Uint8Array; data: Uint8Array }): Promise<void>;
 }
@@ -97,8 +107,8 @@ export class SdkChameleonDevice implements ChameleonDevice {
     return this.sdk.disconnect();
   }
 
-  async scanTag(): Promise<Uint8Array | null> {
-    let tags: { uid: Uint8Array }[];
+  async scanTag(): Promise<{ uid: Uint8Array; sak: number } | null> {
+    let tags: { uid: Uint8Array; sak: Uint8Array }[];
     try {
       tags = await this.sdk.cmdHf14aScan();
     } catch (err) {
@@ -107,7 +117,21 @@ export class SdkChameleonDevice implements ChameleonDevice {
       throw err;
     }
     const first = tags[0];
-    return first ? new Uint8Array(first.uid) : null;
+    return first ? { uid: new Uint8Array(first.uid), sak: first.sak[0] ?? 0 } : null;
+  }
+
+  async transceive14a(
+    data: Uint8Array,
+    opts?: { appendCrc?: boolean; autoSelect?: boolean; checkResponseCrc?: boolean },
+  ): Promise<Uint8Array> {
+    const resp = await this.sdk.cmdHf14aRaw({
+      data: Buffer.from(data),
+      appendCrc: opts?.appendCrc ?? false,
+      autoSelect: opts?.autoSelect ?? false,
+      checkResponseCrc: opts?.checkResponseCrc ?? false,
+      waitResponse: true,
+    });
+    return new Uint8Array(resp);
   }
 
   async readBlock(block: number, key: Uint8Array): Promise<Uint8Array> {

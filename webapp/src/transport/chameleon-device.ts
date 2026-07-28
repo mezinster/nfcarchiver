@@ -8,11 +8,16 @@ export interface ChameleonDevice {
   isConnected(): boolean;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  /** UID of a tag currently in the field, or null if none. */
-  scanTag(): Promise<Uint8Array | null>;
-  /** Read a 16-byte block, authenticating with key A. */
+  /** UID + SAK of a tag in the field, or null if none. SAK 0x08 = Mifare Classic 1K, 0x00 = NTAG/Type-2. */
+  scanTag(): Promise<{ uid: Uint8Array; sak: number } | null>;
+  /** Send a raw ISO 14443-A frame (with auto-select/CRC options) and return the response. */
+  transceive14a(
+    data: Uint8Array,
+    opts?: { appendCrc?: boolean; autoSelect?: boolean; checkResponseCrc?: boolean },
+  ): Promise<Uint8Array>;
+  /** Read a 16-byte Mifare Classic block, authenticating with key A. */
   readBlock(block: number, key: Uint8Array): Promise<Uint8Array>;
-  /** Write a 16-byte block, authenticating with key A. */
+  /** Write a 16-byte Mifare Classic block, authenticating with key A. */
   writeBlock(block: number, key: Uint8Array, data: Uint8Array): Promise<void>;
 }
 

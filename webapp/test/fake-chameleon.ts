@@ -9,7 +9,14 @@ function keysEqual(a: Uint8Array, b: Uint8Array): boolean {
   return a.length === b.length && a.every((x, i) => x === b[i]);
 }
 
-interface Card { image: Uint8Array; keyA: Uint8Array }
+class NotImplementedError extends Error {
+  constructor(m: string) {
+    super(m);
+    this.name = 'NotImplementedError';
+  }
+}
+
+interface Card { image: Uint8Array; keyA: Uint8Array; sak: number }
 
 /** In-memory Chameleon Ultra over simulated 1K card images (64 x 16 bytes). */
 export class FakeChameleon implements ChameleonDevice {
@@ -18,8 +25,12 @@ export class FakeChameleon implements ChameleonDevice {
   private corruptNext = false;
   private readonly cards = new Map<string, Card>();
 
-  defineCard(uid: Uint8Array, opts?: { keyA?: Uint8Array }): void {
-    this.cards.set(hex(uid), { image: new Uint8Array(64 * 16), keyA: opts?.keyA ?? FACTORY_KEY_A });
+  defineCard(uid: Uint8Array, opts?: { keyA?: Uint8Array; sak?: number }): void {
+    this.cards.set(hex(uid), {
+      image: new Uint8Array(64 * 16),
+      keyA: opts?.keyA ?? FACTORY_KEY_A,
+      sak: opts?.sak ?? 0x08,
+    });
   }
   place(uid: Uint8Array): void {
     const key = hex(uid);
@@ -45,9 +56,14 @@ export class FakeChameleon implements ChameleonDevice {
   async disconnect(): Promise<void> {
     this.connected = false;
   }
-  async scanTag(): Promise<Uint8Array | null> {
+  async scanTag(): Promise<{ uid: Uint8Array; sak: number } | null> {
     if (this.field === null) return null;
-    return Uint8Array.from(this.field.match(/../g)!.map((h) => parseInt(h, 16)));
+    const card = this.cards.get(this.field)!;
+    return { uid: Uint8Array.from(this.field.match(/../g)!.map((h) => parseInt(h, 16))), sak: card.sak };
+  }
+
+  async transceive14a(): Promise<Uint8Array> {
+    throw new NotImplementedError('transceive14a not simulated for this card');
   }
 
   private current(): Card {
