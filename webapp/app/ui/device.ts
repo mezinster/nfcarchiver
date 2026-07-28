@@ -10,6 +10,7 @@ import { SdkChameleonDevice } from '../../src/transport/sdk-chameleon-device.js'
 import { AutoTransport } from '../../src/transport/auto-transport.js';
 import { diagnoseCard, type RawAntiColl } from '../diagnostics.js';
 import { humanError } from './errors.js';
+import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const hex = (b: Uint8Array): string =>
@@ -31,6 +32,7 @@ export function initDeviceBar(): void {
   const deviceStatus = $('device-status');
 
   $('connect').addEventListener('click', async () => {
+    log.info('device', 'Connecting');
     try {
       ultra = new ChameleonUltra();
       // use() is async (the adapter's install() runs availability checks etc.);
@@ -42,8 +44,10 @@ export function initDeviceBar(): void {
       ($('diagnose') as HTMLButtonElement).disabled = false;
       for (const cb of listeners) cb(true);
       deviceStatus.textContent = 'Connected.';
+      log.info('device', 'Connected');
     } catch (e) {
       deviceStatus.textContent = humanError(e);
+      log.error('device', 'Connect failed', { error: String(e) });
     }
   });
 

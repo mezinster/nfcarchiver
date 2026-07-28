@@ -78,6 +78,7 @@
         <button role="tab" data-tab="archive" aria-selected="true">Archive</button>
         <button role="tab" data-tab="restore" aria-selected="false">Restore</button>
         <button role="tab" data-tab="files" aria-selected="false">Files</button>
+        <button role="tab" data-tab="log" aria-selected="false">Log</button>
         <button role="tab" data-tab="about" aria-selected="false">About</button>
       </div>
 
@@ -118,6 +119,27 @@
           <div style="margin-top:0.6rem"><span id="files-info" class="muted"></span>
             &nbsp;&nbsp;<button id="files-clear">Clear all</button></div>
           <p id="files-status" class="muted"></p>
+        </div>
+      </section>
+
+      <section id="panel-log" role="tabpanel" hidden>
+        <div class="card">
+          <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center">
+            <label>level
+              <select id="log-level">
+                <option value="debug">debug</option>
+                <option value="info" selected>info</option>
+                <option value="warn">warn</option>
+                <option value="error">error</option>
+              </select>
+            </label>
+            <label><input type="checkbox" id="log-autoscroll" checked /> auto-scroll</label>
+            <label><input type="checkbox" id="log-console" /> mirror to console</label>
+            <button id="log-clear">Clear</button>
+            <button id="log-copy">Copy</button>
+            <button id="log-download">Download</button>
+          </div>
+          <div id="log" style="font-family:monospace;font-size:0.8rem;max-height:60vh;overflow:auto;white-space:pre-wrap;margin-top:0.6rem"></div>
         </div>
       </section>
 
