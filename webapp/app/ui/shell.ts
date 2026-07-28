@@ -1,7 +1,7 @@
 /** App shell: tab switching and the light/dark theme toggle. DOM glue only. */
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const TABS = ['archive', 'restore', 'files', 'about'] as const;
+const TABS = ['archive', 'restore', 'files', 'log', 'about'] as const;
 
 function activateTab(name: string): void {
   for (const t of TABS) {

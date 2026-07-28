@@ -4,6 +4,7 @@ import { initDeviceBar } from './ui/device.js';
 import { initArchivePanel } from './ui/archive-panel.js';
 import { initRestorePanel } from './ui/restore-panel.js';
 import { initFilesPanel } from './ui/files-panel.js';
+import { initLogPanel } from './ui/log-panel.js';
 import { initAboutPanel } from './ui/about-panel.js';
 
 initShell();
@@ -11,4 +12,5 @@ initDeviceBar();
 initArchivePanel();
 initRestorePanel();
 initFilesPanel();
+initLogPanel();
 initAboutPanel();
