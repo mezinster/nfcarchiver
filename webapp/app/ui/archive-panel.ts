@@ -90,8 +90,8 @@ export function initArchivePanel(): void {
           let rechunkNote: string | undefined;
           if (res.rechunkedTo) {
             rechunkNote = `Card holds ${res.rechunkedTo.payloadSize} B/chunk — writing ${res.rechunkedTo.total} card(s) instead of ${total}.`;
-            total = res.rechunkedTo.total;
           }
+          total = res.progress.total;
           done = res.done;
           render(res.progress.written, total, done);
           if (rechunkNote) setStatus(rechunkNote);
@@ -101,6 +101,7 @@ export function initArchivePanel(): void {
           if (e instanceof OverwriteRequiredError) {
             if (confirm('This card already holds data. Overwrite it?')) {
               const res = await ctrl.writeNextCard(undefined, true);
+              total = res.progress.total;
               done = res.done;
               render(res.progress.written, total, done);
             } else { setStatus('Skipped. Tap a different card…'); }
