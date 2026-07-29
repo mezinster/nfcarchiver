@@ -4,7 +4,7 @@ import { archive, restore } from '../src/pipeline.js';
 import { encodeChunk, decodeChunk, type Chunk } from '../src/chunk.js';
 import { AutoTransport } from '../src/transport/auto-transport.js';
 import { FakeChameleon } from './fake-chameleon.js';
-import { NtagType, ntagChunkPayloadSize } from '../src/nfc/type2.js';
+import { NtagType, chunkPayloadForCapacity } from '../src/nfc/type2.js';
 
 test('archive to NTAG215 tags via AutoTransport, then restore byte-identical', async () => {
   const original = new TextEncoder().encode('ntag payload '.repeat(120));
@@ -12,7 +12,13 @@ test('archive to NTAG215 tags via AutoTransport, then restore byte-identical', a
   const transport = new AutoTransport(device, { pollMs: 1, defaultTimeoutMs: 500 });
   await transport.connect();
 
-  const payloadSize = ntagChunkPayloadSize(NtagType.NTAG215);
+  // Size chunks to the tag's real per-card NDEF capacity read from its CC (496 B
+  // for NTAG215, not the 504 B raw memory) — mirroring the app's auto-rechunk.
+  const probeUid = new Uint8Array([0x04, 0, 0, 0, 0, 0, 0xff]);
+  device.placeNtag(probeUid, NtagType.NTAG215);
+  const payloadSize = (await transport.awaitTag()).maxChunkPayload;
+  assert.equal(payloadSize, chunkPayloadForCapacity(496));
+
   const chunks = await archive(original, { payloadSize, compress: false, password: 'ntag-pw' });
   assert.ok(chunks.length >= 2, `expected multiple NTAGs, got ${chunks.length}`);
 

@@ -13,6 +13,9 @@ function keysEqual(a: Uint8Array, b: Uint8Array): boolean {
 // page counts: 213=45, 215=135, 216=231
 const NTAG_PAGES: Record<NtagType, number> = { NTAG213: 45, NTAG215: 135, NTAG216: 231 };
 const NTAG_STORAGE: Record<NtagType, number> = { NTAG213: 0x0f, NTAG215: 0x11, NTAG216: 0x13 };
+// Factory Capability Container MLEN (NDEF data area / 8) programmed at page 3.
+// NTAG213 144 B (== raw), NTAG215 496 B (< 504 raw), NTAG216 872 B (< 888 raw).
+const NTAG_CC_MLEN: Record<NtagType, number> = { NTAG213: 0x12, NTAG215: 0x3e, NTAG216: 0x6d };
 
 interface Card { image: Uint8Array; keyA: Uint8Array; sak: number; ntag?: { type: NtagType; pages: Uint8Array } }
 
@@ -40,9 +43,11 @@ export class FakeChameleon implements ChameleonDevice {
   placeNtag(uid: Uint8Array, type: NtagType): void {
     const key = hex(uid);
     if (!this.cards.has(key)) {
+      const pages = new Uint8Array(NTAG_PAGES[type] * 4);
+      pages.set([0xe1, 0x10, NTAG_CC_MLEN[type], 0x00], 3 * 4); // Capability Container at page 3
       this.cards.set(key, {
         image: new Uint8Array(64 * 16), keyA: FACTORY_KEY_A, sak: 0x00,
-        ntag: { type, pages: new Uint8Array(NTAG_PAGES[type] * 4) },
+        ntag: { type, pages },
       });
     }
     this.field = key;

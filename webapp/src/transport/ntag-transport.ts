@@ -5,7 +5,7 @@
 
 import { CardCapacityError } from '../mifare/card-layout.js';
 import { encodeNdefMime, decodeNdefMime, NdefFormatError } from '../nfc/ndef.js';
-import { wrapType2Tlv, readType2Ndef, detectNtagType, ntagUserBytes, ntagChunkPayloadSize, type NtagType } from '../nfc/type2.js';
+import { wrapType2Tlv, readType2Ndef, detectNtagType, ntagUserBytes, ndefCapacityFromCC, chunkPayloadForCapacity, type NtagType } from '../nfc/type2.js';
 import type { ChameleonDevice } from './chameleon-device.js';
 import { NfarFormatError, TOTAL_OVERHEAD } from '../chunk.js';
 import { TagTimeoutError, UnsupportedTagError, WriteVerifyError, type PresentedTag, type Transport } from './transport.js';
@@ -56,11 +56,26 @@ export class NtagTransport implements Transport {
       const tag = await this.device.scanTag();
       if (tag !== null) {
         const type = await this.detectType();
-        return { uid: tag.uid, capacityBytes: ntagUserBytes(type), maxChunkPayload: ntagChunkPayloadSize(type) };
+        // Size chunks to the NDEF area the tag's Capability Container declares —
+        // NOT raw user memory — so the whole TLV fits within what Android reads.
+        const capacity = await this.readNdefCapacity();
+        return { uid: tag.uid, capacityBytes: ntagUserBytes(type), maxChunkPayload: chunkPayloadForCapacity(capacity) };
       }
       if (Date.now() >= deadline) throw new TagTimeoutError(`No tag presented within ${timeoutMs}ms`);
       await delay(this.pollMs);
     }
+  }
+
+  /** Read the tag's Capability Container (page 3) and return the NDEF data area
+   *  (in bytes) it declares — MLEN×8. This is the capacity Android honors when
+   *  reading, so the writer must keep the whole TLV within it. */
+  private async readNdefCapacity(): Promise<number> {
+    const cc = (await this.readMemory(3, 4)).subarray(0, 4);
+    const cap = ndefCapacityFromCC(cc);
+    if (cap === null) {
+      throw new UnsupportedTagError('Tag is not NDEF-formatted (missing/invalid Capability Container)');
+    }
+    return cap;
   }
 
   /** Read `pages` starting at `startPage`, 16 bytes per READ. */
@@ -99,9 +114,9 @@ export class NtagTransport implements Transport {
   }
 
   async writeChunk(bytes: Uint8Array): Promise<void> {
-    const type = await this.detectType();
-    if (bytes.length > TOTAL_OVERHEAD + ntagChunkPayloadSize(type)) {
-      throw new CardCapacityError(`Chunk ${bytes.length} B exceeds ${type} capacity`);
+    const capacity = await this.readNdefCapacity();
+    if (bytes.length > TOTAL_OVERHEAD + chunkPayloadForCapacity(capacity)) {
+      throw new CardCapacityError(`Chunk ${bytes.length} B exceeds the tag's ${capacity} B NDEF area`);
     }
     const tlv = wrapType2Tlv(encodeNdefMime(bytes));
     const padded = new Uint8Array(Math.ceil(tlv.length / 4) * 4);
