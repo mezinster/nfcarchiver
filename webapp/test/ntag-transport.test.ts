@@ -2,7 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NtagTransport } from '../src/transport/ntag-transport.js';
 import { FakeChameleon } from './fake-chameleon.js';
-import { NtagType, ntagChunkPayloadSize } from '../src/nfc/type2.js';
+import { NtagType, ntagChunkPayloadSize, chunkPayloadForCapacity } from '../src/nfc/type2.js';
+import { wrapType2Tlv } from '../src/nfc/type2.js';
+import { encodeNdefMime } from '../src/nfc/ndef.js';
 import { encodeChunk, decodeChunk, type Chunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
 import { UnsupportedTagError } from '../src/transport/transport.js';
@@ -27,7 +29,12 @@ function stubDevice(opts: { onRead: (data: Uint8Array) => Promise<Uint8Array>; g
     transceive14a: async (data: Uint8Array) => {
       const cmd = data[0];
       if (cmd === 0x60) return opts.getVersion ?? new Uint8Array([0, 4, 4, 2, 1, 0, 0x11, 3]); // NTAG215
-      if (cmd === 0x30) return opts.onRead(data);
+      if (cmd === 0x30) {
+        // awaitTag reads the Capability Container at page 3; return a valid NTAG215
+        // CC so tag presentation succeeds and per-test onRead governs page >= 4.
+        if (data[1] === 3) { const cc = new Uint8Array(16); cc.set([0xe1, 0x10, 0x3e, 0x00]); return cc; }
+        return opts.onRead(data);
+      }
       throw new Error(`stub does not implement command 0x${cmd?.toString(16)}`);
     },
     readBlock: async () => { throw new Error('not used'); },
@@ -48,8 +55,11 @@ test('write then read-back an NDEF-wrapped chunk on a simulated NTAG215', async 
   const uid = new Uint8Array([0x04, 1, 2, 3, 4, 5, 6]);
   device.placeNtag(uid, NtagType.NTAG215);
   const tag = await t.awaitTag();
-  assert.equal(tag.capacityBytes, 504);
-  assert.equal(tag.maxChunkPayload, ntagChunkPayloadSize(NtagType.NTAG215));
+  assert.equal(tag.capacityBytes, 504); // raw user memory (informational)
+  // maxChunkPayload comes from the CC-declared NDEF area (496 B), NOT raw memory
+  // (504 B) — smaller, so the whole TLV stays within what Android reads back.
+  assert.equal(tag.maxChunkPayload, chunkPayloadForCapacity(496));
+  assert.ok(tag.maxChunkPayload < ntagChunkPayloadSize(NtagType.NTAG215), 'CC area is below raw user memory');
   assert.equal(await t.peekIsNfar(), false);
 
   const bytes = chunkBytes(200);
@@ -58,6 +68,33 @@ test('write then read-back an NDEF-wrapped chunk on a simulated NTAG215', async 
   await t.awaitTag();
   assert.equal(await t.peekIsNfar(), true);
   assert.deepEqual(await t.readChunk(), bytes);
+});
+
+test('a full-size chunk stays within the CC-declared NDEF area so Android can read it back', async () => {
+  const device = new FakeChameleon();
+  const t = new NtagTransport(device, { pollMs: 1, defaultTimeoutMs: 500 });
+  await t.connect();
+  const uid = new Uint8Array([0x04, 5, 5, 5, 5, 5, 5]);
+  device.placeNtag(uid, NtagType.NTAG215);
+  const tag = await t.awaitTag();
+
+  // The whole NDEF+TLV of a maximum chunk must fit the 496 B the NTAG215 CC
+  // declares. The pre-fix bug sized to 504 B raw memory, overflowing by 8 B, so
+  // Android's CC-bounded read truncated every full chunk and CRC failed.
+  const full = chunkBytes(tag.maxChunkPayload);
+  const wrapped = wrapType2Tlv(encodeNdefMime(full)).length;
+  assert.ok(wrapped <= 496, `full chunk wraps to ${wrapped} B; must fit the 496 B CC area`);
+
+  // The transport rejects a chunk sized to raw user memory (the old maximum)
+  // rather than silently writing a tag Android cannot read.
+  const rawSized = chunkBytes(ntagChunkPayloadSize(NtagType.NTAG215));
+  await assert.rejects(() => t.writeChunk(rawSized), /NDEF area/);
+
+  // A CC-sized chunk writes and reads back intact.
+  await t.writeChunk(full);
+  device.placeNtag(uid, NtagType.NTAG215);
+  await t.awaitTag();
+  assert.deepEqual(await t.readChunk(), full);
 });
 
 test('a chunk larger than the tag capacity is rejected', async () => {

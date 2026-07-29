@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   wrapType2Tlv, readType2Ndef, NtagType, ntagUserBytes, detectNtagType, ntagChunkPayloadSize,
+  chunkPayloadForCapacity, ndefCapacityFromCC,
 } from '../src/nfc/type2.js';
 import { encodeNdefMime, NdefFormatError } from '../src/nfc/ndef.js';
 import { TOTAL_OVERHEAD } from '../src/chunk.js';
@@ -52,4 +53,26 @@ test('ntagChunkPayloadSize is the max payload whose wrapped chunk fits user memo
     assert.ok(wrappedLen(p + 1) > cap, `${t}: payload ${p + 1} should overflow ${cap}`);
     assert.ok(p > 0);
   }
+});
+
+test('chunkPayloadForCapacity keeps the whole wrapped chunk within the capacity, and is maximal', () => {
+  const wrappedLen = (payload: number) => wrapType2Tlv(encodeNdefMime(new Uint8Array(TOTAL_OVERHEAD + payload))).length;
+  for (const cap of [144, 496, 872]) { // the real NTAG213/215/216 CC-declared NDEF areas
+    const p = chunkPayloadForCapacity(cap);
+    assert.ok(p > 0);
+    assert.ok(wrappedLen(p) <= cap, `cap ${cap}: payload ${p} wraps to ${wrappedLen(p)} > ${cap}`);
+    assert.ok(wrappedLen(p + 1) > cap, `cap ${cap}: payload ${p + 1} should overflow ${cap}`);
+  }
+  // The CC areas of NTAG215/216 are below their raw user memory, so the safe
+  // payload is strictly smaller than the raw-memory estimate — the bug's crux.
+  assert.ok(chunkPayloadForCapacity(496) < ntagChunkPayloadSize(NtagType.NTAG215));
+  assert.ok(chunkPayloadForCapacity(872) < ntagChunkPayloadSize(NtagType.NTAG216));
+});
+
+test('ndefCapacityFromCC reads MLEN×8 from a valid CC and rejects an invalid one', () => {
+  assert.equal(ndefCapacityFromCC(new Uint8Array([0xe1, 0x10, 0x3e, 0x00])), 496); // NTAG215
+  assert.equal(ndefCapacityFromCC(new Uint8Array([0xe1, 0x10, 0x6d, 0x00])), 872); // NTAG216
+  assert.equal(ndefCapacityFromCC(new Uint8Array([0xe1, 0x10, 0x12, 0x00])), 144); // NTAG213
+  assert.equal(ndefCapacityFromCC(new Uint8Array([0x00, 0x00, 0x00, 0x00])), null); // blank/unformatted
+  assert.equal(ndefCapacityFromCC(new Uint8Array([0xe1, 0x10])), null); // too short
 });

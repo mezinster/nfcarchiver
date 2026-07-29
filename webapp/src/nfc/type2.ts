@@ -72,14 +72,37 @@ export function detectNtagType(getVersion: Uint8Array): NtagType | null {
   return null;
 }
 
-/** Largest NFAR chunk payload whose NDEF+TLV-wrapped form fits this tag's user memory. */
-export function ntagChunkPayloadSize(t: NtagType): number {
-  const cap = USER_BYTES[t];
+/** Largest NFAR chunk payload whose NDEF+TLV-wrapped form fits `capacity` bytes.
+ *  `capacity` is the NDEF data area available for the whole TLV (T + L + record +
+ *  terminator) — for a real tag that is the Capability-Container-declared area
+ *  (see ndefCapacityFromCC), NOT the raw user memory, which is what Android
+ *  enforces when it reads the tag. */
+export function chunkPayloadForCapacity(capacity: number): number {
   const wrappedLen = (payload: number): number =>
     wrapType2Tlv(encodeNdefMime(new Uint8Array(TOTAL_OVERHEAD + payload))).length;
-  // Search downward from the raw capacity; overhead is < 80 bytes so this is cheap.
-  for (let p = cap; p > 0; p--) {
-    if (wrappedLen(p) <= cap) return p;
+  // Search downward; overhead is < 80 bytes so this is cheap.
+  for (let p = capacity; p > 0; p--) {
+    if (wrappedLen(p) <= capacity) return p;
   }
   return 0;
+}
+
+/** Pre-tap estimate only: max chunk payload for a tag TYPE using its raw user
+ *  memory. The authoritative per-card capacity comes from the tag's Capability
+ *  Container at write time (ndefCapacityFromCC → chunkPayloadForCapacity), which
+ *  can be smaller (NTAG215: CC 496 B vs 504 B raw; NTAG216: 872 vs 888). */
+export function ntagChunkPayloadSize(t: NtagType): number {
+  return chunkPayloadForCapacity(USER_BYTES[t]);
+}
+
+/**
+ * The NFC-Forum Type-2 Capability Container is 4 bytes at page 3:
+ * [0]=0xE1 magic, [1]=version, [2]=MLEN (memory size / 8), [3]=access.
+ * The NDEF data area available for the TLV is MLEN × 8 bytes. Android reads a
+ * tag bounded by this area, so it is the capacity the writer must respect.
+ * Returns null when the CC is absent/invalid (not an NDEF-formatted tag).
+ */
+export function ndefCapacityFromCC(cc: Uint8Array): number | null {
+  if (cc.length < 4 || cc[0] !== 0xe1 || cc[2] === 0) return null;
+  return cc[2]! * 8;
 }
