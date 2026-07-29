@@ -18,10 +18,15 @@ const hex = (b: Uint8Array): string =>
 
 let ultra: ChameleonUltra | null = null;
 let transport: AutoTransport | null = null;
+let connected = false;
 const listeners: Array<(connected: boolean) => void> = [];
 
 export function currentTransport(): AutoTransport | null {
   return transport;
+}
+
+export function isConnected(): boolean {
+  return connected;
 }
 
 export function onConnectionChange(cb: (connected: boolean) => void): void {
@@ -35,6 +40,18 @@ export function initDeviceBar(): void {
     log.info('device', 'Connecting');
     try {
       ultra = new ChameleonUltra();
+      // Fires when the BLE link drops (device powered off, out of range, GATT
+      // lost). Flip connection state, drop the dead transport, and notify
+      // listeners so the archive loop can pause and later resume.
+      ultra.emitter.on('disconnected', () => {
+        connected = false;
+        transport = null;
+        ($('diagnose') as HTMLButtonElement).disabled = true;
+        $('conn').textContent = 'disconnected';
+        deviceStatus.textContent = 'Reader disconnected — click Connect to resume.';
+        log.warn('device', 'Disconnected');
+        for (const cb of listeners) cb(false);
+      });
       // use() is async (the adapter's install() runs availability checks etc.);
       // it MUST be awaited before connect(), or this.port is still undefined.
       await ultra.use(new WebbleAdapter());
@@ -42,6 +59,7 @@ export function initDeviceBar(): void {
       await transport.connect();
       $('conn').textContent = 'connected';
       ($('diagnose') as HTMLButtonElement).disabled = false;
+      connected = true;
       for (const cb of listeners) cb(true);
       deviceStatus.textContent = 'Connected.';
       log.info('device', 'Connected');
