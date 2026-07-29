@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
 import { WriteVerifyError, type PresentedTag, type Transport } from '../src/transport/transport.js';
 import { ArchiveOrchestrator, type ArchiveIO } from '../app/ui/archive-orchestrator.js';
+import { RestoreController } from '../app/controller.js';
 import { Logger } from '../src/log/logger.js';
 
 const uid = (n: number) => new Uint8Array([0xa0, 0, 0, n]);
@@ -65,4 +66,52 @@ test('a bad card retries instead of aborting the whole session', async () => {
     inner.enqueueTag(uid(i)); await inner.awaitTag();
     assert.ok((await inner.readChunk()).length > 0, `card ${i} written`);
   }
+});
+
+test('a disconnect pauses and resumes the same session on a fresh transport', async () => {
+  const original = crypto.getRandomValues(new Uint8Array(2000)); // 3 cards at 720 B
+  const tA = new MockTransport();
+  const tB = new MockTransport();
+
+  let connected = true;
+  let reconnects = 0;
+  const io: ArchiveIO = {
+    setStatus: () => {},
+    // Drop the connection right after the 2nd card is verified.
+    showProgress: (_label, value) => { if (value === 2 && connected) connected = false; },
+    hideProgress: () => { throw new Error('must not hide progress — session must not abort'); },
+    confirmOverwrite: () => true,
+    isConnected: () => connected,
+    awaitReconnect: async () => { connected = true; reconnects += 1; return tB; },
+    log: new Logger(),
+  };
+
+  // tA presents cards 0 and 1; tB presents the remaining cards after reconnect.
+  tA.enqueueTag(uid(0));
+  tA.enqueueTag(uid(1));
+  for (let i = 2; i < 8; i++) tB.enqueueTag(uid(i)); // plenty for the remainder
+
+  const orch = new ArchiveOrchestrator(io);
+  await orch.run(tA, { data: original, fileName: 'blob.bin', compress: false, payloadSize: 720 });
+
+  assert.equal(reconnects, 1, 'resumed exactly once');
+
+  // Reassemble from the cards actually written across BOTH transports.
+  const restoreT = new MockTransport();
+  const readBack = async (t: MockTransport, n: number) => {
+    t.enqueueTag(uid(n)); await t.awaitTag(); return t.readChunk();
+  };
+  restoreT.enqueueTag(uid(0), await readBack(tA, 0));
+  restoreT.enqueueTag(uid(1), await readBack(tA, 1));
+  restoreT.enqueueTag(uid(2), await readBack(tB, 2));
+
+  const rctrl = new RestoreController(restoreT);
+  let detected = await rctrl.scanNextCard(new AbortController().signal);
+  detected = await rctrl.scanNextCard(new AbortController().signal);
+  detected = await rctrl.scanNextCard(new AbortController().signal);
+  assert.equal(detected.length, 1);
+  assert.equal(detected[0]!.complete, true, 'all 3 chunks present across the two transports');
+
+  const { data } = await rctrl.restore(detected[0]!.archiveId, undefined);
+  assert.deepEqual(data, original, 'resumed session restores byte-identically');
 });
