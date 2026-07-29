@@ -5,6 +5,7 @@ import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
 import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
 import { currentTransport, isConnected, onConnectionChange } from './device.js';
+import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -99,6 +100,9 @@ export function initArchivePanel(): void {
         data: src.data, fileName: src.fileName, compress,
         password: pass || undefined, payloadSize: selectedPayloadSize(),
       });
+    } catch (e) {
+      hideProgress();
+      setStatus(humanError(e));
     } finally {
       archiving = false;
       ($('archive') as HTMLButtonElement).disabled = !isConnected();

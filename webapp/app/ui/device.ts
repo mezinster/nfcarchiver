@@ -50,6 +50,7 @@ export function initDeviceBar(): void {
       ultra.emitter.on('disconnected', () => {
         connected = false;
         transport = null;
+        ultra = null;
         ($('diagnose') as HTMLButtonElement).disabled = true;
         $('conn').textContent = 'disconnected';
         deviceStatus.textContent = 'Reader disconnected — click Connect to resume.';

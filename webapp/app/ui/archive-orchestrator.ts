@@ -1,6 +1,7 @@
 /**
- * DOM-free archive write loop behind an injected IO seam, mirroring
- * RestoreOrchestrator. The loop NEVER aborts on a per-card failure: any error
+ * DOM-free archive write loop behind an injected IO seam, following the same
+ * orchestrator-behind-an-IO-seam pattern as RestoreOrchestrator (with its own
+ * ArchiveIO seam). The loop NEVER aborts on a per-card failure: any error
  * from writing one card leaves the session state intact and prompts a re-tap.
  * A reader disconnect pauses on awaitReconnect() and resumes the same session
  * on a fresh transport (see setTransport on the controller). The panel supplies
