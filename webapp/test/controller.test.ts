@@ -264,3 +264,27 @@ test('writeNextCard/scanNextCard reject with AbortError when the signal is alrea
     (e: unknown) => e instanceof DOMException && e.name === 'AbortError',
   );
 });
+
+test('setTransport swaps the transport mid-session and preserves written state', async () => {
+  const t1 = new MockTransport();
+  const ctrl = new ArchiveController(t1);
+  const total = await ctrl.prepare({ data: multiCardData, fileName: 'blob.bin', compress: false, payloadSize: 720 });
+  assert.ok(total >= 3, `need >=3 cards, got ${total}`);
+
+  // Write the first two cards on t1.
+  t1.enqueueTag(uid(0)); await ctrl.writeNextCard();
+  t1.enqueueTag(uid(1)); const afterTwo = await ctrl.writeNextCard();
+  assert.equal(afterTwo.progress.written, 2);
+
+  // Swap in a fresh transport; the controller must resume at chunk index 2.
+  const t2 = new MockTransport();
+  ctrl.setTransport(t2);
+  t2.enqueueTag(uid(2));
+  const afterSwap = await ctrl.writeNextCard();
+  assert.equal(afterSwap.progress.written, 3, 'continues counting from the preserved state');
+
+  // The chunk written on t2 is card index 2 (distinct UID, real NFAR bytes).
+  t2.enqueueTag(uid(2)); await t2.awaitTag();
+  const stored = decodeChunk(await t2.readChunk());
+  assert.equal(stored.chunkIndex, 2, 'wrote the correct next chunk after the swap');
+});
