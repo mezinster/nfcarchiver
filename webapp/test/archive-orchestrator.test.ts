@@ -118,3 +118,13 @@ test('a disconnect pauses and resumes the same session on a fresh transport', as
   const { data } = await rctrl.restore(detected[0]!.archiveId, undefined);
   assert.deepEqual(data, original, 'resumed session restores byte-identically');
 });
+
+test('a prepare failure aborts cleanly with a message (no unhandled rejection)', async () => {
+  const { io, statuses, wasHidden } = makeIO();
+  const t = new MockTransport();
+  const orch = new ArchiveOrchestrator(io);
+  // payloadSize 1 over 70000 bytes forces > MAX_CHUNKS (65535) -> createChunks throws in prepare().
+  await orch.run(t, { data: new Uint8Array(70000), fileName: 'big.bin', compress: false, payloadSize: 1 });
+  assert.equal(wasHidden(), true, 'progress hidden on a prepare failure');
+  assert.ok(statuses.some((s) => s.length > 0), 'a human-readable status was shown');
+});

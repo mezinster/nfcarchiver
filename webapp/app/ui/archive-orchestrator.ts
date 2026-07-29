@@ -37,7 +37,15 @@ export class ArchiveOrchestrator {
 
   async run(transport: Transport, req: ArchiveRequest): Promise<void> {
     const ctrl = new ArchiveController(transport);
-    let total = await ctrl.prepare(req);
+    let total: number;
+    try {
+      total = await ctrl.prepare(req);
+    } catch (e) {
+      this.io.hideProgress();
+      this.io.setStatus(humanError(e));
+      this.io.log.error('archive', 'Prepare failed', { error: String(e) });
+      return;
+    }
     this.render(0, total, false);
     this.io.log.info('archive', 'Prepared', { cards: total });
 

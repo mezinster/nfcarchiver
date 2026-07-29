@@ -5,7 +5,6 @@ import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
 import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
 import { currentTransport, isConnected, onConnectionChange } from './device.js';
-import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -29,6 +28,8 @@ export function initArchivePanel(): void {
     $('archive-progress-label').textContent = label;
   };
   const hideProgress = () => { $('archive-progress-row').hidden = true; };
+
+  let archiving = false;
 
   let fileBytes: Uint8Array | null = null;
   let fileName = '';
@@ -62,11 +63,12 @@ export function initArchivePanel(): void {
   $('target-tag').addEventListener('change', scheduleCounter);
 
   onConnectionChange((connected) => {
-    ($('archive') as HTMLButtonElement).disabled = !connected;
-    if (connected) setStatus('Choose a file or type text, then Archive to cards.');
+    ($('archive') as HTMLButtonElement).disabled = !connected || archiving;
+    if (connected && !archiving) setStatus('Choose a file or type text, then Archive to cards.');
   });
 
   $('archive').addEventListener('click', async () => {
+    if (archiving) return;
     const transport = currentTransport();
     if (!transport) return;
     const src = currentSource();
@@ -90,6 +92,7 @@ export function initArchivePanel(): void {
       log,
     };
 
+    archiving = true;
     ($('archive') as HTMLButtonElement).disabled = true;
     try {
       await new ArchiveOrchestrator(io).run(transport, {
@@ -97,6 +100,7 @@ export function initArchivePanel(): void {
         password: pass || undefined, payloadSize: selectedPayloadSize(),
       });
     } finally {
+      archiving = false;
       ($('archive') as HTMLButtonElement).disabled = !isConnected();
     }
   });
