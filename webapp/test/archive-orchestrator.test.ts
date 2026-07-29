@@ -86,10 +86,13 @@ test('a disconnect pauses and resumes the same session on a fresh transport', as
     log: new Logger(),
   };
 
-  // tA presents cards 0 and 1; tB presents the remaining cards after reconnect.
+  // total === 3 for 2000 incompressible bytes at 720 B/chunk (deterministic).
+  // tA presents cards 0 and 1 (written before the drop); tB presents the one
+  // remaining card after reconnect. Enqueue EXACTLY the remainder on tB — extra
+  // leftover tags would shift the FIFO readback below and return a blank card.
   tA.enqueueTag(uid(0));
   tA.enqueueTag(uid(1));
-  for (let i = 2; i < 8; i++) tB.enqueueTag(uid(i)); // plenty for the remainder
+  tB.enqueueTag(uid(2));
 
   const orch = new ArchiveOrchestrator(io);
   await orch.run(tA, { data: original, fileName: 'blob.bin', compress: false, payloadSize: 720 });
