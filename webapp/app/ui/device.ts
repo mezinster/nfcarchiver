@@ -29,8 +29,12 @@ export function isConnected(): boolean {
   return connected;
 }
 
-export function onConnectionChange(cb: (connected: boolean) => void): void {
+export function onConnectionChange(cb: (connected: boolean) => void): () => void {
   listeners.push(cb);
+  return () => {
+    const i = listeners.indexOf(cb);
+    if (i >= 0) listeners.splice(i, 1);
+  };
 }
 
 export function initDeviceBar(): void {
