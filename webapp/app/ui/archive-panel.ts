@@ -1,10 +1,10 @@
 /** Archive tab: file/text source, live card counter, write-and-verify with progress. */
-import { ArchiveController, OverwriteRequiredError } from '../controller.js';
-import { TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
+import { ArchiveOrchestrator, type ArchiveIO, type OverwriteChoice } from './archive-orchestrator.js';
+import type { Transport } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
 import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
-import { currentTransport, onConnectionChange } from './device.js';
+import { currentTransport, isConnected, onConnectionChange } from './device.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
 
@@ -29,6 +29,20 @@ export function initArchivePanel(): void {
     $('archive-progress-label').textContent = label;
   };
   const hideProgress = () => { $('archive-progress-row').hidden = true; };
+
+  // Native <dialog> confirm with three choices. Resolves 'once' | 'all' | 'skip'
+  // ('skip' if dismissed via Esc, so an accidental dismiss never overwrites).
+  const overwriteDialog = $('overwrite-dialog') as HTMLDialogElement;
+  const confirmOverwrite = (): Promise<OverwriteChoice> => new Promise((resolve) => {
+    overwriteDialog.returnValue = '';
+    overwriteDialog.addEventListener('close', () => {
+      const v = overwriteDialog.returnValue;
+      resolve(v === 'all' ? 'all' : v === 'once' ? 'once' : 'skip');
+    }, { once: true });
+    overwriteDialog.showModal();
+  });
+
+  let archiving = false;
 
   let fileBytes: Uint8Array | null = null;
   let fileName = '';
@@ -62,58 +76,48 @@ export function initArchivePanel(): void {
   $('target-tag').addEventListener('change', scheduleCounter);
 
   onConnectionChange((connected) => {
-    ($('archive') as HTMLButtonElement).disabled = !connected;
-    if (connected) setStatus('Choose a file or type text, then Archive to cards.');
+    ($('archive') as HTMLButtonElement).disabled = !connected || archiving;
+    if (connected && !archiving) setStatus('Choose a file or type text, then Archive to cards.');
   });
 
   $('archive').addEventListener('click', async () => {
+    if (archiving) return;
     const transport = currentTransport();
     if (!transport) return;
     const src = currentSource();
     if (!src) { setStatus('Pick a file or type some text first.'); return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const pass = ($('apass') as HTMLInputElement).value;
-    const ctrl = new ArchiveController(transport);
-    const render = (written: number, total: number, done: boolean) => {
-      showProgress(
-        done ? `✓ ${written} of ${total} cards written & verified` : `✓ ${written} of ${total} written & verified — tap the next card`,
-        written, total,
-      );
-      setStatus(done ? `Done — wrote and verified ${written} card(s).` : `Tap card ${written + 1} of ${total} on the reader…`);
+
+    const io: ArchiveIO = {
+      setStatus,
+      showProgress,
+      hideProgress,
+      confirmOverwrite,
+      isConnected,
+      // Resolve with the freshly-built transport the next time we connect.
+      awaitReconnect: () => new Promise<Transport>((resolve) => {
+        const off = onConnectionChange((connected) => {
+          const t = currentTransport();
+          if (connected && t) { off(); resolve(t); }
+        });
+      }),
+      log,
     };
+
+    archiving = true;
+    ($('archive') as HTMLButtonElement).disabled = true;
     try {
-      let total = await ctrl.prepare({ data: src.data, fileName: src.fileName, compress, password: pass || undefined, payloadSize: selectedPayloadSize() });
-      render(0, total, false);
-      log.info('archive', 'Prepared', { cards: total });
-      let done = false;
-      while (!done) {
-        try {
-          const res = await ctrl.writeNextCard();
-          let rechunkNote: string | undefined;
-          if (res.rechunkedTo) {
-            rechunkNote = `Card holds ${res.rechunkedTo.payloadSize} B/chunk — writing ${res.rechunkedTo.total} card(s) instead of ${total}.`;
-          }
-          total = res.progress.total;
-          done = res.done;
-          render(res.progress.written, total, done);
-          if (rechunkNote) setStatus(rechunkNote);
-        } catch (e) {
-          if (e instanceof TagTimeoutError) { setStatus('No card detected — tap a card (hold it a few mm off)…'); continue; }
-          if (e instanceof UnsupportedTagError) { setStatus('Unsupported tag — tap a Mifare Classic 1K or NTAG.'); continue; }
-          if (e instanceof OverwriteRequiredError) {
-            if (confirm('This card already holds data. Overwrite it?')) {
-              const res = await ctrl.writeNextCard(undefined, true);
-              total = res.progress.total;
-              done = res.done;
-              render(res.progress.written, total, done);
-            } else { setStatus('Skipped. Tap a different card…'); }
-          } else { throw e; }
-        }
-      }
-      log.info('archive', 'Write complete', { cards: total });
+      await new ArchiveOrchestrator(io).run(transport, {
+        data: src.data, fileName: src.fileName, compress,
+        password: pass || undefined, payloadSize: selectedPayloadSize(),
+      });
     } catch (e) {
       hideProgress();
       setStatus(humanError(e));
+    } finally {
+      archiving = false;
+      ($('archive') as HTMLButtonElement).disabled = !isConnected();
     }
   });
 }

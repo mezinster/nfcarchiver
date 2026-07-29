@@ -57,6 +57,12 @@
       #about-content h3 { margin: 1rem 0 0.3rem; }
       .muted { color: var(--outline); }
       label { display: inline-flex; align-items: center; gap: 0.35rem; }
+      dialog { border: 1px solid var(--outline); border-radius: 16px; background: var(--surface); color: var(--on-surface); padding: 1.2rem; max-width: 22rem; width: calc(100% - 2rem); }
+      dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
+      dialog p { margin: 0; }
+      .dialog-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+      .dialog-actions button { border-radius: 12px; padding: 0.7rem 1rem; width: 100%; cursor: pointer; }
+      #overwrite-skip { background: var(--surface); color: var(--on-surface); border: 1px solid var(--outline); }
     </style>
   </head>
   <body>
@@ -148,6 +154,16 @@
         <div id="about-content"></div>
       </section>
     </main>
+
+    <dialog id="overwrite-dialog">
+      <p id="overwrite-message">This card already holds data.</p>
+      <form method="dialog" class="dialog-actions">
+        <button value="once" class="filled">Overwrite</button>
+        <button value="all" class="filled">Overwrite all remaining</button>
+        <button id="overwrite-skip" value="skip">Skip</button>
+      </form>
+    </dialog>
+
     <script type="module" src="./dist/main.js"></script>
   </body>
 </html>

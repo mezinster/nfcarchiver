@@ -67,8 +67,14 @@ export class ArchiveController {
   private written = 0;
   private payloadSize = 0;
   private readonly writtenUids = new Set<string>();
+  private transport: Transport;
 
-  constructor(private readonly transport: Transport) {}
+  constructor(transport: Transport) { this.transport = transport; }
+
+  /** Swap the transport used by subsequent writeNextCard calls. Session state
+   *  (chunks, written count, written UIDs, payload size) is preserved — used to
+   *  resume a paused write on a freshly-built transport after a reconnect. */
+  setTransport(t: Transport): void { this.transport = t; }
 
   async prepare(req: ArchiveRequest): Promise<number> {
     const wrapped = wrapWithFilename(req.data, req.fileName);
