@@ -4,6 +4,7 @@ import { MockTransport } from '../src/transport/mock-transport.js';
 import { WriteVerifyError, type PresentedTag, type Transport } from '../src/transport/transport.js';
 import { ArchiveOrchestrator, type ArchiveIO } from '../app/ui/archive-orchestrator.js';
 import { RestoreController } from '../app/controller.js';
+import { decodeChunk, encodeChunk } from '../src/chunk.js';
 import { Logger } from '../src/log/logger.js';
 
 const uid = (n: number) => new Uint8Array([0xa0, 0, 0, n]);
@@ -33,7 +34,7 @@ function makeIO(over?: Partial<ArchiveIO>) {
     setStatus: (m) => statuses.push(m),
     showProgress: () => {},
     hideProgress: () => { hidden = true; },
-    confirmOverwrite: () => true,
+    confirmOverwrite: async () => 'once',
     isConnected: () => true,
     awaitReconnect: async () => { throw new Error('awaitReconnect should not be called in this test'); },
     log: new Logger(),
@@ -80,7 +81,7 @@ test('a disconnect pauses and resumes the same session on a fresh transport', as
     // Drop the connection right after the 2nd card is verified.
     showProgress: (_label, value) => { if (value === 2 && connected) connected = false; },
     hideProgress: () => { throw new Error('must not hide progress — session must not abort'); },
-    confirmOverwrite: () => true,
+    confirmOverwrite: async () => 'once',
     isConnected: () => connected,
     awaitReconnect: async () => { connected = true; reconnects += 1; return tB; },
     log: new Logger(),
@@ -127,4 +128,39 @@ test('a prepare failure aborts cleanly with a message (no unhandled rejection)',
   await orch.run(t, { data: new Uint8Array(70000), fileName: 'big.bin', compress: false, payloadSize: 1 });
   assert.equal(wasHidden(), true, 'progress hidden on a prepare failure');
   assert.ok(statuses.some((s) => s.length > 0), 'a human-readable status was shown');
+});
+
+test('"overwrite all remaining" prompts once, then overwrites the rest silently', async () => {
+  const inner = new MockTransport();
+  let prompts = 0;
+  const { io } = makeIO({ confirmOverwrite: async () => { prompts += 1; return 'all'; } });
+  const orch = new ArchiveOrchestrator(io);
+
+  // Every one of the 3 tapped cards already holds NFAR data, so each would
+  // normally raise its own overwrite prompt.
+  const existing = encodeChunk({
+    archiveId: new Uint8Array(16).fill(9), totalChunks: 1, chunkIndex: 0,
+    payload: new Uint8Array([1]), crc32: 0, flags: 0,
+  });
+  const total = 3; // multiCardData at 720 B/chunk => 3 cards
+  // The FIRST card is tapped twice: writeNextCard consumes a tap via awaitTag and
+  // then throws OverwriteRequiredError (no write), so the overwrite retry needs
+  // the card presented again. Once "overwrite all" is chosen, the remaining
+  // already-NFAR cards write on a single tap each (no re-throw).
+  inner.enqueueTag(uid(0), existing); // 1st tap → prompt (throws, tag consumed)
+  inner.enqueueTag(uid(0), existing); // re-tap → the "overwrite all" retry writes chunk 0
+  inner.enqueueTag(uid(1), existing); // overwriteAll set → no prompt, writes chunk 1
+  inner.enqueueTag(uid(2), existing); // writes chunk 2 → done
+
+  await orch.run(inner, { data: multiCardData, fileName: 'blob.bin', compress: false, payloadSize: 720 });
+
+  assert.equal(prompts, 1, 'prompted exactly once; "overwrite all" silenced the rest');
+
+  // All 3 cards were overwritten with the NEW archive (chunk indices 0,1,2).
+  const indices: number[] = [];
+  for (let i = 0; i < total; i++) {
+    inner.enqueueTag(uid(i)); await inner.awaitTag();
+    indices.push(decodeChunk(await inner.readChunk()).chunkIndex);
+  }
+  assert.deepEqual([...indices].sort((a, b) => a - b), [0, 1, 2], 'every card holds a new chunk');
 });

@@ -12,11 +12,16 @@ import { TagTimeoutError, UnsupportedTagError, type Transport } from '../../src/
 import { humanError } from './errors.js';
 import type { Logger } from '../../src/log/logger.js';
 
+/** The user's answer when a tapped card already holds NFAR data:
+ *  'once' = overwrite just this card, 'all' = overwrite this and every
+ *  remaining card without asking again, 'skip' = leave it and tap another. */
+export type OverwriteChoice = 'once' | 'all' | 'skip';
+
 export interface ArchiveIO {
   setStatus(msg: string): void;
   showProgress(label: string, value: number | null, max: number): void;
   hideProgress(): void;
-  confirmOverwrite(): boolean;
+  confirmOverwrite(): Promise<OverwriteChoice>;
   isConnected(): boolean;
   awaitReconnect(): Promise<Transport>;
   log: Logger;
@@ -51,6 +56,10 @@ export class ArchiveOrchestrator {
     this.io.log.info('archive', 'Prepared', { cards: total });
 
     let done = false;
+    // Once the user picks "overwrite all remaining", every subsequent already-
+    // NFAR card is overwritten without prompting (passed straight into
+    // writeNextCard so it never even throws OverwriteRequiredError).
+    let overwriteAll = false;
     while (!done) {
       if (!this.io.isConnected()) {
         this.io.setStatus('Reader disconnected — reconnect to resume.');
@@ -60,7 +69,7 @@ export class ArchiveOrchestrator {
         continue;
       }
       try {
-        const res = await ctrl.writeNextCard();
+        const res = await ctrl.writeNextCard(undefined, overwriteAll);
         total = res.progress.total;
         done = res.done;
         this.render(res.progress.written, total, done);
@@ -72,19 +81,18 @@ export class ArchiveOrchestrator {
         if (e instanceof TagTimeoutError) { this.io.setStatus('No card detected — tap a card (hold it a few mm off)…'); continue; }
         if (e instanceof UnsupportedTagError) { this.io.setStatus('Unsupported tag — tap a Mifare Classic 1K or NTAG.'); continue; }
         if (e instanceof OverwriteRequiredError) {
-          if (this.io.confirmOverwrite()) {
-            try {
-              const res = await ctrl.writeNextCard(undefined, true);
-              total = res.progress.total;
-              done = res.done;
-              this.render(res.progress.written, total, done);
-            } catch (e2) {
-              if (!this.io.isConnected()) continue;
-              this.io.setStatus(`${humanError(e2)} — re-tap to retry.`);
-              this.io.log.warn('archive', 'Overwrite write failed — will retry', { error: String(e2) });
-            }
-          } else {
-            this.io.setStatus('Skipped. Tap a different card…');
+          const choice = await this.io.confirmOverwrite();
+          if (choice === 'skip') { this.io.setStatus('Skipped. Tap a different card…'); continue; }
+          if (choice === 'all') { overwriteAll = true; this.io.log.info('archive', 'Overwrite all remaining'); }
+          try {
+            const res = await ctrl.writeNextCard(undefined, true);
+            total = res.progress.total;
+            done = res.done;
+            this.render(res.progress.written, total, done);
+          } catch (e2) {
+            if (!this.io.isConnected()) continue;
+            this.io.setStatus(`${humanError(e2)} — re-tap to retry.`);
+            this.io.log.warn('archive', 'Overwrite write failed — will retry', { error: String(e2) });
           }
           continue;
         }

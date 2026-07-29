@@ -1,5 +1,5 @@
 /** Archive tab: file/text source, live card counter, write-and-verify with progress. */
-import { ArchiveOrchestrator, type ArchiveIO } from './archive-orchestrator.js';
+import { ArchiveOrchestrator, type ArchiveIO, type OverwriteChoice } from './archive-orchestrator.js';
 import type { Transport } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
@@ -29,6 +29,18 @@ export function initArchivePanel(): void {
     $('archive-progress-label').textContent = label;
   };
   const hideProgress = () => { $('archive-progress-row').hidden = true; };
+
+  // Native <dialog> confirm with three choices. Resolves 'once' | 'all' | 'skip'
+  // ('skip' if dismissed via Esc, so an accidental dismiss never overwrites).
+  const overwriteDialog = $('overwrite-dialog') as HTMLDialogElement;
+  const confirmOverwrite = (): Promise<OverwriteChoice> => new Promise((resolve) => {
+    overwriteDialog.returnValue = '';
+    overwriteDialog.addEventListener('close', () => {
+      const v = overwriteDialog.returnValue;
+      resolve(v === 'all' ? 'all' : v === 'once' ? 'once' : 'skip');
+    }, { once: true });
+    overwriteDialog.showModal();
+  });
 
   let archiving = false;
 
@@ -81,7 +93,7 @@ export function initArchivePanel(): void {
       setStatus,
       showProgress,
       hideProgress,
-      confirmOverwrite: () => window.confirm('This card already holds data. Overwrite it?'),
+      confirmOverwrite,
       isConnected,
       // Resolve with the freshly-built transport the next time we connect.
       awaitReconnect: () => new Promise<Transport>((resolve) => {
