@@ -6,6 +6,7 @@ import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
 import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
 import { currentTransport, isConnected, onConnectionChange, setReaderBusy } from './device.js';
 import { humanError } from './errors.js';
+import { t } from '../i18n/index.js';
 import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -62,7 +63,7 @@ export function initArchivePanel(): void {
     const encrypted = ($('apass') as HTMLInputElement).value.length > 0;
     const count = await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: selectedPayloadSize() });
     const isAuto = ($('target-tag') as HTMLSelectElement).value === 'auto';
-    el.textContent = `≈ ${count} card(s)${isAuto ? ' (est.) — adapts to the tapped card' : ''}`;
+    el.textContent = t.cardEstimate(count, isAuto);
   };
   const scheduleCounter = () => { clearTimeout(counterTimer); counterTimer = setTimeout(updateCounter, 200); };
 
@@ -77,7 +78,7 @@ export function initArchivePanel(): void {
 
   onConnectionChange((connected) => {
     ($('archive') as HTMLButtonElement).disabled = !connected || archiving;
-    if (connected && !archiving) setStatus('Choose a file or type text, then Archive to cards.');
+    if (connected && !archiving) setStatus(t.archiveReady);
   });
 
   $('archive').addEventListener('click', async () => {
@@ -85,7 +86,7 @@ export function initArchivePanel(): void {
     const transport = currentTransport();
     if (!transport) return;
     const src = currentSource();
-    if (!src) { setStatus('Pick a file or type some text first.'); return; }
+    if (!src) { setStatus(t.archivePickFirst); return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const pass = ($('apass') as HTMLInputElement).value;
 

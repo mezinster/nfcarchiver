@@ -19,6 +19,7 @@ import type { ChameleonDevice } from '../../src/transport/chameleon-device.js';
 import { diagnoseCard, type CardDiagnosis, type RawAntiColl } from '../diagnostics.js';
 import { UnsupportedTagError } from '../../src/transport/transport.js';
 import { humanError } from './errors.js';
+import { t } from '../i18n/index.js';
 
 /** NTAG stores its NDEF message from page 4 onward (pages 0-3 are UID, lock
  *  bytes and the capability container). Mirrors ntag-transport.ts. */
@@ -102,7 +103,7 @@ export async function runInspection(
   io: InspectIO,
   signal?: AbortSignal,
 ): Promise<void> {
-  io.setStatus('Hold the card still on the reader…');
+  io.setStatus(t.inspectHoldStill);
 
   // The anticollision is advisory: readBlock performs its own select, so a
   // failure here must not stop the dump.
@@ -124,7 +125,7 @@ export async function runInspection(
       onUnit: (unit, done, total) => {
         seen.push(unit);
         io.appendRow(formatUnitRow(unit));
-        io.setProgress(done === total ? `${done}/${total} read` : `reading… ${done}/${total}`);
+        io.setProgress(done === total ? t.inspectRead(done, total) : t.inspectReading(done, total));
         // Re-describe while the NFAR extent is still growing; once the declared
         // tail is covered the description stops changing.
         if (nfar.present === false || nfar.crcValid === null) {
@@ -144,9 +145,9 @@ export async function runInspection(
     io.setNfar(formatNfar(nfar));
     io.setReport(formatReport(result.meta, diag, nfar, result.units));
     io.setStatus(
-      result.aborted ? 'Stopped.'
-        : result.cardLost ? 'Card left the field — re-tap and inspect again.'
-        : 'Done.',
+      result.aborted ? t.inspectStopped
+        : result.cardLost ? t.inspectCardLost
+        : t.inspectDone,
     );
   } catch (e) {
     // humanError() flattens UnsupportedTagError to a fixed generic string, but

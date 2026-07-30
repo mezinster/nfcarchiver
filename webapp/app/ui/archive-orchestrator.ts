@@ -10,6 +10,7 @@
 import { ArchiveController, OverwriteRequiredError, type ArchiveRequest } from '../controller.js';
 import { TagTimeoutError, UnsupportedTagError, type Transport } from '../../src/transport/transport.js';
 import { humanError } from './errors.js';
+import { t } from '../i18n/index.js';
 import type { Logger } from '../../src/log/logger.js';
 
 /** The user's answer when a tapped card already holds NFAR data:
@@ -32,13 +33,10 @@ export class ArchiveOrchestrator {
 
   private render(written: number, total: number, done: boolean): void {
     this.io.showProgress(
-      done ? `✓ ${written} of ${total} cards written & verified`
-           : `✓ ${written} of ${total} written & verified — tap the next card`,
+      done ? t.progressDone(written, total) : t.progressWriting(written, total),
       written, total,
     );
-    this.io.setStatus(done
-      ? `Done — wrote and verified ${written} card(s).`
-      : `Tap card ${written + 1} of ${total} on the reader…`);
+    this.io.setStatus(done ? t.archiveDone(written) : t.tapCardOf(written + 1, total));
   }
 
   async run(transport: Transport, req: ArchiveRequest): Promise<void> {
@@ -62,7 +60,7 @@ export class ArchiveOrchestrator {
     let overwriteAll = false;
     while (!done) {
       if (!this.io.isConnected()) {
-        this.io.setStatus('Reader disconnected — reconnect to resume.');
+        this.io.setStatus(t.readerDisconnectedResume);
         this.io.log.warn('archive', 'Reader disconnected — awaiting reconnect');
         ctrl.setTransport(await this.io.awaitReconnect());
         this.io.log.info('archive', 'Reconnected — resuming');
@@ -74,15 +72,15 @@ export class ArchiveOrchestrator {
         done = res.done;
         this.render(res.progress.written, total, done);
         if (res.rechunkedTo) {
-          this.io.setStatus(`Card holds ${res.rechunkedTo.payloadSize} B/chunk — writing ${res.rechunkedTo.total} card(s) instead.`);
+          this.io.setStatus(t.rechunked(res.rechunkedTo.payloadSize, res.rechunkedTo.total));
         }
       } catch (e) {
         if (!this.io.isConnected()) continue; // disconnect — handled at the loop top
-        if (e instanceof TagTimeoutError) { this.io.setStatus('No card detected — tap a card (hold it a few mm off)…'); continue; }
-        if (e instanceof UnsupportedTagError) { this.io.setStatus('Unsupported tag — tap a Mifare Classic 1K or NTAG.'); continue; }
+        if (e instanceof TagTimeoutError) { this.io.setStatus(t.noCardTapHold); continue; }
+        if (e instanceof UnsupportedTagError) { this.io.setStatus(t.unsupportedTapOther); continue; }
         if (e instanceof OverwriteRequiredError) {
           const choice = await this.io.confirmOverwrite();
-          if (choice === 'skip') { this.io.setStatus('Skipped. Tap a different card…'); continue; }
+          if (choice === 'skip') { this.io.setStatus(t.skippedTapDifferent); continue; }
           if (choice === 'all') { overwriteAll = true; this.io.log.info('archive', 'Overwrite all remaining'); }
           try {
             const res = await ctrl.writeNextCard(undefined, true);
@@ -91,13 +89,13 @@ export class ArchiveOrchestrator {
             this.render(res.progress.written, total, done);
           } catch (e2) {
             if (!this.io.isConnected()) continue;
-            this.io.setStatus(`${humanError(e2)} — re-tap to retry.`);
+            this.io.setStatus(t.retryAfter(humanError(e2)));
             this.io.log.warn('archive', 'Overwrite write failed — will retry', { error: String(e2) });
           }
           continue;
         }
         // Any other per-card failure (verify/auth/capacity/mid-write I-O): retry, never abort.
-        this.io.setStatus(`${humanError(e)} — re-tap to retry.`);
+        this.io.setStatus(t.retryAfter(humanError(e)));
         this.io.log.warn('archive', 'Card write failed — will retry', { error: String(e) });
         continue;
       }
