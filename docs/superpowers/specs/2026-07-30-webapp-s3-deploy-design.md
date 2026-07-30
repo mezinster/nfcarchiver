@@ -110,9 +110,11 @@ site/
 
 - `bundle: true`, `format: 'esm'`, `platform: 'browser'`
 - `define: { __BUILD_SHA__: JSON.stringify(process.env.BUILD_SHA ?? 'dev') }`
-- **No minification.** The current bundle is unminified and is what has been
-  validated on real hardware; keeping the output shape unchanged removes a
-  variable from the first automated deploys. It is a one-line toggle later.
+- **Minified** (`minify: true`), matching the hand-built bundle already deployed
+  and validated on real hardware — that one is minified (176,813 B across 22
+  lines). An unminified build would be the deviation: it comes out at 296,772 B,
+  68% larger. With minification on, the reproducible build lands within 21 bytes
+  of the deployed artifact, the delta being exactly the added SHA stamp.
 - Output directory `webapp/site/` is gitignored.
 
 `index.html` is copied verbatim, unmodified. It already references
@@ -375,7 +377,6 @@ fixes only where they live.
 
 - Content-hashed asset filenames and long-lived immutable caching.
 - Staging or preview environments.
-- Bundle minification.
 - Any change to NFAR format, transports, or app behaviour.
 - Creating or reconfiguring the S3 bucket, CloudFront distribution, ACM
   certificate, or DNS — all already exist.

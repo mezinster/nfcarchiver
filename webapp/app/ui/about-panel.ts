@@ -1,9 +1,9 @@
 /** About tab: description, supported tags (web-accurate), version, licenses, privacy. */
-import { APP_VERSION } from '../version.js';
+import { APP_VERSION, BUILD_SHA } from '../version.js';
 
 const SECTIONS: Array<{ h: string; body: string[] }> = [
   { h: 'NFC Archiver', body: [
-    `Web version ${APP_VERSION}`,
+    `Web version ${APP_VERSION} (${BUILD_SHA})`,
     'A distributed data archive system using NFC tags. Store files across multiple tags and restore them later — fully in your browser.',
   ] },
   { h: 'Supported tags', body: [
