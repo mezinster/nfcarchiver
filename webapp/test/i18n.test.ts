@@ -105,18 +105,22 @@ import { ru } from '../app/i18n/ru.js';
 import { uk } from '../app/i18n/uk.js';
 import { be } from '../app/i18n/be.js';
 import { pl } from '../app/i18n/pl.js';
+import { tr } from '../app/i18n/tr.js';
+import { ka } from '../app/i18n/ka.js';
 
-const SLAVIC: Array<[string, Messages]> = [['ru', ru], ['uk', uk], ['be', be], ['pl', pl]];
+const ALL_TRANSLATIONS: Array<[string, Messages]> = [
+  ['ru', ru], ['uk', uk], ['be', be], ['pl', pl], ['tr', tr], ['ka', ka],
+];
 
-test('Slavic catalogues match the English key set exactly', () => {
+test('every translation matches the English key set exactly', () => {
   const expected = Object.keys(en).sort();
-  for (const [name, cat] of SLAVIC) {
+  for (const [name, cat] of ALL_TRANSLATIONS) {
     assert.deepEqual(Object.keys(cat).sort(), expected, `${name} key set differs`);
   }
 });
 
-test('Slavic catalogues match English entry shapes and arity', () => {
-  for (const [name, cat] of SLAVIC) {
+test('every translation matches English entry shapes and arity', () => {
+  for (const [name, cat] of ALL_TRANSLATIONS) {
     for (const key of Object.keys(en) as Array<keyof Messages>) {
       const a = en[key], b = cat[key];
       assert.equal(typeof b, typeof a, `${name}.${String(key)} has the wrong type`);
@@ -135,4 +139,17 @@ test('Slavic plurals select the right form at the boundaries', () => {
   assert.notEqual(one, few);
   assert.notEqual(few, many);
   assert.equal(ru.clearedFiles(21), one.replace('1', '21'));
+});
+
+// Intl.PluralRules reports ['one', 'other'] for both locales, with `one` only at
+// n = 1. Neither language suffixes the noun after a numeral, so the rendered noun
+// must be identical for every n — the count is the only part that changes.
+test('Turkish and Georgian use one noun form for every count', () => {
+  for (const [name, cat] of [['tr', tr], ['ka', ka]] as Array<[string, Messages]>) {
+    setPluralLocale(name);
+    const one = cat.clearedFiles(1);
+    for (const n of [0, 2, 5, 11, 21, 100]) {
+      assert.equal(cat.clearedFiles(n), one.replace('1', String(n)), `${name} varies the noun at n=${n}`);
+    }
+  }
 });
