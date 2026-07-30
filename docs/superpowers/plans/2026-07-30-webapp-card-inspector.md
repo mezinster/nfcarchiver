@@ -743,12 +743,19 @@ covers only the NDEF area, not the config/lock pages a raw dump must show."
 - Test: `webapp/test/hex-view.test.ts`
 
 **Interfaces:**
-- Consumes: `DumpUnit`, `DumpMeta` from `src/inspect/card-dump.js`; `NfarDescription` from `src/inspect/nfar-describe.js`; `CardDiagnosis` from `app/diagnostics.js`.
+- Consumes: `DumpUnit`, `DumpMeta` from `src/inspect/card-dump.js`; `NfarDescription` from `src/inspect/nfar-describe.js`. **Nothing from `app/`** — see the note below.
 - Produces:
+  - `IdentityDiagnosis` (interface)
   - `formatUnitRow(u: DumpUnit): string`
-  - `formatIdentity(meta: DumpMeta, diag: CardDiagnosis | null): string`
+  - `formatIdentity(meta: DumpMeta, diag: IdentityDiagnosis | null): string`
   - `formatNfar(d: NfarDescription): string`
-  - `formatReport(meta, diag, nfar, units): string`
+  - `formatReport(meta: DumpMeta, diag: IdentityDiagnosis | null, nfar: NfarDescription, units: DumpUnit[]): string`
+
+**Do not import `CardDiagnosis` from `app/diagnostics.js`.** `src/` is the
+dependency-free core and `app/` is the UI layer; a `src/` → `app/` import inverts
+that, type-only or not. Instead `hex-view.ts` declares `IdentityDiagnosis`, the
+structural subset it actually needs. `CardDiagnosis` satisfies it field-for-field,
+so Task 4 passes one straight in with no conversion and no cast.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -888,9 +895,24 @@ Create `webapp/src/inspect/hex-view.ts`:
  * exact output is unit-testable — the report is what gets pasted into bug
  * reports, so its content matters.
  */
-import type { CardDiagnosis } from '../../app/diagnostics.js';
 import type { DumpMeta, DumpUnit } from './card-dump.js';
 import type { NfarDescription } from './nfar-describe.js';
+
+/**
+ * The subset of an anticollision diagnosis this renderer needs. Declared
+ * structurally rather than imported from app/diagnostics.ts: `src/` is the
+ * dependency-free core and `app/` is the UI layer, so a src -> app import would
+ * invert the layering even as a type-only import. `CardDiagnosis` satisfies this
+ * field-for-field, so callers pass one in directly.
+ */
+export interface IdentityDiagnosis {
+  atqa: Uint8Array;
+  uidCl1: Uint8Array;
+  bccReturned: number;
+  bccComputed: number;
+  bccValid: boolean;
+  isCascade: boolean;
+}
 
 const HEX_WIDTH = 16 * 3 - 1; // "FF FF ... FF"
 
@@ -926,7 +948,7 @@ export function formatUnitRow(u: DumpUnit): string {
   return `${label}  ${hex(u.bytes).padEnd(HEX_WIDTH)}  ${ascii(u.bytes)}${note}`;
 }
 
-export function formatIdentity(meta: DumpMeta, diag: CardDiagnosis | null): string {
+export function formatIdentity(meta: DumpMeta, diag: IdentityDiagnosis | null): string {
   const medium = meta.medium === 'mifare-classic-1k' ? 'Mifare Classic 1K' : meta.medium;
   const lines = [`Medium    ${medium} (SAK ${byte(meta.sak)})`, `UID       ${hex(meta.uid)}`];
   if (diag === null) {
@@ -979,7 +1001,7 @@ export function formatNfar(d: NfarDescription): string {
 
 export function formatReport(
   meta: DumpMeta,
-  diag: CardDiagnosis | null,
+  diag: IdentityDiagnosis | null,
   nfar: NfarDescription,
   units: DumpUnit[],
 ): string {
@@ -1620,6 +1642,7 @@ git push
 | Disabled while reader busy | 5 |
 | `DumpUnit` shape | 2 |
 | Identity before the dump completes | 2 (`onMeta`) + 4 |
+| `src/` never imports from `app/` | 3 (`IdentityDiagnosis`) |
 | NTAG wrap / short-read-only-at-end | 2 |
 | Medium-aware cascade verdict | 3 |
 | `describeNfar` tolerant, partial buffers | 1 |
