@@ -7,6 +7,8 @@ import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
 import '../domain/ndef_availability.dart';
 import '../domain/ndef_formatter.dart';
+import '../domain/ndef_tag_codec.dart';
+import '../domain/tag_codec.dart';
 
 /// Repository for NFC operations.
 ///
@@ -18,6 +20,17 @@ class NfcRepository {
   NfcRepository._();
 
   final _ndefFormatter = NdefFormatter.instance;
+
+  /// Codecs tried, in order, to find one that can handle a tapped tag.
+  final List<TagCodec> _codecs = [NdefTagCodec()];
+
+  /// First codec that can handle this tag, or null.
+  TagCodec? _codecFor(NfcTag tag) {
+    for (final codec in _codecs) {
+      if (codec.supports(tag)) return codec;
+    }
+    return null;
+  }
 
   /// Cooldown period after successful write to prevent immediate re-read
   static const _writeCooldown = Duration(milliseconds: 2000);
@@ -77,14 +90,13 @@ class NfcRepository {
           final tagInfo = _extractTagInfo(tag);
           onTagDiscovered?.call(tagInfo);
 
-          final ndef = Ndef.from(tag);
-          if (ndef == null) {
+          final codec = _codecFor(tag);
+          if (codec == null) {
             onError(messageFor(_ndefUnavailableReason(tag)));
             return;
           }
 
-          final message = await ndef.read();
-          final chunk = _ndefFormatter.ndefToChunk(message);
+          final chunk = await codec.readChunk(tag);
 
           if (chunk == null) {
             onError('Tag does not contain valid archive data');
@@ -129,19 +141,20 @@ class NfcRepository {
     }
 
     final completer = Completer<void Function()>();
-    final message = _ndefFormatter.chunkToNdef(chunk);
 
     NfcManager.instance.startSession(
       alertMessage: alertMessage,
       onDiscovered: (tag) async {
         try {
           final tagInfo = _extractTagInfo(tag);
-          final ndef = Ndef.from(tag);
+          final codec = _codecFor(tag);
 
-          if (ndef == null) {
+          if (codec == null) {
             onError(messageFor(_ndefUnavailableReason(tag)));
             return;
           }
+
+          final ndef = Ndef.from(tag)!;
 
           if (!ndef.isWritable) {
             onError('Tag is not writable');
@@ -161,7 +174,7 @@ class NfcRepository {
             return;
           }
 
-          await ndef.write(message);
+          await codec.writeChunk(tag, chunk);
           _recordWrite(); // Start cooldown to prevent immediate re-read
           onSuccess(tagInfo);
         } catch (e) {
@@ -315,7 +328,8 @@ class NfcRepository {
     final technologies = <String>[];
 
     // Try to get NDEF info
-    final ndef = Ndef.from(tag);
+    final codec = _codecFor(tag);
+    final ndef = codec != null ? Ndef.from(tag) : null;
     if (ndef != null) {
       capacity = ndef.maxSize;
       isWritable = ndef.isWritable;
