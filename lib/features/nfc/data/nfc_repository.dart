@@ -12,6 +12,7 @@ import '../domain/ndef_availability.dart';
 import '../domain/ndef_formatter.dart';
 import '../domain/ndef_tag_codec.dart';
 import '../domain/tag_codec.dart';
+import 'nfc_capabilities.dart';
 
 /// Repository for NFC operations.
 ///
@@ -23,6 +24,13 @@ class NfcRepository {
   NfcRepository._();
 
   final _ndefFormatter = NdefFormatter.instance;
+
+  bool _deviceSupportsMifare = false;
+
+  /// Call once at startup, before any session.
+  Future<void> initCapabilities() async {
+    _deviceSupportsMifare = await hasMifareClassicSupport();
+  }
 
   /// Mifare first: NDEF is never written onto Classic, so a tag exposing
   /// MifareClassic is unambiguously ours. NDEF handles everything else.
@@ -342,6 +350,7 @@ class NfcRepository {
     return classifyNdefUnavailable(
       hasNfcA: tag.data['nfca'] != null,
       hasMifareUltralight: tag.data['mifareultralight'] != null,
+      deviceSupportsMifare: _deviceSupportsMifare,
     );
   }
 
