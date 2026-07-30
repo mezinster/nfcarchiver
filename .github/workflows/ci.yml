@@ -84,3 +84,28 @@ jobs:
           name: debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
+
+  webapp:
+    name: Web app core (TypeScript)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: webapp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: webapp
+        run: npm ci
+
+      - name: Typecheck and run tests
+        working-directory: webapp
+        # rm -rf dist because the `tsc && node --test` chain does not clean
+        # stale compiled tests.
+        run: rm -rf dist && npm test
