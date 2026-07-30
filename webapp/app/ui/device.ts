@@ -12,6 +12,7 @@ import { type RawAntiColl } from '../diagnostics.js';
 import { openInspector } from './inspect-panel.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
+import { t } from '../i18n/index.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -65,8 +66,8 @@ export function initDeviceBar(): void {
         transport = null;
         ultra = null;
         updateInspectButton();
-        $('conn').textContent = 'disconnected';
-        deviceStatus.textContent = 'Reader disconnected — click Connect to resume.';
+        $('conn').textContent = t.statusDisconnected;
+        deviceStatus.textContent = t.readerDisconnectedClickConnect;
         log.warn('device', 'Disconnected');
         for (const cb of listeners) cb(false);
       });
@@ -75,11 +76,11 @@ export function initDeviceBar(): void {
       await ultra.use(new WebbleAdapter());
       transport = new AutoTransport(new SdkChameleonDevice(ultra));
       await transport.connect();
-      $('conn').textContent = 'connected';
+      $('conn').textContent = t.statusConnected;
       connected = true;
       updateInspectButton();
       for (const cb of listeners) cb(true);
-      deviceStatus.textContent = 'Connected.';
+      deviceStatus.textContent = t.connectedDot;
       log.info('device', 'Connected');
     } catch (e) {
       deviceStatus.textContent = humanError(e);

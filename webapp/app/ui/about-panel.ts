@@ -1,28 +1,22 @@
 /** About tab: description, supported tags (web-accurate), version, licenses, privacy. */
 import { APP_VERSION, BUILD_SHA } from '../version.js';
+import { t } from '../i18n/index.js';
+import { onLocaleChange } from '../i18n/index.js';
 
-const SECTIONS: Array<{ h: string; body: string[] }> = [
-  { h: 'NFC Archiver', body: [
-    `Web version ${APP_VERSION} (${BUILD_SHA})`,
-    'A distributed data archive system using NFC tags. Store files across multiple tags and restore them later — fully in your browser.',
-  ] },
-  { h: 'Supported tags', body: [
-    'Mifare Classic 1K and NTAG213/215/216, via a Chameleon Ultra over Web Bluetooth.',
-    '(Writing NTAG with the phone’s own NFC — no Chameleon — will come with the future Web NFC support.)',
-  ] },
-  { h: 'Privacy', body: [
-    'Everything runs client-side. Your files, text, and passwords never leave the browser — there is no server, no upload, and no tracking.',
-  ] },
-  { h: 'Open-source licenses', body: [
-    'NFC Archiver — MIT License © 2026 mezinster.',
-    'chameleon-ultra.js — MIT License.',
-  ] },
-];
+/** Built per render — reading `t` at module scope would freeze one language. */
+function sections(): Array<{ h: string; body: string[] }> {
+  return [
+    { h: 'NFC Archiver', body: [t.aboutWebVersion(APP_VERSION, BUILD_SHA), t.aboutDescription] },
+    { h: t.aboutSupportedHeading, body: [t.aboutSupportedBody, t.aboutWebNfcNote] },
+    { h: t.aboutPrivacyHeading, body: [t.aboutPrivacyBody] },
+    { h: t.aboutLicensesHeading, body: [t.aboutLicenseApp, t.aboutLicenseSdk] },
+  ];
+}
 
-export function initAboutPanel(): void {
+function render(): void {
   const container = document.getElementById('about-content')!;
   container.innerHTML = '';
-  for (const s of SECTIONS) {
+  for (const s of sections()) {
     const h = document.createElement('h3');
     h.textContent = s.h;
     container.appendChild(h);
@@ -33,4 +27,9 @@ export function initAboutPanel(): void {
       container.appendChild(p);
     }
   }
+}
+
+export function initAboutPanel(): void {
+  render();
+  onLocaleChange(render);
 }
