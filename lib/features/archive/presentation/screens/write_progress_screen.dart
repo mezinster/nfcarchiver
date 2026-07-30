@@ -48,7 +48,11 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
         ref.read(archiveProvider.notifier).cancelWriting();
         _showRechunkDialog(context, next.detectedCapacity, next.requiredSize);
       } else if (next is NfcSessionTagTypeMismatch) {
-        // Tapped tag's medium doesn't match the configured tag type.
+        // Tapped tag's medium doesn't match the configured tag type. Stop
+        // the session (as _showRechunkDialog does for NfcSessionTagTooSmall)
+        // so the reader doesn't stay armed with the stale chunk closure after
+        // the error is shown.
+        ref.read(nfcSessionProvider.notifier).stopSession();
         final l10n = AppLocalizations.of(context)!;
         final message =
             l10n.tagTypeMismatch(next.tappedMedium, next.configuredMedium);
