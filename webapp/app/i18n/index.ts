@@ -10,6 +10,10 @@
  * initI18n().
  */
 import { en, type Messages } from './en.js';
+import { ru } from './ru.js';
+import { uk } from './uk.js';
+import { be } from './be.js';
+import { pl } from './pl.js';
 import { setPluralLocale } from './plural.js';
 
 export const SUPPORTED = ['en', 'ru', 'tr', 'uk', 'ka', 'pl', 'be'] as const;
@@ -17,9 +21,9 @@ export type Locale = (typeof SUPPORTED)[number];
 
 const STORAGE_KEY = 'nfar-lang';
 
-// Later tasks replace each `en` alias with the real catalogue import.
+// Task 9 replaces the remaining `en` aliases with the real catalogue imports.
 const CATALOGUES: Record<Locale, Messages> = {
-  en, ru: en, tr: en, uk: en, ka: en, pl: en, be: en,
+  en, ru, tr: en, uk, ka: en, pl, be,
 };
 
 let active: Locale = 'en';

@@ -100,3 +100,39 @@ test('every data-i18n attribute in index.html resolves to a real key', () => {
 test('LOCALE_NAMES covers every supported locale', () => {
   for (const l of SUPPORTED) assert.ok(LOCALE_NAMES[l], `no display name for ${l}`);
 });
+
+import { ru } from '../app/i18n/ru.js';
+import { uk } from '../app/i18n/uk.js';
+import { be } from '../app/i18n/be.js';
+import { pl } from '../app/i18n/pl.js';
+
+const SLAVIC: Array<[string, Messages]> = [['ru', ru], ['uk', uk], ['be', be], ['pl', pl]];
+
+test('Slavic catalogues match the English key set exactly', () => {
+  const expected = Object.keys(en).sort();
+  for (const [name, cat] of SLAVIC) {
+    assert.deepEqual(Object.keys(cat).sort(), expected, `${name} key set differs`);
+  }
+});
+
+test('Slavic catalogues match English entry shapes and arity', () => {
+  for (const [name, cat] of SLAVIC) {
+    for (const key of Object.keys(en) as Array<keyof Messages>) {
+      const a = en[key], b = cat[key];
+      assert.equal(typeof b, typeof a, `${name}.${String(key)} has the wrong type`);
+      if (typeof a === 'function' && typeof b === 'function') {
+        assert.equal(b.length, a.length, `${name}.${String(key)} has the wrong arity`);
+      } else {
+        assert.notEqual(b, '', `${name}.${String(key)} is empty`);
+      }
+    }
+  }
+});
+
+test('Slavic plurals select the right form at the boundaries', () => {
+  setPluralLocale('ru');
+  const one = ru.clearedFiles(1), few = ru.clearedFiles(2), many = ru.clearedFiles(5);
+  assert.notEqual(one, few);
+  assert.notEqual(few, many);
+  assert.equal(ru.clearedFiles(21), one.replace('1', '21'));
+});
