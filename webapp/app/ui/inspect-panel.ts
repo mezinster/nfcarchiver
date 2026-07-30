@@ -14,6 +14,10 @@ import { log } from '../../src/log/logger.js';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 let running = false;
+let wired = false;
+let report = '';
+let rows: string[] = [];
+let currentAbort: AbortController | null = null;
 
 export function openInspector(dev: ChameleonDevice, raw: RawAntiColl): void {
   if (running) return;
@@ -30,8 +34,8 @@ export function openInspector(dev: ChameleonDevice, raw: RawAntiColl): void {
   progress.textContent = '';
   status.textContent = '';
 
-  let report = '';
-  const rows: string[] = [];
+  report = '';
+  rows = [];
   const io: InspectIO = {
     setIdentity: (t) => { identity.textContent = t; },
     setNfar: (t) => { nfar.textContent = t; },
@@ -41,23 +45,27 @@ export function openInspector(dev: ChameleonDevice, raw: RawAntiColl): void {
     setStatus: (t) => { status.textContent = t; },
   };
 
+  if (!wired) {
+    dialog.addEventListener('close', () => { currentAbort?.abort(); });
+    $('inspect-close').addEventListener('click', () => dialog.close());
+
+    $('inspect-copy').addEventListener('click', () => {
+      void navigator.clipboard.writeText(report || rows.join('\n'));
+    });
+
+    $('inspect-download').addEventListener('click', () => {
+      const blob = new Blob([report || rows.join('\n')], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `card-inspection-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    wired = true;
+  }
+
   const ac = new AbortController();
-  const onClose = () => ac.abort();
-  dialog.addEventListener('close', onClose, { once: true });
-  $('inspect-close').addEventListener('click', () => dialog.close(), { once: true });
-
-  $('inspect-copy').addEventListener('click', () => {
-    void navigator.clipboard.writeText(report || rows.join('\n'));
-  }, { once: true });
-
-  $('inspect-download').addEventListener('click', () => {
-    const blob = new Blob([report || rows.join('\n')], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `card-inspection-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }, { once: true });
+  currentAbort = ac;
 
   dialog.showModal();
   running = true;
