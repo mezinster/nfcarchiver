@@ -140,10 +140,13 @@ reader in play.
 
 ## Testing
 
-- **`test/transport-contract.ts` already exists** as a shared suite that
-  `NtagTransport` is held to. `WebNfcTransport` joins it against `FakeNdefIO`, so
-  it must satisfy the same contract as every other transport. This is the
-  highest-value test in the project and it is nearly free.
+- **`test/transport-contract.ts` must be parameterized first.** The shared suite
+  exists, but it hardcodes Mifare Classic sizes (`CARD_CAPACITY_BYTES` 752,
+  `CARD_PAYLOAD_SIZE` 720) and only `ChameleonBleTransport` and `MockTransport`
+  are held to it — `NtagTransport` has its own tests and never joins. Giving
+  `runTransportContract` an expected-capacity parameter lets `WebNfcTransport`
+  join against `FakeNdefIO`, and is worth doing on its own merits: `NtagTransport`
+  can then join too, which is a coverage gain the project does not have today.
 - **Reader selection and the disconnect interlock** tested through the existing
   IO-seam style — no DOM stub, consistent with `inspect-orchestrator`.
 - **The overwrite path** tested explicitly: a cached message that parses as NFAR
