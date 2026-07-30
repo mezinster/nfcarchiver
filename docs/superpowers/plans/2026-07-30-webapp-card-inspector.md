@@ -318,8 +318,14 @@ never false — false would read as corruption."
 - Consumes: `ChameleonDevice` + `FACTORY_KEY_A` from `src/transport/chameleon-device.js`; `CardAuthError`, `TagTimeoutError`, `UnsupportedTagError` from `src/transport/transport.js`; `BLOCK_SIZE` from `src/mifare/card-layout.js`; `detectNtagType`, `NtagType` from `src/nfc/type2.js`.
 - Produces:
   - `ntagTotalPages(t: NtagType): number` from `src/nfc/type2.js`
-  - `dumpCard(dev: ChameleonDevice, onUnit: (u: DumpUnit, done: number, total: number) => void, signal?: AbortSignal): Promise<DumpResult>`
-  - types `DumpUnit`, `DumpMeta`, `DumpResult`, `UnitKind`, `UnitFailure`
+  - `dumpCard(dev: ChameleonDevice, cb: DumpCallbacks, signal?: AbortSignal): Promise<DumpResult>`
+  - types `DumpCallbacks`, `DumpUnit`, `DumpMeta`, `DumpResult`, `UnitKind`, `UnitFailure`
+
+`DumpCallbacks` carries two callbacks, not one. `onMeta` fires as soon as the
+medium is known — after `scanTag` for Classic, after `GET_VERSION` for NTAG —
+i.e. **before any block is read**. That is what lets the dialog show the identity
+block about a second in, rather than after ~64 BLE round trips. `onUnit` then
+fires per unit.
 
 - [ ] **Step 1: Add total page counts to `type2.ts`**
 
@@ -346,7 +352,7 @@ Create `webapp/test/card-dump.test.ts`:
 ```ts
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dumpCard, type DumpUnit } from '../src/inspect/card-dump.js';
+import { dumpCard, type DumpMeta, type DumpUnit } from '../src/inspect/card-dump.js';
 import { NtagType, ntagTotalPages } from '../src/nfc/type2.js';
 import { UnsupportedTagError } from '../src/transport/transport.js';
 import type { ChameleonDevice } from '../src/transport/chameleon-device.js';
@@ -355,21 +361,25 @@ import { FakeChameleon } from './fake-chameleon.js';
 const CLASSIC_UID = new Uint8Array([0xb9, 0x16, 0x27, 0x51]);
 const NTAG_UID = new Uint8Array([0x04, 0xaa, 0xbb, 0xcc]);
 
-/** Collect every unit the dump emits, plus the progress pairs it reported. */
+/** Collect every unit the dump emits, plus the progress pairs and meta. */
 function collector() {
   const units: DumpUnit[] = [];
   const progress: Array<[number, number]> = [];
-  return {
-    units, progress,
-    onUnit: (u: DumpUnit, done: number, total: number) => { units.push(u); progress.push([done, total]); },
+  const order: string[] = [];
+  const cb = {
+    onMeta: (m: DumpMeta) => { order.push(`meta:${m.medium}`); },
+    onUnit: (u: DumpUnit, done: number, total: number) => {
+      units.push(u); progress.push([done, total]); order.push('unit');
+    },
   };
+  return { units, progress, order, cb };
 }
 
 test('Mifare Classic: dumps all 64 blocks, labelling manufacturer and trailers', async () => {
   const device = new FakeChameleon();
   device.place(CLASSIC_UID);
   const c = collector();
-  const res = await dumpCard(device, c.onUnit);
+  const res = await dumpCard(device, c.cb);
 
   assert.equal(res.meta.medium, 'mifare-classic-1k');
   assert.equal(res.meta.sak, 0x08);
@@ -386,6 +396,10 @@ test('Mifare Classic: dumps all 64 blocks, labelling manufacturer and trailers',
   assert.ok(res.units.every((u) => u.bytes?.length === 16), 'a factory-keyed card reads clean');
   assert.equal(res.aborted, false);
   assert.equal(res.cardLost, false);
+  // onMeta must land before any unit: the dialog shows identity in ~1 s rather
+  // than after 64 BLE round trips.
+  assert.equal(c.order[0], 'meta:mifare-classic-1k');
+  assert.equal(c.order[1], 'unit');
 });
 
 test('Mifare Classic: non-factory keys mark units auth-failed without aborting', async () => {
@@ -393,7 +407,7 @@ test('Mifare Classic: non-factory keys mark units auth-failed without aborting',
   device.defineCard(CLASSIC_UID, { keyA: new Uint8Array([1, 2, 3, 4, 5, 6]) });
   device.place(CLASSIC_UID);
   const c = collector();
-  const res = await dumpCard(device, c.onUnit);
+  const res = await dumpCard(device, c.cb);
 
   assert.equal(res.units.length, 64, 'the dump must run to completion');
   assert.ok(res.units.every((u) => u.failure === 'auth-failed'));
@@ -423,7 +437,7 @@ test('Mifare Classic: a non-auth read failure stops early and marks the rest not
     },
   };
   const c = collector();
-  const res = await dumpCard(device, c.onUnit);
+  const res = await dumpCard(device, c.cb);
 
   assert.equal(res.units.length, 64, 'the result must still describe the whole card');
   assert.equal(res.cardLost, true);
@@ -436,7 +450,7 @@ test('NTAG213: dumps every page group, truncating the final short group', async 
   const device = new FakeChameleon();
   device.placeNtag(NTAG_UID, NtagType.NTAG213);
   const c = collector();
-  const res = await dumpCard(device, c.onUnit);
+  const res = await dumpCard(device, c.cb);
 
   const pages = ntagTotalPages(NtagType.NTAG213); // 45
   const groups = Math.ceil(pages / 4);            // 12
@@ -457,9 +471,8 @@ test('abort stops the dump and reports it', async () => {
   device.place(CLASSIC_UID);
   const ac = new AbortController();
   const units: DumpUnit[] = [];
-  const res = await dumpCard(device, (u) => {
-    units.push(u);
-    if (units.length === 5) ac.abort();
+  const res = await dumpCard(device, {
+    onUnit: (u) => { units.push(u); if (units.length === 5) ac.abort(); },
   }, ac.signal);
 
   assert.equal(res.aborted, true);
@@ -470,7 +483,7 @@ test('an unsupported SAK is rejected before any read', async () => {
   const device = new FakeChameleon();
   device.defineCard(CLASSIC_UID, { sak: 0x20 });
   device.place(CLASSIC_UID);
-  await assert.rejects(() => dumpCard(device, () => {}), UnsupportedTagError);
+  await assert.rejects(() => dumpCard(device, { onUnit: () => {} }), UnsupportedTagError);
 });
 ```
 
@@ -539,17 +552,22 @@ export interface DumpResult {
 const CLASSIC_BLOCKS = 64;
 const PAGES_PER_READ = 4;
 
-type OnUnit = (u: DumpUnit, done: number, total: number) => void;
+export interface DumpCallbacks {
+  /** Fires as soon as the medium is known — BEFORE any block is read — so the
+   *  UI can show identity in about a second instead of after ~64 round trips. */
+  onMeta?: (meta: DumpMeta) => void;
+  onUnit: (u: DumpUnit, done: number, total: number) => void;
+}
 
 export async function dumpCard(
   dev: ChameleonDevice,
-  onUnit: OnUnit,
+  cb: DumpCallbacks,
   signal?: AbortSignal,
 ): Promise<DumpResult> {
   const tag = await dev.scanTag();
   if (tag === null) throw new TagTimeoutError('No card in the field — hold one on the reader');
-  if (tag.sak === 0x08) return dumpClassic(dev, tag, onUnit, signal);
-  if (tag.sak === 0x00) return dumpNtag(dev, tag, onUnit, signal);
+  if (tag.sak === 0x08) return dumpClassic(dev, tag, cb, signal);
+  if (tag.sak === 0x00) return dumpNtag(dev, tag, cb, signal);
   throw new UnsupportedTagError(
     `Unsupported tag (SAK 0x${tag.sak.toString(16)}) — Mifare Classic 1K and NTAG213/215/216 can be inspected`,
   );
@@ -563,12 +581,14 @@ function classicKind(block: number): UnitKind {
 async function dumpClassic(
   dev: ChameleonDevice,
   tag: { uid: Uint8Array; sak: number },
-  onUnit: OnUnit,
+  cb: DumpCallbacks,
   signal?: AbortSignal,
 ): Promise<DumpResult> {
   const meta: DumpMeta = {
     medium: 'mifare-classic-1k', sak: tag.sak, uid: tag.uid, totalUnits: CLASSIC_BLOCKS,
   };
+  cb.onMeta?.(meta);
+  const onUnit = cb.onUnit;
   const units: DumpUnit[] = [];
   let aborted = false;
   let cardLost = false;
@@ -606,7 +626,7 @@ async function dumpClassic(
 async function dumpNtag(
   dev: ChameleonDevice,
   tag: { uid: Uint8Array; sak: number },
-  onUnit: OnUnit,
+  cb: DumpCallbacks,
   signal?: AbortSignal,
 ): Promise<DumpResult> {
   let version: Uint8Array;
@@ -625,6 +645,8 @@ async function dumpNtag(
   const pages = ntagTotalPages(type);
   const groups = Math.ceil(pages / PAGES_PER_READ);
   const meta: DumpMeta = { medium: type, sak: tag.sak, uid: tag.uid, totalUnits: groups };
+  cb.onMeta?.(meta);
+  const onUnit = cb.onUnit;
   const units: DumpUnit[] = [];
   let aborted = false;
   let cardLost = false;
@@ -1222,25 +1244,25 @@ export async function runInspection(
 
   let nfar: NfarDescription = { present: false, reason: 'no data read yet' };
   const seen: DumpUnit[] = [];
-  let identityShown = false;
 
   try {
-    const result = await dumpCard(dev, (unit, done, total) => {
-      seen.push(unit);
-      io.appendRow(formatUnitRow(unit));
-      io.setProgress(done === total ? `${done}/${total} read` : `reading… ${done}/${total}`);
-      // Re-describe while the NFAR extent is still growing; once the declared
-      // tail is covered the description stops changing.
-      if (nfar.present === false || nfar.crcValid === null) {
-        nfar = describeNfar(nfarBytesSoFar(seen, unit.sector !== undefined));
-        io.setNfar(formatNfar(nfar));
-      }
+    const result = await dumpCard(dev, {
+      // Fires before the first read, so identity is on screen in about a second
+      // rather than after ~64 BLE round trips.
+      onMeta: (meta) => { io.setIdentity(formatIdentity(meta, diag)); },
+      onUnit: (unit, done, total) => {
+        seen.push(unit);
+        io.appendRow(formatUnitRow(unit));
+        io.setProgress(done === total ? `${done}/${total} read` : `reading… ${done}/${total}`);
+        // Re-describe while the NFAR extent is still growing; once the declared
+        // tail is covered the description stops changing.
+        if (nfar.present === false || nfar.crcValid === null) {
+          nfar = describeNfar(nfarBytesSoFar(seen, unit.sector !== undefined));
+          io.setNfar(formatNfar(nfar));
+        }
+      },
     }, signal);
 
-    if (!identityShown) {
-      io.setIdentity(formatIdentity(result.meta, diag));
-      identityShown = true;
-    }
     io.setNfar(formatNfar(nfar));
     io.setReport(formatReport(result.meta, diag, nfar, result.units));
     io.setStatus(
@@ -1262,10 +1284,10 @@ cd webapp && rm -rf dist && npm test 2>&1 | tail -6
 
 Expected: `tests 194`, `pass 194`, `fail 0` (188 + 6 new).
 
-If the first test fails because identity is emitted only after the dump, move
-the `setIdentity` call so it fires on the **first** unit (the medium is known
-from `unit.sector !== undefined`) rather than after `dumpCard` resolves. The test
-is the specification here: identity must precede the last row.
+The first test is the specification for ordering: identity MUST be rendered
+before the last row. That is why `dumpCard` takes an `onMeta` callback — the
+medium is known before any read, so identity must not wait on the dump. If this
+test fails, the bug is in the wiring, not the test.
 
 - [ ] **Step 5: Commit**
 
@@ -1597,6 +1619,7 @@ git push
 | Copy/Download as plain text | 3 (`formatReport`), 5 |
 | Disabled while reader busy | 5 |
 | `DumpUnit` shape | 2 |
+| Identity before the dump completes | 2 (`onMeta`) + 4 |
 | NTAG wrap / short-read-only-at-end | 2 |
 | Medium-aware cascade verdict | 3 |
 | `describeNfar` tolerant, partial buffers | 1 |
@@ -1619,6 +1642,14 @@ One spec detail corrected: the spec said `FakeChameleon.defineCard` makes the
 per-sector auth case testable, but its `keyA` is per **card**, not per sector.
 Task 2's test therefore covers the whole-card case and the plan says so; the
 per-sector path is the same code branch.
+
+A pre-flight scan caught a third issue, in this plan's own first draft:
+`runInspection` rendered identity only after `dumpCard` resolved, which cannot
+satisfy Task 4's own ordering test, and the draft hid that behind an "if the test
+fails, move the call" instruction. `dumpCard` now takes a `DumpCallbacks` object
+whose `onMeta` fires before the first read — the medium is known from `scanTag`
+(Classic) or `GET_VERSION` (NTAG), so making the UI wait on 64 round trips for it
+was simply wrong. Task 2 asserts the ordering directly.
 
 **Placeholder scan:** none. Every code step carries the full file or exact
 replacement lines.
