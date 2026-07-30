@@ -151,5 +151,10 @@
     "placeholders": { "dateTime": { "type": "String" } }
   },
   "sessionsCleared": "Всі сесії видалено",
-  "sessionDeleted": "Сесію видалено"
+  "sessionDeleted": "Сесію видалено",
+  "mifareNotSupportedOnDevice": "Схоже, це картка Mifare Classic. NFC-чіп вашого телефону не може їх читати.",
+  "tagTypeMismatch": "Це картка {tapped}, але цей архів налаштовано для {configured} — змініть тип мітки в Налаштуваннях.",
+  "@tagTypeMismatch": {
+    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
+  }
 }

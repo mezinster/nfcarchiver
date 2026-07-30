@@ -148,5 +148,10 @@
   "deleteSessionConfirm": "Выдаліць гэту няскончаную сесію?",
   "lastUpdated": "Абноўлена {dateTime}",
   "sessionsCleared": "Усе сесіі ачышчаны",
-  "sessionDeleted": "Сесія выдалена"
+  "sessionDeleted": "Сесія выдалена",
+  "mifareNotSupportedOnDevice": "Падобна, гэта карта Mifare Classic. NFC-чып вашага тэлефона не можа іх чытаць.",
+  "tagTypeMismatch": "Гэта карта {tapped}, але гэты архіў наладжаны для {configured} — змяніце тып меткі ў Наладах.",
+  "@tagTypeMismatch": {
+    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
+  }
 }

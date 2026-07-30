@@ -151,5 +151,10 @@
     "placeholders": { "dateTime": { "type": "String" } }
   },
   "sessionsCleared": "Tüm oturumlar temizlendi",
-  "sessionDeleted": "Oturum silindi"
+  "sessionDeleted": "Oturum silindi",
+  "mifareNotSupportedOnDevice": "Bu bir Mifare Classic kart gibi görünüyor. Telefonunuzun NFC çipi bunları okuyamaz.",
+  "tagTypeMismatch": "Bu bir {tapped} kart, ancak bu arşiv {configured} için yapılandırılmış — etiket türünü Ayarlar'dan değiştirin.",
+  "@tagTypeMismatch": {
+    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
+  }
 }

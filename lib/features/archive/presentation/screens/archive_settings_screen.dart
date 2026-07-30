@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/nfar_format.dart';
 import '../../../../shared/utils/format_utils.dart';
+import '../../../nfc/data/nfc_capabilities.dart';
 import '../providers/archive_provider.dart';
 
 /// Screen for configuring archive settings.
@@ -48,6 +49,8 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
     final tagType = ref.watch(selectedTagTypeProvider);
     final compress = ref.watch(compressionEnabledProvider);
     final encrypt = ref.watch(encryptionEnabledProvider);
+    final mifareSupported =
+        ref.watch(mifareSupportProvider).valueOrNull ?? false;
     final l10n = AppLocalizations.of(context)!;
 
     if (state is! ArchiveConfiguring && state is! ArchiveFileSelected) {
@@ -93,6 +96,9 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                   const SizedBox(height: 16),
                   ...NfcTagType.values
                       .where((t) => t != NfcTagType.custom)
+                      .where((t) =>
+                          t.medium != TagMedium.mifareClassic ||
+                          mifareSupported)
                       .map((type) => RadioListTile<NfcTagType>(
                             title: Text(type.name),
                             subtitle:
