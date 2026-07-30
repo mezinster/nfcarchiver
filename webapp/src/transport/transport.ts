@@ -31,6 +31,20 @@ export class CardAuthError extends Error {
   }
 }
 
+/**
+ * A block/page read came back short — the reader returned fewer bytes than the
+ * card layer asked for without reporting an error, which the Chameleon does on
+ * marginal coupling. Such a read says NOTHING about what the card holds, so it
+ * must never be mistaken for a non-NFAR verdict: it is transient and a re-tap
+ * (or an immediate retry) can succeed.
+ */
+export class CardReadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CardReadError';
+  }
+}
+
 export class WriteVerifyError extends Error {
   constructor(message: string) {
     super(message);

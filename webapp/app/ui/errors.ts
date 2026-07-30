@@ -1,5 +1,5 @@
 /** Maps a caught error to a plain-language, user-facing message. */
-import { CardAuthError, WriteVerifyError, TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
+import { CardAuthError, CardReadError, WriteVerifyError, TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
 import { CardCapacityError } from '../../src/mifare/card-layout.js';
 import { DecryptionError } from '../../src/crypto.js';
 import { OverwriteRequiredError, PasswordRequiredError, NfarFormatError } from '../controller.js';
@@ -7,6 +7,7 @@ import { NdefFormatError } from '../../src/nfc/ndef.js';
 
 export function humanError(e: unknown): string {
   if (e instanceof CardAuthError) return 'Card keys are not factory defaults — this card cannot be used.';
+  if (e instanceof CardReadError) return 'Card read was incomplete — hold the card steady on the reader and tap again.';
   if (e instanceof WriteVerifyError) return 'Write verification failed — move the card closer and retry.';
   if (e instanceof CardCapacityError) return 'This card is smaller than the ones already written — use cards of the same type, or restart the archive.';
   if (e instanceof TagTimeoutError) return 'No card detected — tap a card on the reader.';
