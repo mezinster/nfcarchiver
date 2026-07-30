@@ -33,6 +33,8 @@
       header h1 { font-size: 1.15rem; margin: 0; flex: 1; }
       header svg { width: 28px; height: 28px; fill: currentColor; }
       #theme-toggle { background: transparent; border: 1px solid currentColor; color: inherit; border-radius: 8px; cursor: pointer; padding: 0.3rem 0.6rem; }
+      #lang { background: transparent; border: 1px solid currentColor; color: inherit; border-radius: 8px; padding: 0.3rem; }
+      #lang option { color: initial; background: initial; }
       main { max-width: 40rem; margin: 0 auto; padding: 1rem; }
       button { font: inherit; }
       .filled { background: var(--primary); color: var(--on-primary); border: none; border-radius: 16px; padding: 0.8rem 1rem; width: 100%; cursor: pointer; }
@@ -74,62 +76,63 @@
     <header>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-1 14H5V6h14v12zM7.5 9.5A1.5 1.5 0 0 1 9 8h6a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 15 16H9a1.5 1.5 0 0 1-1.5-1.5v-5zM9 9.5v5h6v-5H9z"/></svg>
       <h1>NFC Archiver</h1>
-      <button id="theme-toggle" title="Toggle light/dark">◑</button>
+      <select id="lang" title="Language"></select>
+      <button id="theme-toggle" data-i18n-title="themeToggle" title="Toggle light/dark">◑</button>
     </header>
 
     <div id="device-bar">
-      <button id="connect">Connect Chameleon</button>
-      <span id="conn">disconnected</span>
-      <button id="inspect" disabled>Inspect card</button>
+      <button id="connect" data-i18n="connect">Connect Chameleon</button>
+      <span id="conn" data-i18n="statusDisconnected">disconnected</span>
+      <button id="inspect" disabled data-i18n="inspectCard">Inspect card</button>
       <pre id="device-status"></pre>
     </div>
 
     <main>
       <div id="tabs" role="tablist">
-        <button role="tab" data-tab="archive" aria-selected="true">Archive</button>
-        <button role="tab" data-tab="restore" aria-selected="false">Restore</button>
-        <button role="tab" data-tab="files" aria-selected="false">Files</button>
-        <button role="tab" data-tab="log" aria-selected="false">Log</button>
-        <button role="tab" data-tab="about" aria-selected="false">About</button>
+        <button role="tab" data-tab="archive" aria-selected="true" data-i18n="tabArchive">Archive</button>
+        <button role="tab" data-tab="restore" aria-selected="false" data-i18n="tabRestore">Restore</button>
+        <button role="tab" data-tab="files" aria-selected="false" data-i18n="tabFiles">Files</button>
+        <button role="tab" data-tab="log" aria-selected="false" data-i18n="tabLog">Log</button>
+        <button role="tab" data-tab="about" aria-selected="false" data-i18n="tabAbout">About</button>
       </div>
 
       <section id="panel-archive" role="tabpanel">
         <div class="card">
           <div><input type="file" id="file" /></div>
-          <div style="margin-top:0.6rem"><label>or text:</label><br /><textarea id="text" rows="3" placeholder="Type text to archive as text_note.txt"></textarea></div>
-          <div style="margin-top:0.6rem"><label>target tag
+          <div style="margin-top:0.6rem"><label data-i18n="orText">or text:</label><br /><textarea id="text" rows="3" data-i18n-placeholder="textPlaceholder" placeholder="Type text to archive as text_note.txt"></textarea></div>
+          <div style="margin-top:0.6rem"><label><span data-i18n="targetTag">target tag</span>
             <select id="target-tag">
-              <option value="auto" selected>Auto-detect (adapts to the card)</option>
+              <option value="auto" selected data-i18n="targetAuto">Auto-detect (adapts to the card)</option>
               <option value="720">Mifare Classic 1K — 752 B</option>
               <option value="NTAG213">NTAG213 — 144 B</option>
               <option value="NTAG215">NTAG215 — 504 B</option>
               <option value="NTAG216">NTAG216 — 888 B</option>
             </select></label></div>
-          <div style="margin-top:0.6rem"><label><input type="checkbox" id="compress" checked /> compress</label>
-            &nbsp;&nbsp;<label>password <input type="password" id="apass" placeholder="(optional)" /></label></div>
+          <div style="margin-top:0.6rem"><label><input type="checkbox" id="compress" checked /> <span data-i18n="compress">compress</span></label>
+            &nbsp;&nbsp;<label><span data-i18n="password">password</span> <input type="password" id="apass" data-i18n-placeholder="optionalPlaceholder" placeholder="(optional)" /></label></div>
           <div id="cardcount" class="cardcount"></div>
-          <button id="archive" class="filled" disabled>Archive to cards</button>
+          <button id="archive" class="filled" disabled data-i18n="archiveToCards">Archive to cards</button>
         </div>
         <div class="card" id="archive-progress-row" hidden><progress id="archive-bar"></progress><span id="archive-progress-label" class="progress-label"></span></div>
-        <div class="status" id="archive-status">Connect a Chameleon, then choose a file or type text.</div>
+        <div class="status" id="archive-status" data-i18n="archiveIdle">Connect a Chameleon, then choose a file or type text.</div>
       </section>
 
       <section id="panel-restore" role="tabpanel" hidden>
         <div class="card">
-          <button id="scan" class="filled" disabled>Scan cards</button>
-          <button id="stop-scan" class="filled" disabled style="margin-top:0.5rem">Stop</button>
+          <button id="scan" class="filled" disabled data-i18n="scanCards">Scan cards</button>
+          <button id="stop-scan" class="filled" disabled style="margin-top:0.5rem" data-i18n="stop">Stop</button>
           <div id="archives"></div>
-          <div style="margin-top:0.6rem"><label>save as <input type="text" id="fname" value="restored.bin" /></label></div>
+          <div style="margin-top:0.6rem"><label><span data-i18n="saveAs">save as</span> <input type="text" id="fname" value="restored.bin" /></label></div>
         </div>
-        <div class="status" id="restore-status">Connect a Chameleon, then scan a pile of cards.</div>
+        <div class="status" id="restore-status" data-i18n="restoreIdle">Connect a Chameleon, then scan a pile of cards.</div>
       </section>
 
       <section id="panel-files" role="tabpanel" hidden>
         <div class="card">
           <div id="files"></div>
-          <p id="files-empty" class="muted">No restored files yet. Restore an archive and it'll appear here.</p>
+          <p id="files-empty" class="muted" data-i18n="filesEmpty">No restored files yet. Restore an archive and it'll appear here.</p>
           <div style="margin-top:0.6rem"><span id="files-info" class="muted"></span>
-            &nbsp;&nbsp;<button id="files-clear">Clear all</button></div>
+            &nbsp;&nbsp;<button id="files-clear" data-i18n="clearAll">Clear all</button></div>
           <p id="files-status" class="muted"></p>
         </div>
       </section>
@@ -137,7 +140,7 @@
       <section id="panel-log" role="tabpanel" hidden>
         <div class="card">
           <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center">
-            <label>level
+            <label><span data-i18n="logLevel">level</span>
               <select id="log-level">
                 <option value="debug">debug</option>
                 <option value="info" selected>info</option>
@@ -145,11 +148,11 @@
                 <option value="error">error</option>
               </select>
             </label>
-            <label><input type="checkbox" id="log-autoscroll" checked /> auto-scroll</label>
-            <label><input type="checkbox" id="log-console" /> mirror to console</label>
-            <button id="log-clear">Clear</button>
-            <button id="log-copy">Copy</button>
-            <button id="log-download">Download</button>
+            <label><input type="checkbox" id="log-autoscroll" checked /> <span data-i18n="autoScroll">auto-scroll</span></label>
+            <label><input type="checkbox" id="log-console" /> <span data-i18n="mirrorToConsole">mirror to console</span></label>
+            <button id="log-clear" data-i18n="clear">Clear</button>
+            <button id="log-copy" data-i18n="copy">Copy</button>
+            <button id="log-download" data-i18n="download">Download</button>
           </div>
           <div id="log" style="font-family:monospace;font-size:0.8rem;max-height:60vh;overflow:auto;white-space:pre-wrap;margin-top:0.6rem"></div>
         </div>
@@ -161,30 +164,30 @@
     </main>
 
     <dialog id="overwrite-dialog">
-      <p id="overwrite-message">This card already holds data.</p>
+      <p id="overwrite-message" data-i18n="errOverwriteRequired">This card already holds data.</p>
       <form method="dialog" class="dialog-actions">
-        <button value="once" class="filled">Overwrite</button>
-        <button value="all" class="filled">Overwrite all remaining</button>
-        <button id="overwrite-skip" value="skip">Skip</button>
+        <button value="once" class="filled" data-i18n="overwrite">Overwrite</button>
+        <button value="all" class="filled" data-i18n="overwriteAll">Overwrite all remaining</button>
+        <button id="overwrite-skip" value="skip" data-i18n="skip">Skip</button>
       </form>
     </dialog>
 
     <dialog id="inspect-dialog" class="inspect">
       <div class="inspect-head">
-        <strong>Inspect card</strong>
+        <strong data-i18n="inspectCard">Inspect card</strong>
         <span id="inspect-progress" class="muted"></span>
         <span class="inspect-actions">
-          <button id="inspect-copy" type="button">Copy</button>
-          <button id="inspect-download" type="button">Download</button>
-          <button id="inspect-close" type="button">Close</button>
+          <button id="inspect-copy" type="button" data-i18n="copy">Copy</button>
+          <button id="inspect-download" type="button" data-i18n="download">Download</button>
+          <button id="inspect-close" type="button" data-i18n="close">Close</button>
         </span>
       </div>
       <p id="inspect-status" class="muted"></p>
-      <h4>Identity</h4>
+      <h4 data-i18n="inspectIdentity">Identity</h4>
       <pre id="inspect-identity"></pre>
-      <h4>NFAR chunk</h4>
+      <h4 data-i18n="inspectNfar">NFAR chunk</h4>
       <pre id="inspect-nfar"></pre>
-      <h4>Raw</h4>
+      <h4 data-i18n="inspectRaw">Raw</h4>
       <pre id="inspect-raw"></pre>
     </dialog>
 

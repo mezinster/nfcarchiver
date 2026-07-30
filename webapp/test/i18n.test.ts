@@ -82,3 +82,21 @@ test('t reflects the active locale', () => {
   setLocale('en');
   assert.equal(t.tabArchive, 'Archive');
 });
+
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { LOCALE_NAMES } from '../app/i18n/dom.js';
+
+test('every data-i18n attribute in index.html resolves to a real key', () => {
+  const html = readFileSync(fileURLToPath(new URL('../../app/index.html', import.meta.url)), 'utf8');
+  const keys = [...html.matchAll(/data-i18n(?:-placeholder|-title)?="([^"]+)"/g)].map((m) => m[1]!);
+  assert.ok(keys.length > 20, `expected the markup to be annotated, found ${keys.length}`);
+  for (const key of keys) {
+    assert.ok(key in en, `index.html references unknown message key "${key}"`);
+    assert.equal(typeof en[key as keyof Messages], 'string', `"${key}" is a function; data-i18n needs a plain string`);
+  }
+});
+
+test('LOCALE_NAMES covers every supported locale', () => {
+  for (const l of SUPPORTED) assert.ok(LOCALE_NAMES[l], `no display name for ${l}`);
+});

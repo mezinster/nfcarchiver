@@ -1,4 +1,7 @@
-/** App shell: tab switching and the light/dark theme toggle. DOM glue only. */
+/** App shell: tab switching, the light/dark theme toggle, and the language
+ *  selector. DOM glue only. */
+import { SUPPORTED, getLocale, storeLocale, onLocaleChange, type Locale } from '../i18n/index.js';
+import { applyStaticText, LOCALE_NAMES } from '../i18n/dom.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const TABS = ['archive', 'restore', 'files', 'log', 'about'] as const;
@@ -25,10 +28,32 @@ function initTheme(): void {
   });
 }
 
+function initLanguage(): void {
+  const sel = $('lang') as HTMLSelectElement;
+  for (const l of SUPPORTED) {
+    const opt = document.createElement('option');
+    opt.value = l;
+    opt.textContent = LOCALE_NAMES[l];
+    sel.appendChild(opt);
+  }
+  sel.value = getLocale();
+  sel.addEventListener('change', () => { storeLocale(sel.value as Locale); });
+  // Re-translate the markup on every change, and set <html lang> so screen
+  // readers and hyphenation follow the UI.
+  onLocaleChange(() => {
+    document.documentElement.setAttribute('lang', getLocale());
+    applyStaticText();
+    sel.value = getLocale();
+  });
+  document.documentElement.setAttribute('lang', getLocale());
+  applyStaticText();
+}
+
 export function initShell(): void {
   for (const t of TABS) {
     document.querySelector<HTMLButtonElement>(`#tabs button[data-tab="${t}"]`)!
       .addEventListener('click', () => activateTab(t));
   }
   initTheme();
+  initLanguage();
 }
