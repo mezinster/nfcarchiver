@@ -84,7 +84,10 @@ export class FakeChameleon implements ChameleonDevice {
     return { uid: Uint8Array.from(this.field.match(/../g)!.map((h) => parseInt(h, 16))), sak: card.sak };
   }
 
-  async transceive14a(data: Uint8Array): Promise<Uint8Array> {
+  async transceive14a(
+    data: Uint8Array,
+    _opts?: { appendCrc?: boolean; autoSelect?: boolean; checkResponseCrc?: boolean },
+  ): Promise<Uint8Array> {
     const card = this.current();
     const ntag = card.ntag;
     if (!ntag) throw new CardAuthError('Not an NTAG card in field');

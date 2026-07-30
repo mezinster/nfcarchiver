@@ -8,18 +8,31 @@ import { ChameleonUltra, Buffer } from 'chameleon-ultra.js';
 import WebbleAdapter from 'chameleon-ultra.js/plugin/WebbleAdapter';
 import { SdkChameleonDevice } from '../../src/transport/sdk-chameleon-device.js';
 import { AutoTransport } from '../../src/transport/auto-transport.js';
-import { diagnoseCard, type RawAntiColl } from '../diagnostics.js';
+import { type RawAntiColl } from '../diagnostics.js';
+import { openInspector } from './inspect-panel.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const hex = (b: Uint8Array): string =>
-  Array.from(b, (x) => x.toString(16).padStart(2, '0').toUpperCase()).join(' ');
 
 let ultra: ChameleonUltra | null = null;
 let transport: AutoTransport | null = null;
 let connected = false;
 const listeners: Array<(connected: boolean) => void> = [];
+
+let readerBusy = false;
+
+/** Panels report when they own the reader. Two callers interleaving BLE
+ *  commands on one reader can corrupt an in-flight write, which is why the
+ *  Archive button already guards on its own `archiving` flag. */
+export function setReaderBusy(busy: boolean): void {
+  readerBusy = busy;
+  updateInspectButton();
+}
+
+function updateInspectButton(): void {
+  ($('inspect') as HTMLButtonElement).disabled = !connected || readerBusy;
+}
 
 export function currentTransport(): AutoTransport | null {
   return transport;
@@ -51,7 +64,7 @@ export function initDeviceBar(): void {
         connected = false;
         transport = null;
         ultra = null;
-        ($('diagnose') as HTMLButtonElement).disabled = true;
+        updateInspectButton();
         $('conn').textContent = 'disconnected';
         deviceStatus.textContent = 'Reader disconnected — click Connect to resume.';
         log.warn('device', 'Disconnected');
@@ -63,8 +76,8 @@ export function initDeviceBar(): void {
       transport = new AutoTransport(new SdkChameleonDevice(ultra));
       await transport.connect();
       $('conn').textContent = 'connected';
-      ($('diagnose') as HTMLButtonElement).disabled = false;
       connected = true;
+      updateInspectButton();
       for (const cb of listeners) cb(true);
       deviceStatus.textContent = 'Connected.';
       log.info('device', 'Connected');
@@ -74,8 +87,8 @@ export function initDeviceBar(): void {
     }
   });
 
-  $('diagnose').addEventListener('click', async () => {
-    if (!ultra) return;
+  $('inspect').addEventListener('click', () => {
+    if (!ultra || !transport) return;
     const dev = ultra;
     const raw: RawAntiColl = {
       async transceive(data, opts) {
@@ -90,21 +103,6 @@ export function initDeviceBar(): void {
         return new Uint8Array(resp);
       },
     };
-    deviceStatus.textContent = 'Hold the card on the reader…';
-    try {
-      const d = await diagnoseCard(raw);
-      const verdict = d.isCascade
-        ? '7-byte UID (cascade tag) — this is not a 4-byte Mifare Classic 1K.'
-        : d.bccValid
-          ? 'BCC OK — this card should work; the earlier error was likely transient positioning.'
-          : 'BCC MISMATCH — malformed block-0 UID (a UID-writable "magic" card). Rewrite block 0 with a correct BCC, or use a standard Classic 1K.';
-      deviceStatus.textContent =
-        `ATQA: ${hex(d.atqa)}\n` +
-        `UID (CL1): ${hex(d.uidCl1)}\n` +
-        `BCC returned: 0x${d.bccReturned.toString(16).padStart(2, '0')}  computed: 0x${d.bccComputed.toString(16).padStart(2, '0')}\n` +
-        verdict;
-    } catch (e) {
-      deviceStatus.textContent = `Diagnose failed: ${humanError(e)} (hold a card steady on the reader and retry)`;
-    }
+    openInspector(new SdkChameleonDevice(dev), raw, setReaderBusy);
   });
 }

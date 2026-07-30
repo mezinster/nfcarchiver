@@ -64,6 +64,18 @@ export function ntagUserBytes(t: NtagType): number {
   return USER_BYTES[t];
 }
 
+/** Total pages per type INCLUDING the config/lock pages, not just user memory.
+ *  A raw dump needs all of them; `USER_BYTES` above covers only the NDEF area. */
+const TOTAL_PAGES: Record<NtagType, number> = {
+  [NtagType.NTAG213]: 45,
+  [NtagType.NTAG215]: 135,
+  [NtagType.NTAG216]: 231,
+};
+
+export function ntagTotalPages(t: NtagType): number {
+  return TOTAL_PAGES[t];
+}
+
 export function detectNtagType(getVersion: Uint8Array): NtagType | null {
   const storage = getVersion[6];
   if (storage === 0x0f) return NtagType.NTAG213;

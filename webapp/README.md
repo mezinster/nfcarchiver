@@ -44,8 +44,12 @@ for the manual real-device checklist (BLE pairing, round-trip, cross-read).
   encryption, filename preservation, and a live "≈ N cards" estimate.
 - **Multi-archive restore:** scan a mixed pile of cards, see every detected archive
   (encryption status + completeness), and pick a complete one to restore.
-- **Diagnose card** — reads a card's raw UID + BCC (bypassing the reader's BCC
-  check) to explain read failures.
+- **Inspect card** — dumps the presented card in a modal: identity (ATQA, UID,
+  BCC — computed manually, bypassing the reader's own BCC check, so malformed
+  "magic" cards are still identifiable), the decoded NFAR chunk header with
+  CRC32 verification, and a raw hex/ASCII view of every block or page. Rendered
+  progressively as the ~64 BLE reads arrive; Copy/Download give a plain-text
+  report. Read-only, and disabled while an archive write or scan owns the reader.
 - A branded, themed (light/dark), tabbed UI.
 
 ## Architecture
@@ -60,6 +64,10 @@ webapp/
     filename.ts                # Android-compatible filename wrapper
     mifare/card-layout.ts      # chunk ↔ Mifare Classic 1K blocks (47 usable = 752 B)
     nfc/ndef.ts, nfc/type2.ts  # NDEF MIME record + Type-2 TLV framing for NTAG
+    inspect/                   # read-only card inspector core
+      card-dump.ts             # raw per-block/page dump of a Classic or NTAG card
+      nfar-describe.ts         # tolerant NFAR header decode (reports, never throws)
+      hex-view.ts              # text rendering of a dump + header for the dialog/report
     transport/                 # Transport seam + implementations
       transport.ts             # Transport interface + typed errors
       chameleon-device.ts      # ChameleonDevice seam (scanTag, transceive14a, block R/W)
