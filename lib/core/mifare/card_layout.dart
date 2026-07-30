@@ -79,5 +79,12 @@ int nfarTotalLength(Uint8List header) {
     );
   }
   final payloadSize = ByteData.sublistView(header).getUint16(26); // big-endian
-  return NfarHeaderSize.total + payloadSize;
+  final total = NfarHeaderSize.total + payloadSize;
+  if (total > cardCapacityBytes) {
+    throw FormatException(
+      'Declared length $total exceeds card capacity $cardCapacityBytes; '
+      'card is corrupt or not NFAR',
+    );
+  }
+  return total;
 }

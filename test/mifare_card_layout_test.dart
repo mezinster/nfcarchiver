@@ -66,5 +66,22 @@ void main() {
         ..[27] = 0x2C; // 300
       expect(nfarTotalLength(header), 332); // 32 overhead + 300
     });
+
+    test('nfarTotalLength rejects a payload declaring over-capacity total', () {
+      final header = Uint8List(32)
+        ..setAll(0, [0x4E, 0x46, 0x41, 0x52, 0x01])
+        ..[26] = 0xFF
+        ..[27] = 0xFF; // 65535 bytes payload -> 32 + 65535 = 65567 total
+      expect(() => nfarTotalLength(header),
+          throwsA(isA<FormatException>()));
+    });
+
+    test('nfarTotalLength accepts a payload landing exactly on capacity', () {
+      final header = Uint8List(32)
+        ..setAll(0, [0x4E, 0x46, 0x41, 0x52, 0x01])
+        ..[26] = 0x02
+        ..[27] = 0xD0; // 720 bytes payload -> 32 + 720 = 752 (exact capacity)
+      expect(nfarTotalLength(header), 752);
+    });
   });
 }
