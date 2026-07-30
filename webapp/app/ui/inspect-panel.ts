@@ -36,13 +36,21 @@ export function openInspector(dev: ChameleonDevice, raw: RawAntiColl): void {
 
   report = '';
   rows = [];
+  const ac = new AbortController();
+  currentAbort = ac;
+
+  // Each callback checks that this inspection is still the current one before
+  // touching shared state or the DOM. A superseded inspection's trailing
+  // callback (a BLE read that was in flight when abort() fired, and resolves
+  // after the loop notices but before the promise settles) becomes a no-op
+  // instead of overwriting the next inspection's data.
   const io: InspectIO = {
-    setIdentity: (t) => { identity.textContent = t; },
-    setNfar: (t) => { nfar.textContent = t; },
-    appendRow: (line) => { rows.push(line); rawPre.textContent = rows.join('\n'); },
-    setProgress: (t) => { progress.textContent = t; },
-    setReport: (t) => { report = t; },
-    setStatus: (t) => { status.textContent = t; },
+    setIdentity: (t) => { if (currentAbort !== ac) return; identity.textContent = t; },
+    setNfar: (t) => { if (currentAbort !== ac) return; nfar.textContent = t; },
+    appendRow: (line) => { if (currentAbort !== ac) return; rows.push(line); rawPre.textContent = rows.join('\n'); },
+    setProgress: (t) => { if (currentAbort !== ac) return; progress.textContent = t; },
+    setReport: (t) => { if (currentAbort !== ac) return; report = t; },
+    setStatus: (t) => { if (currentAbort !== ac) return; status.textContent = t; },
   };
 
   if (!wired) {
@@ -64,15 +72,16 @@ export function openInspector(dev: ChameleonDevice, raw: RawAntiColl): void {
     wired = true;
   }
 
-  const ac = new AbortController();
-  currentAbort = ac;
-
   dialog.showModal();
   running = true;
   log.info('inspect', 'Inspection started');
   void runInspection(dev, raw, io, ac.signal)
-    .catch((e: unknown) => { status.textContent = String(e); })
+    .catch((e: unknown) => { if (currentAbort === ac) status.textContent = String(e); })
     .finally(() => {
+      // running must be released unconditionally regardless of which
+      // inspection this is, or a superseded run's finally would never fire
+      // (there is none pending) while a still-running one would leave the
+      // button permanently disabled if guarded on the epoch.
       running = false;
       log.info('inspect', 'Inspection finished', { rows: rows.length });
     });
