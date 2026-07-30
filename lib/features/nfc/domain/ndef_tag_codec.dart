@@ -23,6 +23,14 @@ class NdefTagCodec implements TagCodec {
     final ndef = Ndef.from(tag)!;
     // ndef.maxSize is the NDEF *message* capacity. Subtract the record overhead
     // and the terminator byte to get the chunk bytes that actually fit.
+    //
+    // Unused in the live write path: the NDEF size check there compares
+    // `requiredNdefSize(chunk)` against `ndef.maxSize` directly (see
+    // nfc_repository.dart). This method reduces to `ndef.maxSize - 40`,
+    // which is 1-4 bytes stricter than that live comparison, so wiring it in
+    // would reject some chunks the app accepts today. Anyone unifying the
+    // two must first prove the NDEF accept/reject decision is unchanged for
+    // every chunk size.
     return NfcTagType.maxPayloadForCapacity(ndef.maxSize) +
         NfarHeaderSize.total;
   }
