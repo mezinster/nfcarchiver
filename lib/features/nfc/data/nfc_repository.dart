@@ -5,6 +5,7 @@ import 'package:nfc_manager/nfc_manager.dart';
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
+import '../domain/ndef_availability.dart';
 import '../domain/ndef_formatter.dart';
 
 /// Repository for NFC operations.
@@ -78,7 +79,7 @@ class NfcRepository {
 
           final ndef = Ndef.from(tag);
           if (ndef == null) {
-            onError('Tag does not support NDEF');
+            onError(messageFor(_ndefUnavailableReason(tag)));
             return;
           }
 
@@ -138,7 +139,7 @@ class NfcRepository {
           final ndef = Ndef.from(tag);
 
           if (ndef == null) {
-            onError('Tag does not support NDEF. Please use a pre-formatted NDEF tag.');
+            onError(messageFor(_ndefUnavailableReason(tag)));
             return;
           }
 
@@ -290,6 +291,18 @@ class NfcRepository {
     NfcManager.instance.stopSession(
       alertMessage: message,
       errorMessage: null,
+    );
+  }
+
+  /// Why this tag came back without the `Ndef` technology.
+  ///
+  /// The techs the platform *did* attach are the evidence: an `NfcA` or
+  /// `MifareUltralight` tag whose NDEF detection failed is a good tag that was
+  /// tapped badly, not one the user needs to replace.
+  NdefUnavailableReason _ndefUnavailableReason(NfcTag tag) {
+    return classifyNdefUnavailable(
+      hasNfcA: tag.data['nfca'] != null,
+      hasMifareUltralight: tag.data['mifareultralight'] != null,
     );
   }
 
