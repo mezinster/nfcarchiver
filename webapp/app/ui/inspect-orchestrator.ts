@@ -32,6 +32,15 @@ export interface InspectIO {
   setStatus(text: string): void;
 }
 
+/** The Classic path always yields raw bytes. The NTAG path can fail two
+ *  structurally different ways, and collapsing them into one message would be
+ *  misinformation: a TLV that has not fully arrived yet is not the same fact
+ *  as a complete, valid NDEF record whose MIME type simply isn't ours. */
+type NfarSource =
+  | { kind: 'bytes'; bytes: Uint8Array }
+  | { kind: 'no-envelope'; reason: string }
+  | { kind: 'foreign'; reason: string };
+
 /** Rebuild the NFAR chunk stream from the units seen so far, so the header can
  *  be described mid-dump.
  *
@@ -41,7 +50,7 @@ export interface InspectIO {
  *  an NDEF MIME record starting at page 4. Concatenating raw NTAG pages yields
  *  the TLV header, not NFAR magic, so an NTAG card would always be reported as
  *  "not NFAR" without the unwrap below. */
-function nfarBytesSoFar(units: DumpUnit[], isClassic: boolean): Uint8Array {
+function nfarBytesSoFar(units: DumpUnit[], isClassic: boolean): NfarSource {
   const wanted = isClassic
     ? units.filter((u) => USABLE_BLOCK_INDEXES.includes(u.index))
     : units.filter((u) => u.index >= NDEF_START_PAGE);
@@ -54,13 +63,24 @@ function nfarBytesSoFar(units: DumpUnit[], isClassic: boolean): Uint8Array {
   const raw = new Uint8Array(total);
   let off = 0;
   for (const p of parts) { raw.set(p, off); off += p.length; }
-  if (isClassic) return raw;
-  // Mid-dump these throw until enough of the TLV has arrived; an empty buffer
-  // simply describes as "not enough bytes read yet" and resolves on a later unit.
+  if (isClassic) return { kind: 'bytes', bytes: raw };
+
+  // Mid-dump this throws until enough of the TLV has arrived, and it throws
+  // just the same at the end for a tag with no NDEF at all — both are
+  // accurately described as "no complete NDEF TLV yet", so it needs no
+  // knowledge of whether the dump has finished.
+  let ndef: Uint8Array;
   try {
-    return decodeNdefMime(readType2Ndef(raw));
+    ndef = readType2Ndef(raw);
   } catch {
-    return new Uint8Array(0);
+    return { kind: 'no-envelope', reason: 'no complete NDEF TLV in the pages read so far' };
+  }
+  // The TLV is complete but the record inside it isn't ours — a distinct,
+  // permanent fact, not "0 bytes read" for a tag that was read in full.
+  try {
+    return { kind: 'bytes', bytes: decodeNdefMime(ndef) };
+  } catch {
+    return { kind: 'foreign', reason: 'valid NDEF record, but not an NFAR chunk (different MIME type)' };
   }
 }
 
@@ -96,7 +116,8 @@ export async function runInspection(
         // Re-describe while the NFAR extent is still growing; once the declared
         // tail is covered the description stops changing.
         if (nfar.present === false || nfar.crcValid === null) {
-          nfar = describeNfar(nfarBytesSoFar(seen, unit.sector !== undefined));
+          const src = nfarBytesSoFar(seen, unit.sector !== undefined);
+          nfar = src.kind === 'bytes' ? describeNfar(src.bytes) : { present: false, reason: src.reason };
           io.setNfar(formatNfar(nfar));
         }
       },
