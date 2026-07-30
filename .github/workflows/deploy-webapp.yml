@@ -1,0 +1,245 @@
+name: Deploy web app
+
+# Manual only. Never on push or tag.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Print the S3 sync plan and stop — uploads nothing'
+        type: boolean
+        default: false
+
+# No ambient permissions anywhere. The deploy job opts in to id-token below.
+permissions: {}
+
+concurrency:
+  # Queue, never cancel: a run cancelled mid-sync would leave app/ half-updated.
+  group: deploy-webapp
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build & verify bundle
+    runs-on: ubuntu-latest
+    # This job runs `npm ci`, which executes third-party package code. It holds
+    # no AWS credential, so a compromised dependency cannot reach S3.
+    permissions: {}
+    outputs:
+      sha: ${{ steps.stamp.outputs.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: webapp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: webapp
+        run: npm ci
+
+      - name: Typecheck and run tests
+        working-directory: webapp
+        run: rm -rf dist && npm test
+
+      - name: Compute build stamp
+        id: stamp
+        run: echo "sha=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Build site
+        working-directory: webapp
+        env:
+          BUILD_SHA: ${{ steps.stamp.outputs.sha }}
+        # build-site.ts asserts its own output: non-empty files, the
+        # nfar-build:<sha> banner present, BUILD_SHA substituted, and index.html
+        # still pointing at ./dist/main.js.
+        run: npm run build:site
+
+      - name: Upload deployable site
+        uses: actions/upload-artifact@v7
+        with:
+          name: site
+          path: webapp/site/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload healthcheck tool
+        # Shipped as its own artifact so the credentialed job can verify the
+        # deploy without checking out the repo or running `npm ci`. The whole
+        # directory goes up because healthcheck.js imports ./build-marker.js.
+        uses: actions/upload-artifact@v7
+        with:
+          name: deploy-tools
+          path: webapp/dist/scripts/
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy to S3 + CloudFront
+    needs: build
+    runs-on: ubuntu-latest
+    # Zero required reviewers — this exists to pin the OIDC trust policy on
+    # `environment:production` and to restrict deploys to master.
+    environment: production
+    permissions:
+      id-token: write   # mint the OIDC token used to assume the AWS role
+      contents: read
+    env:
+      BUCKET: ${{ vars.S3_BUCKET }}
+      PREFIX: ${{ vars.S3_PREFIX }}
+      DIST_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+      BASE_URL: ${{ vars.SITE_BASE_URL }}
+      BUILD_SHA: ${{ needs.build.outputs.sha }}
+    steps:
+      - name: Download deployable site
+        uses: actions/download-artifact@v8
+        with:
+          name: site
+          path: site
+
+      - name: Download healthcheck tool
+        uses: actions/download-artifact@v8
+        with:
+          name: deploy-tools
+          path: tools
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Check configuration is present
+        # Fail loudly and early rather than letting an empty variable turn into
+        # `s3:///` or a masked-out path deep in a sync command.
+        run: |
+          set -euo pipefail
+          missing=0
+          for v in BUCKET PREFIX DIST_ID BASE_URL BUILD_SHA; do
+            if [ -z "${!v:-}" ]; then echo "::error::$v is empty — check the repository variables"; missing=1; fi
+          done
+          case "${PREFIX}" in
+            */) ;;
+            *) echo "::error::S3_PREFIX must end with a slash (got '${PREFIX}')"; missing=1 ;;
+          esac
+          [ "$missing" -eq 0 ] || exit 1
+          echo "target s3://${BUCKET}/${PREFIX} | distribution ${DIST_ID} | build ${BUILD_SHA}"
+
+      - name: Assume the AWS deploy role via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: gha-webapp-deploy-${{ github.run_id }}
+
+      - name: Show what would be uploaded, then stop
+        if: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          aws s3 sync ./site/ "s3://${BUCKET}/${PREFIX}" --delete --dryrun
+          echo "dry_run: nothing was uploaded."
+
+      - name: Snapshot the live files for rollback
+        id: snapshot
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          mkdir -p previous
+          aws s3 sync "s3://${BUCKET}/${PREFIX}" ./previous/
+          echo "snapshot taken:"
+          find previous -type f | sort
+
+      - name: Upload assets (long-lived cache)
+        id: upload_assets
+        if: ${{ !inputs.dry_run }}
+        # --delete is confined to ${PREFIX}; it can never consider another
+        # application's keys. index.html is excluded here (and so is exempt from
+        # --delete) because it is uploaded last, with different headers.
+        # The non-HTML tree is JavaScript only today — add a pass if another
+        # asset type ever ships.
+        run: |
+          set -euo pipefail
+          aws s3 sync ./site/ "s3://${BUCKET}/${PREFIX}" \
+            --delete \
+            --exclude 'index.html' \
+            --content-type 'text/javascript; charset=utf-8' \
+            --cache-control 'public, max-age=3600'
+
+      - name: Upload index.html last (no-cache)
+        id: upload_html
+        if: ${{ !inputs.dry_run }}
+        # Written last so the entry point never references a bundle that has not
+        # landed. Explicit content-type: S3's guessing is not trusted here.
+        run: |
+          set -euo pipefail
+          aws s3 cp ./site/index.html "s3://${BUCKET}/${PREFIX}index.html" \
+            --content-type 'text/html; charset=utf-8' \
+            --cache-control 'no-cache'
+
+      - name: Invalidate the app prefix and wait
+        id: invalidate
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          id=$(aws cloudfront create-invalidation \
+                 --distribution-id "${DIST_ID}" \
+                 --paths "/${PREFIX}*" \
+                 --query 'Invalidation.Id' --output text)
+          echo "invalidation=${id}" >> "$GITHUB_OUTPUT"
+          echo "created invalidation ${id} for /${PREFIX}*"
+          # The healthcheck must not run before propagation finishes, or it
+          # would test the old edge copy and trigger a spurious rollback.
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "${DIST_ID}" --id "${id}"
+          echo "invalidation ${id} completed"
+
+      - name: Verify the live site serves this build
+        id: verify
+        if: ${{ !inputs.dry_run }}
+        run: node tools/healthcheck.js "${BASE_URL}" "${BUILD_SHA}"
+
+      - name: Roll back to the previous version
+        # Runs only when something after the snapshot failed. Guarded on the
+        # snapshot having succeeded — without it there is nothing trustworthy to
+        # restore — and on the upload having at least been attempted.
+        if: ${{ failure() && !inputs.dry_run && steps.snapshot.outcome == 'success' && steps.upload_assets.outcome != 'skipped' }}
+        run: |
+          set -euo pipefail
+          echo "::error::Deploy verification failed — restoring the previous version."
+          # Same two-pass header treatment as a good deploy: a plain sync would
+          # let S3 guess content types and lose the cache policy.
+          aws s3 sync ./previous/ "s3://${BUCKET}/${PREFIX}" \
+            --delete \
+            --exclude 'index.html' \
+            --content-type 'text/javascript; charset=utf-8' \
+            --cache-control 'public, max-age=3600'
+          if [ -f ./previous/index.html ]; then
+            aws s3 cp ./previous/index.html "s3://${BUCKET}/${PREFIX}index.html" \
+              --content-type 'text/html; charset=utf-8' \
+              --cache-control 'no-cache'
+          fi
+          rollback_id=$(aws cloudfront create-invalidation \
+                          --distribution-id "${DIST_ID}" \
+                          --paths "/${PREFIX}*" \
+                          --query 'Invalidation.Id' --output text)
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "${DIST_ID}" --id "${rollback_id}"
+          echo "rolled back; invalidation ${rollback_id} completed"
+
+      - name: Summary
+        if: ${{ always() && !inputs.dry_run }}
+        run: |
+          {
+            echo "### Web app deploy"
+            echo ""
+            echo "| field | value |"
+            echo "|---|---|"
+            echo "| build | \`${BUILD_SHA}\` |"
+            echo "| ref | \`${{ github.ref_name }}\` |"
+            echo "| target | \`s3://${BUCKET}/${PREFIX}\` |"
+            echo "| url | ${BASE_URL} |"
+            echo "| invalidation | \`${{ steps.invalidate.outputs.invalidation || 'n/a' }}\` |"
+            echo "| verify | ${{ steps.verify.outcome || 'did not run' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

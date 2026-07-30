@@ -129,9 +129,10 @@ async function main(): Promise<void> {
     format: 'esm',
     platform: 'browser',
     target: 'es2022',
-    // Deliberately unminified: this matches the bundle shape already validated
-    // on real hardware. Flipping this on is a one-line change later.
-    minify: false,
+    // Minified, matching the bundle that has been validated on real hardware
+    // (the previous hand-built deploy was minified: 177 KB / 22 lines).
+    // Unminified would be the deviation here, not the safe default.
+    minify: true,
     define: { __BUILD_SHA__: JSON.stringify(sha) },
     logLevel: 'info',
   });
@@ -206,16 +207,25 @@ git checkout app/index.html
 
 Expected: fails with `Error: index.html does not reference ./dist/main.js` and `exit=1`. The `git checkout` restores the file — confirm with `git status --short app/index.html` printing nothing.
 
-Then confirm the stamp assertion fires, by building with the `define` disabled:
+Then confirm the stamp assertion fires, by substituting the wrong value. The
+copy must live inside the tree or Node cannot resolve `esbuild`:
 
 ```bash
-node -e "
-const s = require('fs').readFileSync('dist/scripts/build-site.js','utf8');
-require('fs').writeFileSync('/tmp/no-define.js', s.replace('define:', 'defineDISABLED:'));
-" && BUILD_SHA=abc1234 node /tmp/no-define.js; echo "exit=$?"
+sed 's|JSON.stringify(sha)|JSON.stringify("wrong")|' dist/scripts/build-site.js > dist/scripts/bad-define.mjs
+BUILD_SHA=abc1234 node dist/scripts/bad-define.mjs 2>&1 | grep -i Error
+rm -f dist/scripts/bad-define.mjs
 ```
 
-Expected: fails with `bundle does not contain BUILD_SHA "abc1234" — esbuild define did not apply` and `exit=1`. (Removing the key makes esbuild ignore it, so `__BUILD_SHA__` is never substituted — exactly the silent failure this assertion exists to catch.) Clean up with `rm /tmp/no-define.js`.
+Expected: `Error: bundle does not contain BUILD_SHA "abc1234" — esbuild define did not apply`.
+
+(Do **not** try this by renaming the `define:` key — esbuild's JS API rejects
+unknown options outright, so it would fail for the wrong reason.)
+
+Finally, rebuild cleanly so `site/` is not left holding a bad bundle:
+
+```bash
+BUILD_SHA=abc1234 npm run build:site | tail -1
+```
 
 - [ ] **Step 8: Confirm the existing suite still passes**
 
@@ -266,8 +276,19 @@ prove CloudFront is serving this build rather than merely serving something."
 - Create: `webapp/test/healthcheck.test.ts`
 
 **Interfaces:**
-- Consumes: `BUILD_SHA` semantics from Task 1 — the SHA string is present verbatim in the served bundle.
+- Consumes: the build marker from Task 1 — `nfar-build:<sha>`, emitted as an esbuild banner.
 - Produces: `checkOnce(baseUrl: string, expectedSha: string, fetchImpl?: typeof fetch): Promise<CheckResult>`, `healthcheck(baseUrl: string, expectedSha: string, opts?: HealthcheckOptions): Promise<CheckResult>`, `interface CheckResult { ok: boolean; failures: string[] }`, and a CLI: `node dist/scripts/healthcheck.js <baseUrl> <expectedSha>` exiting 0 on healthy, 1 otherwise.
+
+> **Implementation note (deviation from the code listed below).** The listed
+> version searches the served bundle for the bare `expectedSha`. That was
+> implemented, and Step 5's end-to-end check caught it passing a *stale* deploy:
+> the bundle contains hex constants such as `"C82000000000"`, so the 7-character
+> needle `0000000` matched by coincidence. As shipped, the check instead matches
+> the prefixed sentinel `nfar-build:<sha>` emitted by esbuild's `banner` option,
+> with the format defined once in `scripts/build-marker.ts` and imported by both
+> `build-site.ts` and `healthcheck.ts`. A regression test covers the
+> hex-constant collision. Read the shipped files, not the listings below, when
+> touching this logic.
 
 - [ ] **Step 1: Write the failing test**
 

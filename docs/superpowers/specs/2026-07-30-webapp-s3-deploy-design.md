@@ -110,9 +110,11 @@ site/
 
 - `bundle: true`, `format: 'esm'`, `platform: 'browser'`
 - `define: { __BUILD_SHA__: JSON.stringify(process.env.BUILD_SHA ?? 'dev') }`
-- **No minification.** The current bundle is unminified and is what has been
-  validated on real hardware; keeping the output shape unchanged removes a
-  variable from the first automated deploys. It is a one-line toggle later.
+- **Minified** (`minify: true`), matching the hand-built bundle already deployed
+  and validated on real hardware — that one is minified (176,813 B across 22
+  lines). An unminified build would be the deviation: it comes out at 296,772 B,
+  68% larger. With minification on, the reproducible build lands within 21 bytes
+  of the deployed artifact, the delta being exactly the added SHA stamp.
 - Output directory `webapp/site/` is gitignored.
 
 `index.html` is copied verbatim, unmodified. It already references
@@ -204,7 +206,18 @@ rather than just the origin:
 
 1. `GET /app/` → 200 and `content-type` starts with `text/html`
 2. `GET /app/dist/main.js` → 200 and `content-type` contains `javascript`
-3. the body of `main.js` **contains `<expectedSha>`**
+3. the body of `main.js` **contains the build marker `nfar-build:<expectedSha>`**
+
+Check 3 matches a **prefixed sentinel, not the bare SHA**. Searching for the raw
+SHA was tried first and is unsafe: the bundle is full of hex string constants
+(CRC tables, APDU literals such as `"C82000000000"`), so a 7-hex-character
+needle can match by coincidence — `0000000` genuinely occurs in an unrelated
+constant, and the healthcheck passed a stale deploy as a result. The marker is
+emitted by esbuild's `banner` option, which is written verbatim and survives
+both minification and tree-shaking, so it is present regardless of whether any
+application code references `BUILD_SHA`. Its format lives in one place,
+`scripts/build-marker.ts`, imported by both the writer and the reader so the two
+cannot drift.
 
 Requests send `Cache-Control: no-cache`. Each check retries with exponential
 backoff for up to ~60 s to absorb residual edge propagation, then fails.
@@ -214,8 +227,11 @@ misconfigured content type; only check 3 distinguishes "the deploy worked" from
 "an older version is still being served".
 
 Unit tests cover the script against a local `http.createServer` stub: a passing
-case, a wrong-SHA case, and a non-200 case. A healthcheck that mis-fires
-triggers a needless rollback, so its own logic is worth testing.
+case, a wrong-marker case, a non-200 case, the backoff schedule, and a
+regression case asserting that a SHA appearing only inside an unrelated hex
+constant does **not** satisfy the check. A healthcheck that mis-fires either
+triggers a needless rollback or — worse, as the bare-SHA search did — waves a
+stale deploy through, so its own logic is worth testing.
 
 ## Rollback
 
@@ -375,7 +391,6 @@ fixes only where they live.
 
 - Content-hashed asset filenames and long-lived immutable caching.
 - Staging or preview environments.
-- Bundle minification.
 - Any change to NFAR format, transports, or app behaviour.
 - Creating or reconfiguring the S3 bucket, CloudFront distribution, ACM
   certificate, or DNS — all already exist.
