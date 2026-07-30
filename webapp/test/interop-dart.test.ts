@@ -11,6 +11,7 @@ import { gzipDecompress } from '../src/gzip.js';
 import { restore } from '../src/pipeline.js';
 import { unwrapFilename } from '../src/filename.js';
 import { fromHex } from './hex.js';
+import { chunkToBlocks } from '../src/mifare/card-layout.js';
 
 interface Fixture {
   payloadSize: number;
@@ -72,4 +73,39 @@ test('TS restores a Dart filename-wrapped, compressed+encrypted archive and reco
   const { fileName, data } = unwrapFilename(raw);
   assert.equal(fileName, fixture.wrappedFileName);
   assert.deepEqual(data, fromHex(fixture.wrappedOriginal));
+});
+
+interface MifareFixture {
+  payloadLength: number;
+  blocks: Array<{ block: number; hex: string }>;
+}
+
+// dist/test/ -> ../../test/fixtures (fixtures are not compiled by tsc)
+const mifareFixturePath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../test/fixtures/mifare-card.json',
+);
+const mifareFixture: MifareFixture = JSON.parse(readFileSync(mifareFixturePath, 'utf8'));
+
+test('Dart and TypeScript produce identical Mifare card images', () => {
+  const payload = new Uint8Array(mifareFixture.payloadLength).map((_, i) => (i + 3) % 256);
+  const bytes = encodeChunk({
+    archiveId: new Uint8Array(16).fill(4),
+    totalChunks: 1,
+    chunkIndex: 0,
+    payload,
+    crc32: crc32(payload),
+    flags: 0,
+  });
+
+  const ours = chunkToBlocks(bytes);
+  assert.equal(ours.length, mifareFixture.blocks.length);
+  for (let i = 0; i < ours.length; i++) {
+    assert.equal(ours[i]!.block, mifareFixture.blocks[i]!.block);
+    assert.equal(
+      Array.from(ours[i]!.data, (b) => b.toString(16).padStart(2, '0')).join(''),
+      mifareFixture.blocks[i]!.hex,
+      `block ${ours[i]!.block} differs`,
+    );
+  }
 });
