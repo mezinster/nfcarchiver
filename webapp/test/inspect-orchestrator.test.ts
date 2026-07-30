@@ -201,6 +201,25 @@ test('a foreign NDEF MIME type is reported as valid NDEF, not NFAR — not "0 by
   assert.ok(!/0 bytes read/.test(nfar), nfar);
 });
 
+test('Mifare Classic with a non-factory key reports unreadable blocks, not "0 bytes read"', async () => {
+  // Sector 0 keyed off-factory means the manufacturer/data blocks that would
+  // hold the chunk all come back auth-failed, so the reconstructed byte
+  // stream is empty. describeNfar would call that "0 bytes read", which is
+  // false — the dump did read 64 blocks, all 60 usable ones came back marked
+  // "auth failed", and the panel should say so instead of implying nothing
+  // was read at all.
+  const device = new FakeChameleon();
+  device.defineCard(UID, { keyA: new Uint8Array([1, 2, 3, 4, 5, 6]) });
+  device.place(UID);
+  const { io, calls, rows } = stubIo();
+  await runInspection(device, okRaw, io);
+
+  assert.equal(rows.length, 64, 'the raw dump still runs to completion');
+  const nfar = calls.filter((c) => c.startsWith('nfar:')).pop()!;
+  assert.match(nfar, /blocks holding the chunk could not be read/, nfar);
+  assert.ok(!/0 bytes read/.test(nfar), nfar);
+});
+
 test('an aborted inspection reports it and stops early', async () => {
   const device = new FakeChameleon();
   device.place(UID);

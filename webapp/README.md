@@ -64,6 +64,10 @@ webapp/
     filename.ts                # Android-compatible filename wrapper
     mifare/card-layout.ts      # chunk ↔ Mifare Classic 1K blocks (47 usable = 752 B)
     nfc/ndef.ts, nfc/type2.ts  # NDEF MIME record + Type-2 TLV framing for NTAG
+    inspect/                   # read-only card inspector core
+      card-dump.ts             # raw per-block/page dump of a Classic or NTAG card
+      nfar-describe.ts         # tolerant NFAR header decode (reports, never throws)
+      hex-view.ts              # text rendering of a dump + header for the dialog/report
     transport/                 # Transport seam + implementations
       transport.ts             # Transport interface + typed errors
       chameleon-device.ts      # ChameleonDevice seam (scanTag, transceive14a, block R/W)

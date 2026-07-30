@@ -17,7 +17,6 @@ import {
 } from '../chunk.js';
 import { crc32 } from '../crc32.js';
 import { formatArchiveId } from '../archive-id.js';
-import { CARD_CAPACITY_BYTES } from '../mifare/card-layout.js';
 
 export interface NfarAbsent {
   present: false;
@@ -49,7 +48,7 @@ export type NfarDescription = NfarAbsent | NfarPresent;
 const spaced = (b: Uint8Array): string =>
   Array.from(b, (x) => x.toString(16).padStart(2, '0').toUpperCase()).join(' ');
 
-export function describeNfar(data: Uint8Array): NfarDescription {
+export function describeNfar(data: Uint8Array, capacityBytes?: number): NfarDescription {
   const minToJudge = NFAR_MAGIC.length + 1;
   if (data.length < minToJudge) {
     return { present: false, reason: `only ${data.length} bytes read; need at least ${minToJudge} to identify a chunk` };
@@ -78,8 +77,8 @@ export function describeNfar(data: Uint8Array): NfarDescription {
   const totalLength = TOTAL_OVERHEAD + payloadSize;
 
   const warnings: string[] = [];
-  if (totalLength > CARD_CAPACITY_BYTES) {
-    warnings.push(`declared length ${totalLength} B exceeds Mifare Classic 1K capacity ${CARD_CAPACITY_BYTES} B`);
+  if (capacityBytes !== undefined && totalLength > capacityBytes) {
+    warnings.push(`declared length ${totalLength} B exceeds the tag's ${capacityBytes} B capacity`);
   }
   if ((flags & ~(FLAG_COMPRESSED | FLAG_ENCRYPTED)) !== 0) {
     warnings.push(`unknown flag bits set: 0x${flags.toString(16).padStart(2, '0')}`);

@@ -19,7 +19,11 @@ let report = '';
 let rows: string[] = [];
 let currentAbort: AbortController | null = null;
 
-export function openInspector(dev: ChameleonDevice, raw: RawAntiColl): void {
+export function openInspector(
+  dev: ChameleonDevice,
+  raw: RawAntiColl,
+  setReaderBusy: (busy: boolean) => void,
+): void {
   if (running) return;
   const dialog = $('inspect-dialog') as HTMLDialogElement;
   const identity = $('inspect-identity');
@@ -74,15 +78,17 @@ export function openInspector(dev: ChameleonDevice, raw: RawAntiColl): void {
 
   dialog.showModal();
   running = true;
+  setReaderBusy(true);
   log.info('inspect', 'Inspection started');
   void runInspection(dev, raw, io, ac.signal)
     .catch((e: unknown) => { if (currentAbort === ac) status.textContent = String(e); })
     .finally(() => {
-      // running must be released unconditionally regardless of which
-      // inspection this is, or a superseded run's finally would never fire
-      // (there is none pending) while a still-running one would leave the
-      // button permanently disabled if guarded on the epoch.
+      // running (and the reader-busy gate) must be released unconditionally
+      // regardless of which inspection this is, or a superseded run's finally
+      // would never fire (there is none pending) while a still-running one
+      // would leave the button permanently disabled if guarded on the epoch.
       running = false;
+      setReaderBusy(false);
       log.info('inspect', 'Inspection finished', { rows: rows.length });
     });
 }

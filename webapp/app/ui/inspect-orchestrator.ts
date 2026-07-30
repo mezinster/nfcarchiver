@@ -12,11 +12,12 @@
 import { dumpCard, type DumpUnit } from '../../src/inspect/card-dump.js';
 import { describeNfar, type NfarDescription } from '../../src/inspect/nfar-describe.js';
 import { formatIdentity, formatNfar, formatReport, formatUnitRow } from '../../src/inspect/hex-view.js';
-import { USABLE_BLOCK_INDEXES } from '../../src/mifare/card-layout.js';
+import { USABLE_BLOCK_INDEXES, CARD_CAPACITY_BYTES } from '../../src/mifare/card-layout.js';
 import { decodeNdefMime } from '../../src/nfc/ndef.js';
 import { readType2Ndef } from '../../src/nfc/type2.js';
 import type { ChameleonDevice } from '../../src/transport/chameleon-device.js';
 import { diagnoseCard, type CardDiagnosis, type RawAntiColl } from '../diagnostics.js';
+import { UnsupportedTagError } from '../../src/transport/transport.js';
 import { humanError } from './errors.js';
 
 /** NTAG stores its NDEF message from page 4 onward (pages 0-3 are UID, lock
@@ -39,7 +40,8 @@ export interface InspectIO {
 type NfarSource =
   | { kind: 'bytes'; bytes: Uint8Array }
   | { kind: 'no-envelope'; reason: string }
-  | { kind: 'foreign'; reason: string };
+  | { kind: 'foreign'; reason: string }
+  | { kind: 'unreadable'; reason: string };
 
 /** Rebuild the NFAR chunk stream from the units seen so far, so the header can
  *  be described mid-dump.
@@ -63,7 +65,17 @@ function nfarBytesSoFar(units: DumpUnit[], isClassic: boolean): NfarSource {
   const raw = new Uint8Array(total);
   let off = 0;
   for (const p of parts) { raw.set(p, off); off += p.length; }
-  if (isClassic) return { kind: 'bytes', bytes: raw };
+  if (isClassic) {
+    // An empty stream with at least one usable block already seen means the
+    // very first usable block failed (a non-factory key on sector 0, most
+    // often) — describeNfar would call that "0 bytes read", which is false:
+    // the dump did read blocks, they just came back auth-failed. Telling
+    // those apart is the same fix already applied to the NTAG paths above.
+    if (total === 0 && wanted.length > 0) {
+      return { kind: 'unreadable', reason: 'the blocks holding the chunk could not be read (non-factory key?)' };
+    }
+    return { kind: 'bytes', bytes: raw };
+  }
 
   // Mid-dump this throws until enough of the TLV has arrived, and it throws
   // just the same at the end for a tag with no NDEF at all — both are
@@ -116,8 +128,14 @@ export async function runInspection(
         // Re-describe while the NFAR extent is still growing; once the declared
         // tail is covered the description stops changing.
         if (nfar.present === false || nfar.crcValid === null) {
-          const src = nfarBytesSoFar(seen, unit.sector !== undefined);
-          nfar = src.kind === 'bytes' ? describeNfar(src.bytes) : { present: false, reason: src.reason };
+          const isClassic = unit.sector !== undefined;
+          const src = nfarBytesSoFar(seen, isClassic);
+          // Mifare Classic has a fixed, known capacity, so a declared length
+          // past it is worth flagging. On NTAG the chunk arrives inside an
+          // NDEF envelope whose own TLV length already bounds it, so we do not
+          // guess a capacity we have not read.
+          const capacityBytes = isClassic ? CARD_CAPACITY_BYTES : undefined;
+          nfar = src.kind === 'bytes' ? describeNfar(src.bytes, capacityBytes) : { present: false, reason: src.reason };
           io.setNfar(formatNfar(nfar));
         }
       },
@@ -131,6 +149,10 @@ export async function runInspection(
         : 'Done.',
     );
   } catch (e) {
-    io.setStatus(humanError(e));
+    // humanError() flattens UnsupportedTagError to a fixed generic string, but
+    // this inspector builds that message specifically to be read (the SAK
+    // value, which GET_VERSION byte was unrecognized) — for an inspector, that
+    // text IS the result, so keep it instead of discarding it.
+    io.setStatus(e instanceof UnsupportedTagError ? e.message : humanError(e));
   }
 }

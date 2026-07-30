@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { describeNfar } from '../src/inspect/nfar-describe.js';
-import { encodeChunk, FLAG_COMPRESSED, FLAG_ENCRYPTED, HEADER_SIZE } from '../src/chunk.js';
+import { encodeChunk, FLAG_COMPRESSED, FLAG_ENCRYPTED, HEADER_SIZE, TOTAL_OVERHEAD } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
 
 const ID = new Uint8Array([
@@ -69,12 +69,26 @@ test('too few bytes to judge is reported as such', () => {
 test('a payload size larger than the card warns but still describes', () => {
   const bytes = chunkBytes(new Uint8Array([1, 2, 3]));
   new DataView(bytes.buffer).setUint16(26, 4000); // absurd payload size
-  const d = describeNfar(bytes);
+  const d = describeNfar(bytes, 752);
   assert.equal(d.present, true, 'a bad length must not hide the rest of the header');
   if (!d.present) return;
   assert.equal(d.payloadSize, 4000);
   assert.ok(d.warnings.some((w) => /exceeds/.test(w)), JSON.stringify(d.warnings));
   assert.equal(d.crcValid, null, 'the declared tail is past the buffer, so CRC is unknown');
+});
+
+test('with no capacity argument, a declared length that would exceed Mifare capacity warns of nothing', () => {
+  // A full NTAG216 chunk legitimately runs 828-844 B, well past the 752 B
+  // Mifare Classic 1K capacity. Without an explicit capacityBytes, this must
+  // not print a false corruption warning on the medium where that size is
+  // legal — this is the regression guard for that bug.
+  const bytes = chunkBytes(new Uint8Array([1, 2, 3]));
+  new DataView(bytes.buffer).setUint16(26, 844 - TOTAL_OVERHEAD); // totalLength 844
+  const d = describeNfar(bytes);
+  assert.equal(d.present, true);
+  if (!d.present) return;
+  assert.equal(d.totalLength, 844);
+  assert.ok(!d.warnings.some((w) => /exceeds/.test(w)), JSON.stringify(d.warnings));
 });
 
 test('a corrupted payload reports crcValid false', () => {

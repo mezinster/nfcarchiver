@@ -103,6 +103,6 @@ export function initDeviceBar(): void {
         return new Uint8Array(resp);
       },
     };
-    openInspector(new SdkChameleonDevice(dev), raw);
+    openInspector(new SdkChameleonDevice(dev), raw, setReaderBusy);
   });
 }
