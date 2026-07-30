@@ -43,3 +43,42 @@ test('English catalogue function entries render', () => {
   assert.equal(en.archiveDone(1), 'Done — wrote and verified 1 card.');
   assert.equal(en.clearedFiles(2), 'Cleared 2 files.');
 });
+
+import { pickLocale, SUPPORTED, getLocale, setLocale, onLocaleChange, t } from '../app/i18n/index.js';
+
+test('pickLocale matches primary subtags, case-insensitively', () => {
+  assert.equal(pickLocale(['ru-RU', 'en']), 'ru');
+  assert.equal(pickLocale(['RU']), 'ru');
+  assert.equal(pickLocale(['pl-PL']), 'pl');
+  assert.equal(pickLocale(['ka']), 'ka');
+});
+
+test('pickLocale falls back to English', () => {
+  assert.equal(pickLocale(['ja', 'zh-Hant']), 'en');
+  assert.equal(pickLocale([]), 'en');
+});
+
+test('pickLocale prefers the earliest supported entry', () => {
+  assert.equal(pickLocale(['ja', 'tr', 'ru']), 'tr');
+});
+
+test('SUPPORTED lists the seven Flutter locales', () => {
+  assert.deepEqual([...SUPPORTED].sort(), ['be', 'en', 'ka', 'pl', 'ru', 'tr', 'uk']);
+});
+
+test('setLocale notifies subscribers and unsubscribe stops it', () => {
+  let calls = 0;
+  const off = onLocaleChange(() => { calls += 1; });
+  setLocale('ru');
+  assert.equal(calls, 1);
+  assert.equal(getLocale(), 'ru');
+  off();
+  setLocale('en');
+  assert.equal(calls, 1);
+  assert.equal(getLocale(), 'en');
+});
+
+test('t reflects the active locale', () => {
+  setLocale('en');
+  assert.equal(t.tabArchive, 'Archive');
+});
