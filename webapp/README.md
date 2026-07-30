@@ -90,6 +90,111 @@ fully tested without hardware.
 - The NDEF/Type-2 byte formats are pinned by byte-exact unit tests (the cross-compat
   guard); a real phone reading a Chameleon-written NTAG is a manual checklist item.
 
+## Deployment
+
+The app is served from `https://nfcarchiver.com/app/` — the `app/` prefix of the
+`nfcarchiver.com` S3 bucket, behind CloudFront. The bucket hosts other
+applications, so **every deploy operation is confined to that prefix**.
+
+Deploys are manual, from `master` only:
+
+```bash
+gh workflow run deploy-webapp.yml --ref master                  # deploy
+gh workflow run deploy-webapp.yml --ref master -f dry_run=true  # plan only
+```
+
+`dry_run` prints the object-level `aws s3 sync --dryrun` plan and uploads
+nothing. Use it whenever the bucket or prefix configuration might have changed —
+on a shared bucket, the plan is where a prefix mistake becomes visible instead of
+becoming an aftermath.
+
+What the workflow does:
+
+1. **build job** (`permissions: {}`, no AWS access): `npm ci`, the full test
+   suite, then `npm run build:site`, which stamps the short commit SHA into the
+   bundle and asserts its own output. It publishes two artifacts — the
+   deployable `site/` tree and the compiled healthcheck.
+2. **deploy job** (OIDC credential, ~1 h lifetime): snapshots the live files for
+   rollback, uploads assets with `max-age=3600` then `index.html` with
+   `no-cache`, invalidates `/app/*` and waits for completion, then runs the
+   healthcheck against the public URL.
+3. On verification failure it restores the snapshot with the original headers,
+   re-invalidates, and fails the run.
+
+The split exists because the build job executes third-party package code via
+`npm ci`. It holds no AWS token, so a compromised dependency cannot reach S3; the
+deploy job never builds anything.
+
+### How a deploy is verified
+
+`scripts/build-site.ts` emits an esbuild **banner** — `/* nfar-build:<sha> */` —
+and the healthcheck requires the served bundle to carry that exact marker. A 200
+alone would only prove S3 holds *something*, not that CloudFront stopped serving
+the previous version.
+
+The marker is a prefixed sentinel rather than the bare SHA for a concrete
+reason: the bundle is full of hex string constants (CRC tables, APDU literals
+such as `"C82000000000"`), so a 7-hex-character needle can match by coincidence
+and wave a stale deploy through. Its format lives once in
+`scripts/build-marker.ts`, imported by both the writer and the reader so the two
+cannot drift. `test/healthcheck.test.ts` pins the collision case.
+
+The About tab shows the deployed SHA, so you can confirm what is live by eye.
+
+To build locally without deploying:
+
+```bash
+BUILD_SHA=$(git rev-parse --short=7 HEAD) npm run build:site   # -> site/
+```
+
+### Rolling back
+
+Re-dispatch the workflow from the last good commit:
+
+```bash
+gh workflow run deploy-webapp.yml --ref <good-sha-or-tag>
+```
+
+Automatic rollback only covers a *failed healthcheck* within a run. If the
+runner itself dies between upload and verification, nothing restores
+automatically — re-dispatch as above. A bug that verifies fine is likewise not
+caught; the healthcheck proves which bytes are live, not that they are correct.
+
+### Configuration
+
+Set once on the repository, in the `production` environment. Only the role ARN
+is a secret, and only so the account ID is masked in logs.
+
+| Kind | Name | Value |
+|---|---|---|
+| Secret | `AWS_DEPLOY_ROLE_ARN` | IAM role assumed via OIDC |
+| Variable | `AWS_REGION` | `eu-central-1` |
+| Variable | `S3_BUCKET` | `nfcarchiver.com` |
+| Variable | `S3_PREFIX` | `app/` (trailing slash required) |
+| Variable | `CLOUDFRONT_DISTRIBUTION_ID` | distribution serving the domain |
+| Variable | `SITE_BASE_URL` | `https://nfcarchiver.com/app/` |
+
+The five non-credentials are **variables, not secrets, deliberately**. GitHub
+redacts a secret's text wherever it appears in a log, by substring match — with
+`app/` as a secret, every mention of `webapp/` would print as `web***`, and the
+healthcheck's own output would read `healthy: *** is serving build …`. Masking
+non-secrets destroys exactly the diagnostics a failed deploy needs.
+
+There are no long-lived AWS keys anywhere. The `production` environment carries
+no required reviewers, so a deploy never waits for approval; it exists to pin the
+OIDC trust policy on `environment:production` and to restrict deploys to
+`master`. The trust policy's `sub` condition —
+`repo:mezinster/nfcarchiver:environment:production`, `StringEquals`, no
+wildcard — is the entire security boundary. Do not use the IAM console's
+web-identity role wizard on this role: it tends to emit a trust policy with only
+an `aud` condition, which would let any repository on GitHub assume it.
+
+The IAM permission policy allows object actions on
+`arn:aws:s3:::nfcarchiver.com/app/*`, `ListBucket` on the bucket under an
+`s3:prefix` condition, and `CreateInvalidation`/`GetInvalidation` on the one
+distribution. Nothing else — so a wrong path in the workflow fails rather than
+damaging a neighbouring application.
+
 ## Notes & known follow-ups
 
 - `chameleon-ultra.js` validates arguments at runtime in ways the type-checker can't
