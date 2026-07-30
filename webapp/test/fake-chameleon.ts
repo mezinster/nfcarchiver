@@ -24,6 +24,7 @@ export class FakeChameleon implements ChameleonDevice {
   private connected = false;
   private field: string | null = null;
   private corruptNext = false;
+  private truncateNext: number | null = null;
   private readonly cards = new Map<string, Card>();
 
   defineCard(uid: Uint8Array, opts?: { keyA?: Uint8Array; sak?: number }): void {
@@ -58,6 +59,12 @@ export class FakeChameleon implements ChameleonDevice {
   corruptNextWrite(): void {
     this.corruptNext = true;
   }
+  /** Simulate one marginal RF read: the reader returns fewer bytes than a full
+   *  block/page-group without reporting an error, as the Chameleon does when
+   *  coupling is poor. */
+  truncateNextRead(keepBytes = 4): void {
+    this.truncateNext = keepBytes;
+  }
   blockOf(uid: Uint8Array, block: number): Uint8Array {
     return this.cards.get(hex(uid))!.image.slice(block * 16, block * 16 + 16);
   }
@@ -87,7 +94,13 @@ export class FakeChameleon implements ChameleonDevice {
     }
     if (cmd === 0x30) { // READ page..page+3 (16 bytes)
       const page = data[1]!;
-      return ntag.pages.slice(page * 4, page * 4 + 16);
+      const full = ntag.pages.slice(page * 4, page * 4 + 16);
+      if (this.truncateNext !== null) {
+        const keep = this.truncateNext;
+        this.truncateNext = null;
+        return full.slice(0, keep);
+      }
+      return full;
     }
     if (cmd === 0xa2) { // WRITE one page
       const page = data[1]!;
@@ -105,7 +118,13 @@ export class FakeChameleon implements ChameleonDevice {
   async readBlock(block: number, key: Uint8Array): Promise<Uint8Array> {
     const card = this.current();
     if (!keysEqual(key, card.keyA)) throw new CardAuthError(`Auth failed on block ${block}`);
-    return card.image.slice(block * 16, block * 16 + 16);
+    const full = card.image.slice(block * 16, block * 16 + 16);
+    if (this.truncateNext !== null) {
+      const keep = this.truncateNext;
+      this.truncateNext = null;
+      return full.slice(0, keep);
+    }
+    return full;
   }
 
   async writeBlock(block: number, key: Uint8Array, data: Uint8Array): Promise<void> {

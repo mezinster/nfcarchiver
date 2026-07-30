@@ -8,7 +8,7 @@ import { encodeNdefMime, decodeNdefMime, NdefFormatError } from '../nfc/ndef.js'
 import { wrapType2Tlv, readType2Ndef, detectNtagType, ntagUserBytes, ndefCapacityFromCC, chunkPayloadForCapacity, type NtagType } from '../nfc/type2.js';
 import type { ChameleonDevice } from './chameleon-device.js';
 import { NfarFormatError, TOTAL_OVERHEAD } from '../chunk.js';
-import { TagTimeoutError, UnsupportedTagError, WriteVerifyError, type PresentedTag, type Transport } from './transport.js';
+import { CardReadError, TagTimeoutError, UnsupportedTagError, WriteVerifyError, type PresentedTag, type Transport } from './transport.js';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const NDEF_START_PAGE = 4;
@@ -78,11 +78,17 @@ export class NtagTransport implements Transport {
     return cap;
   }
 
-  /** Read `pages` starting at `startPage`, 16 bytes per READ. */
+  /** Read `pages` starting at `startPage`, 16 bytes per READ. A READ that comes
+   *  back short is a marginal RF read, not tag content: rejecting it as transient
+   *  keeps a zero-filled buffer from being parsed as "no NDEF TLV on this tag". */
   private async readMemory(startPage: number, byteCount: number): Promise<Uint8Array> {
     const out = new Uint8Array(Math.ceil(byteCount / 16) * 16);
     for (let off = 0; off < out.length; off += 16) {
-      const resp = await this.device.transceive14a(new Uint8Array([0x30, startPage + off / 4]), { autoSelect: true, appendCrc: true, checkResponseCrc: true });
+      const page = startPage + off / 4;
+      const resp = await this.device.transceive14a(new Uint8Array([0x30, page]), { autoSelect: true, appendCrc: true, checkResponseCrc: true });
+      if (resp.length < 16) {
+        throw new CardReadError(`Short READ at page ${page}: got ${resp.length} of 16 bytes`);
+      }
       out.set(resp.subarray(0, 16), off);
     }
     return out.subarray(0, byteCount);

@@ -11,6 +11,7 @@ import { assembleChunks, createChunks } from '../src/chunker.js';
 import { NdefFormatError } from '../src/nfc/ndef.js';
 import { wrapWithFilename, unwrapFilename } from '../src/filename.js';
 import { formatArchiveId } from '../src/archive-id.js';
+import { log } from '../src/log/logger.js';
 import type { Transport } from '../src/transport/transport.js';
 
 export interface ArchiveRequest {
@@ -149,9 +150,13 @@ export class RestoreController {
         chunk = decodeChunk(await this.transport.readChunk());
       } catch (e) {
         // A blank/foreign/undecodable card in the pile shouldn't end the scan:
-        // remember its UID (so it isn't re-read on a re-tap) and skip it.
+        // remember its UID (so it isn't re-read on a re-tap) and skip it. This
+        // verdict is sticky, so only a healthy full read may produce it — the
+        // transports reject a short read as CardReadError, which falls through
+        // to the caller and leaves the UID re-tappable.
         if (e instanceof NfarFormatError || e instanceof NdefFormatError) {
           this.seenUids.add(uid);
+          log.debug('scan', 'Card skipped — holds no NFAR data', { uid, error: String(e) });
           return this.detectedArchives();
         }
         throw e; // a transient I/O failure — let the caller decide

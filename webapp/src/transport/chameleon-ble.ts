@@ -10,7 +10,7 @@ import {
   chunkToBlocks, firstBlockIsNfar, nfarTotalLength, assembleChunkFromBlocks,
 } from '../mifare/card-layout.js';
 import { FACTORY_KEY_A, type ChameleonDevice } from './chameleon-device.js';
-import { TagTimeoutError, WriteVerifyError, type PresentedTag, type Transport } from './transport.js';
+import { CardReadError, TagTimeoutError, WriteVerifyError, type PresentedTag, type Transport } from './transport.js';
 
 function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -50,8 +50,19 @@ export class ChameleonBleTransport implements Transport {
     }
   }
 
+  /** Every read goes through here: a short response is a marginal RF read, not
+   *  card content, so it is rejected as transient instead of being treated as
+   *  (zero-padded) data — which would read as "this card holds no NFAR chunk". */
+  private async readBlockStrict(block: number): Promise<Uint8Array> {
+    const data = await this.device.readBlock(block, FACTORY_KEY_A);
+    if (data.length !== BLOCK_SIZE) {
+      throw new CardReadError(`Short read on block ${block}: got ${data.length} of ${BLOCK_SIZE} bytes`);
+    }
+    return data;
+  }
+
   private readUsable(i: number): Promise<Uint8Array> {
-    return this.device.readBlock(USABLE_BLOCK_INDEXES[i]!, FACTORY_KEY_A);
+    return this.readBlockStrict(USABLE_BLOCK_INDEXES[i]!);
   }
 
   async peekIsNfar(): Promise<boolean> {
@@ -78,7 +89,7 @@ export class ChameleonBleTransport implements Transport {
     const blocks = chunkToBlocks(bytes); // throws CardCapacityError if > 752
     for (const { block, data } of blocks) await this.device.writeBlock(block, FACTORY_KEY_A, data);
     for (const { block, data } of blocks) {
-      const readBack = await this.device.readBlock(block, FACTORY_KEY_A);
+      const readBack = await this.readBlockStrict(block);
       if (!bytesEqual(readBack, data)) {
         throw new WriteVerifyError(`Verification failed on block ${block}: read-back does not match`);
       }
