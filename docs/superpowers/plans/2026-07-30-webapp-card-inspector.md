@@ -841,7 +841,7 @@ test('the NFAR panel renders flags, ids and CRC status', () => {
   });
   const text = formatNfar(describeNfar(bytes));
   assert.match(text, /NFAR/);
-  assert.match(text, /chunk 1 of 1/);
+  assert.match(text, /chunk\s+1 of 1/);  // the panel column-aligns, so tolerate the padding
   assert.match(text, /no compression/i);
   assert.match(text, /CRC32/);
   assert.match(text, /OK/);
