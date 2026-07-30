@@ -5,6 +5,8 @@ import 'package:nfc_manager/nfc_manager.dart';
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
+import '../domain/mifare_block_io.dart';
+import '../domain/mifare_tag_codec.dart';
 import '../domain/ndef_availability.dart';
 import '../domain/ndef_formatter.dart';
 import '../domain/ndef_tag_codec.dart';
@@ -21,8 +23,12 @@ class NfcRepository {
 
   final _ndefFormatter = NdefFormatter.instance;
 
-  /// Codecs tried, in order, to find one that can handle a tapped tag.
-  final List<TagCodec> _codecs = [NdefTagCodec()];
+  /// Mifare first: NDEF is never written onto Classic, so a tag exposing
+  /// MifareClassic is unambiguously ours. NDEF handles everything else.
+  final List<TagCodec> _codecs = [
+    MifareTagCodec(mifareIoFor),
+    NdefTagCodec(),
+  ];
 
   /// First codec that can handle this tag, or null.
   TagCodec? _codecFor(NfcTag tag) {
@@ -154,24 +160,31 @@ class NfcRepository {
             return;
           }
 
-          final ndef = Ndef.from(tag)!;
-
-          if (!ndef.isWritable) {
-            onError('Tag is not writable');
-            return;
-          }
-
-          final requiredSize = _ndefFormatter.requiredNdefSize(chunk);
-          if (ndef.maxSize < requiredSize) {
-            if (onTagTooSmall != null) {
-              onTagTooSmall(requiredSize, ndef.maxSize, tagInfo);
-            } else {
-              onError(
-                'Tag too small: needs $requiredSize bytes, '
-                'has ${ndef.maxSize} bytes',
-              );
+          // These pre-write checks are NDEF-specific: a Mifare Classic tag has
+          // no NDEF technology to query (`Ndef.from(tag)` is null), so it
+          // skips straight to `codec.writeChunk`, which does its own capacity
+          // check (`MifareCapacityException`) and auth check
+          // (`MifareAuthException`) — both land in the catch below like any
+          // other write failure. NDEF's checks and messages are unchanged.
+          final ndef = Ndef.from(tag);
+          if (ndef != null) {
+            if (!ndef.isWritable) {
+              onError('Tag is not writable');
+              return;
             }
-            return;
+
+            final requiredSize = _ndefFormatter.requiredNdefSize(chunk);
+            if (ndef.maxSize < requiredSize) {
+              if (onTagTooSmall != null) {
+                onTagTooSmall(requiredSize, ndef.maxSize, tagInfo);
+              } else {
+                onError(
+                  'Tag too small: needs $requiredSize bytes, '
+                  'has ${ndef.maxSize} bytes',
+                );
+              }
+              return;
+            }
           }
 
           await codec.writeChunk(tag, chunk);
