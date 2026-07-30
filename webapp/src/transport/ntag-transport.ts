@@ -128,14 +128,26 @@ export class NtagTransport implements Transport {
     const padded = new Uint8Array(Math.ceil(tlv.length / 4) * 4);
     padded.set(tlv);
     const pageCount = padded.length / 4;
-    for (let p = 0; p < pageCount; p++) {
-      // NTAG WRITE returns a 4-bit ACK/NAK with no CRC, so checkResponseCrc is
-      // intentionally omitted here (unlike the READ/GET_VERSION transceives above).
-      await this.device.transceive14a(
-        new Uint8Array([0xa2, NDEF_START_PAGE + p, ...padded.subarray(p * 4, p * 4 + 4)]),
+    // NTAG WRITE returns a 4-bit ACK/NAK with no CRC, so checkResponseCrc is
+    // intentionally omitted here (unlike the READ/GET_VERSION transceives above).
+    const writePage = (p: number, four: Uint8Array): Promise<Uint8Array> =>
+      this.device.transceive14a(
+        new Uint8Array([0xa2, NDEF_START_PAGE + p, ...four]),
         { autoSelect: true, appendCrc: true },
       );
+
+    // Invalidate, body, then header — never header first. If the card leaves the
+    // field partway through, it is left announcing an EMPTY NDEF message rather
+    // than a full-length record over bytes that were never written: Android
+    // rejects the latter outright as "not NDEF", which reads to the user as a
+    // dead card. Page 4 is rewritten last because it carries the TLV length (and,
+    // for a short-form TLV, the first record bytes too), so it is the single
+    // write that makes the record readable.
+    await writePage(0, new Uint8Array([0x03, 0x00, 0x00, 0x00]));
+    for (let p = 1; p < pageCount; p++) {
+      await writePage(p, padded.subarray(p * 4, p * 4 + 4));
     }
+    await writePage(0, padded.subarray(0, 4));
     // Read-back verify.
     const readBack = await this.readMemory(NDEF_START_PAGE, padded.length);
     if (!bytesEqual(readBack, padded)) throw new WriteVerifyError('NTAG read-back does not match written pages');
