@@ -1,7 +1,7 @@
 /** Restore tab: thin adapter — builds the DOM/browser IO for RestoreOrchestrator and runs the scan-step loop. */
 import { RestoreOrchestrator, type RestoreIO } from './restore-orchestrator.js';
 import { TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
-import { currentTransport, onConnectionChange } from './device.js';
+import { currentTransport, onConnectionChange, setReaderBusy } from './device.js';
 import { filesController } from './files-panel.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
@@ -43,6 +43,7 @@ export function initRestorePanel(): void {
     ($('scan') as HTMLButtonElement).disabled = true;
     ($('stop-scan') as HTMLButtonElement).disabled = false;
     setStatus('Scanning — tap cards on the reader…');
+    setReaderBusy(true);
     log.info('scan', 'Scan started');
     try {
       for (;;) {
@@ -59,6 +60,7 @@ export function initRestorePanel(): void {
         }
       }
     } finally {
+      setReaderBusy(false);
       ($('stop-scan') as HTMLButtonElement).disabled = true;
       ($('scan') as HTMLButtonElement).disabled = false;
       log.info('scan', 'Scan stopped');

@@ -63,6 +63,11 @@
       .dialog-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
       .dialog-actions button { border-radius: 12px; padding: 0.7rem 1rem; width: 100%; cursor: pointer; }
       #overwrite-skip { background: var(--surface); color: var(--on-surface); border: 1px solid var(--outline); }
+      dialog.inspect { max-width: min(96vw, 62rem); max-height: 88vh; overflow: auto; }
+      .inspect-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+      .inspect-actions { margin-left: auto; display: flex; gap: 0.4rem; }
+      dialog.inspect pre { overflow-x: auto; font-size: 0.78rem; line-height: 1.35; margin: 0.2rem 0 0.8rem; }
+      dialog.inspect h4 { margin: 0.6rem 0 0.1rem; }
     </style>
   </head>
   <body>
@@ -75,7 +80,7 @@
     <div id="device-bar">
       <button id="connect">Connect Chameleon</button>
       <span id="conn">disconnected</span>
-      <button id="diagnose" disabled>Diagnose card</button>
+      <button id="inspect" disabled>Inspect card</button>
       <pre id="device-status"></pre>
     </div>
 
@@ -162,6 +167,25 @@
         <button value="all" class="filled">Overwrite all remaining</button>
         <button id="overwrite-skip" value="skip">Skip</button>
       </form>
+    </dialog>
+
+    <dialog id="inspect-dialog" class="inspect">
+      <div class="inspect-head">
+        <strong>Inspect card</strong>
+        <span id="inspect-progress" class="muted"></span>
+        <span class="inspect-actions">
+          <button id="inspect-copy" type="button">Copy</button>
+          <button id="inspect-download" type="button">Download</button>
+          <button id="inspect-close" type="button">Close</button>
+        </span>
+      </div>
+      <p id="inspect-status" class="muted"></p>
+      <h4>Identity</h4>
+      <pre id="inspect-identity"></pre>
+      <h4>NFAR chunk</h4>
+      <pre id="inspect-nfar"></pre>
+      <h4>Raw</h4>
+      <pre id="inspect-raw"></pre>
     </dialog>
 
     <script type="module" src="./dist/main.js"></script>
