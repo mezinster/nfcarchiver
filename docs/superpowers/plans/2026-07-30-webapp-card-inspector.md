@@ -1075,6 +1075,8 @@ import type { RawAntiColl } from '../app/diagnostics.js';
 import { encodeChunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
 import { chunkToBlocks } from '../src/mifare/card-layout.js';
+import { encodeNdefMime } from '../src/nfc/ndef.js';
+import { wrapType2Tlv, NtagType } from '../src/nfc/type2.js';
 import { FACTORY_KEY_A } from '../src/transport/chameleon-device.js';
 import { FakeChameleon } from './fake-chameleon.js';
 
@@ -1174,6 +1176,33 @@ test('a failed anticollision does not stop the dump', async () => {
   assert.equal(rows.length, 64, 'readBlock does its own select, so the dump proceeds');
 });
 
+test('an NTAG chunk is unwrapped from its NDEF envelope before describing', async () => {
+  // NTAG stores the chunk inside a Type-2 TLV around an NDEF MIME record.
+  // Concatenating raw pages would show the TLV header, not NFAR magic, so
+  // without the unwrap this panel would report "not NFAR" for a perfectly
+  // good NTAG archive card.
+  const device = new FakeChameleon();
+  device.placeNtag(new Uint8Array([0x04, 0xaa, 0xbb, 0xcc]), NtagType.NTAG213);
+  const payload = new TextEncoder().encode('Test');
+  const chunk = encodeChunk({
+    archiveId: new Uint8Array(16).fill(0xab), totalChunks: 1, chunkIndex: 0,
+    payload, crc32: crc32(payload), flags: 0,
+  });
+  const tlv = wrapType2Tlv(encodeNdefMime(chunk));
+  const padded = new Uint8Array(Math.ceil(tlv.length / 4) * 4);
+  padded.set(tlv);
+  for (let pg = 0; pg < padded.length / 4; pg++) {
+    await device.transceive14a(new Uint8Array([0xa2, 4 + pg, ...padded.subarray(pg * 4, pg * 4 + 4)]));
+  }
+
+  const { io, calls } = stubIo();
+  await runInspection(device, okRaw, io);
+
+  const nfar = calls.filter((c) => c.startsWith('nfar:')).pop()!;
+  assert.match(nfar, /NFAR/, `expected the NDEF envelope to be unwrapped, got: ${nfar}`);
+  assert.ok(!/not NFAR/.test(nfar), nfar);
+});
+
 test('an aborted inspection reports it and stops early', async () => {
   const device = new FakeChameleon();
   device.place(UID);
@@ -1215,9 +1244,15 @@ import { dumpCard, type DumpUnit } from '../../src/inspect/card-dump.js';
 import { describeNfar, type NfarDescription } from '../../src/inspect/nfar-describe.js';
 import { formatIdentity, formatNfar, formatReport, formatUnitRow } from '../../src/inspect/hex-view.js';
 import { USABLE_BLOCK_INDEXES } from '../../src/mifare/card-layout.js';
+import { decodeNdefMime } from '../../src/nfc/ndef.js';
+import { readType2Ndef } from '../../src/nfc/type2.js';
 import type { ChameleonDevice } from '../../src/transport/chameleon-device.js';
 import { diagnoseCard, type CardDiagnosis, type RawAntiColl } from '../diagnostics.js';
 import { humanError } from './errors.js';
+
+/** NTAG stores its NDEF message from page 4 onward (pages 0-3 are UID, lock
+ *  bytes and the capability container). Mirrors ntag-transport.ts. */
+const NDEF_START_PAGE = 4;
 
 export interface InspectIO {
   setIdentity(text: string): void;
@@ -1228,23 +1263,36 @@ export interface InspectIO {
   setStatus(text: string): void;
 }
 
-/** NFAR bytes live in the usable blocks (block 0 and sector trailers skipped)
- *  for Classic, and from page 4 for NTAG. Rebuild that stream from the units
- *  seen so far so the header can be described mid-dump. */
+/** Rebuild the NFAR chunk stream from the units seen so far, so the header can
+ *  be described mid-dump.
+ *
+ *  The two media store the chunk differently and this is easy to get wrong:
+ *  Classic holds the raw chunk bytes across the usable blocks (block 0 and every
+ *  sector trailer skipped), whereas NTAG wraps the chunk in a Type-2 TLV around
+ *  an NDEF MIME record starting at page 4. Concatenating raw NTAG pages yields
+ *  the TLV header, not NFAR magic, so an NTAG card would always be reported as
+ *  "not NFAR" without the unwrap below. */
 function nfarBytesSoFar(units: DumpUnit[], isClassic: boolean): Uint8Array {
   const wanted = isClassic
     ? units.filter((u) => USABLE_BLOCK_INDEXES.includes(u.index))
-    : units.filter((u) => u.index >= 4);
+    : units.filter((u) => u.index >= NDEF_START_PAGE);
   const parts: Uint8Array[] = [];
   for (const u of wanted) {
     if (u.bytes === undefined) break; // a gap makes everything after it meaningless
     parts.push(u.bytes);
   }
   const total = parts.reduce((n, p) => n + p.length, 0);
-  const out = new Uint8Array(total);
+  const raw = new Uint8Array(total);
   let off = 0;
-  for (const p of parts) { out.set(p, off); off += p.length; }
-  return out;
+  for (const p of parts) { raw.set(p, off); off += p.length; }
+  if (isClassic) return raw;
+  // Mid-dump these throw until enough of the TLV has arrived; an empty buffer
+  // simply describes as "not enough bytes read yet" and resolves on a later unit.
+  try {
+    return decodeNdefMime(readType2Ndef(raw));
+  } catch {
+    return new Uint8Array(0);
+  }
 }
 
 export async function runInspection(
@@ -1304,7 +1352,7 @@ export async function runInspection(
 cd webapp && rm -rf dist && npm test 2>&1 | tail -6
 ```
 
-Expected: `tests 194`, `pass 194`, `fail 0` (188 + 6 new).
+Expected: `tests 198`, `pass 198`, `fail 0` (191 + 7 new).
 
 The first test is the specification for ordering: identity MUST be rendered
 before the last row. That is why `dumpCard` takes an `onMeta` callback — the
@@ -1648,6 +1696,7 @@ git push
 | `describeNfar` tolerant, partial buffers | 1 |
 | Nothing writes to a card | all — no `writeBlock`/`0xA2` outside test setup |
 | Not-NFAR card still dumps | 4 |
+| NTAG chunk unwrapped from NDEF before describing | 4 (`nfarBytesSoFar`) |
 | Unsupported SAK explains supported media | 2 |
 | Tests per spec's testing section | 1–4 |
 
