@@ -69,8 +69,6 @@ export const ka: Messages = {
   tapMoreCards: 'მიადეთ კიდევ ბარათები ან აღადგინეთ დასრულებული არქივი.',
   skippedCard: (message) => `ბარათი გამოტოვდა: ${message}`,
   restore: 'აღდგენა',
-  encrypted: '🔒 დაშიფრული',
-  unencrypted: 'დაუშიფრავი',
   archiveRow: (shortId, isEncrypted, received, total, complete) =>
     `არქივი ${shortId}…  ${isEncrypted ? '🔒 დაშიფრული' : 'დაუშიფრავი'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `აღდგენილია ${bytes} ბაიტი → ${name}.`,
@@ -88,7 +86,6 @@ export const ka: Messages = {
   confirmClearAll: 'წაიშალოს ყველა შენახული ფაილი? ეს მოქმედება შეუქცევადია.',
   download: 'ჩამოტვირთვა',
   deleteBtn: 'წაშლა',
-  plain: 'დაუშიფრავი',
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · შენახულია ${size}`,
   clearedFiles: (n) => `წაიშალა ${n} ${pr(n, FILE)}.`,
   downloadedTo: (size, name) => `ჩამოიტვირთა ${size} → ${name}.`,

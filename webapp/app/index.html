@@ -76,13 +76,16 @@
     <header>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-1 14H5V6h14v12zM7.5 9.5A1.5 1.5 0 0 1 9 8h6a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 15 16H9a1.5 1.5 0 0 1-1.5-1.5v-5zM9 9.5v5h6v-5H9z"/></svg>
       <h1>NFC Archiver</h1>
-      <select id="lang" title="Language"></select>
+      <select id="lang" data-i18n-title="language" title="Language"></select>
       <button id="theme-toggle" data-i18n-title="themeToggle" title="Toggle light/dark">◑</button>
     </header>
 
     <div id="device-bar">
       <button id="connect" data-i18n="connect">Connect Chameleon</button>
-      <span id="conn" data-i18n="statusDisconnected">disconnected</span>
+      <!-- No data-i18n: this span mirrors live connection state, so device.ts
+           owns it and re-renders it on locale change. applyStaticText() would
+           overwrite "connected" with the disconnected text. -->
+      <span id="conn">disconnected</span>
       <button id="inspect" disabled data-i18n="inspectCard">Inspect card</button>
       <pre id="device-status"></pre>
     </div>

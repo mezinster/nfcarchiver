@@ -69,8 +69,6 @@ export const tr: Messages = {
   tapMoreCards: 'Daha fazla kart okutun veya tamamlanmış bir arşivi geri yükleyin.',
   skippedCard: (message) => `Bir kart atlandı: ${message}`,
   restore: 'Geri yükle',
-  encrypted: '🔒 şifreli',
-  unencrypted: 'şifresiz',
   archiveRow: (shortId, isEncrypted, received, total, complete) =>
     `Arşiv ${shortId}…  ${isEncrypted ? '🔒 şifreli' : 'şifresiz'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `${bytes} bayt geri yüklendi → ${name}.`,
@@ -88,7 +86,6 @@ export const tr: Messages = {
   confirmClearAll: 'Saklanan tüm dosyalar silinsin mi? Bu işlem geri alınamaz.',
   download: 'İndir',
   deleteBtn: 'Sil',
-  plain: 'şifresiz',
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · ${size} saklanıyor`,
   clearedFiles: (n) => `${n} ${pr(n, FILE)} silindi.`,
   downloadedTo: (size, name) => `${size} indirildi → ${name}.`,

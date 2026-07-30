@@ -70,8 +70,6 @@ export const en = {
   tapMoreCards: 'Tap more cards, or Restore a complete one.',
   skippedCard: (message: string) => `Skipped a card: ${message}`,
   restore: 'Restore',
-  encrypted: '🔒 encrypted',
-  unencrypted: 'unencrypted',
   archiveRow: (shortId: string, isEncrypted: boolean, received: number, total: number, complete: boolean) =>
     `Archive ${shortId}…  ${isEncrypted ? '🔒 encrypted' : 'unencrypted'}  ·  ${received} / ${total} ${pr(total, { one: 'card', other: 'cards' })}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes: number, name: string) => `Restored ${bytes} bytes → ${name}.`,
@@ -89,7 +87,6 @@ export const en = {
   confirmClearAll: 'Delete all stored files? This cannot be undone.',
   download: 'Download',
   deleteBtn: 'Delete',
-  plain: 'plain',
   filesInfo: (count: number, size: string) =>
     `${count} ${pr(count, { one: 'file', other: 'files' })} · ${size} stored`,
   clearedFiles: (n: number) => `Cleared ${n} ${pr(n, { one: 'file', other: 'files' })}.`,

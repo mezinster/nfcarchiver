@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderArchiveList } from '../app/ui/restore-view.js';
 import type { DetectedArchive } from '../app/controller.js';
+import { setLocale } from '../app/i18n/index.js';
+import { en } from '../app/i18n/en.js';
+import { pl } from '../app/i18n/pl.js';
 
 /**
  * Minimal DOM stub — just the surface renderArchiveList touches. Enough to
@@ -86,6 +89,28 @@ test('restore view disables the button for an incomplete archive and enables it 
   renderArchiveList(container, [archive({ archiveId: id, shortId: 'a71a4318', totalChunks: 6, received: 6, complete: true })], () => {});
   assert.strictEqual((container as unknown as StubEl).children[0]!.children[1]!, btn, 'same row/button reused');
   assert.equal(btn.disabled, false, 'completed archive button is enabled');
+});
+
+// Regression: the Restore label was set only when the row was created, so a
+// language switch left it frozen in the boot language while the row's own text
+// changed around it.
+test('restore view re-labels the Restore button after a language switch', () => {
+  const doc = makeDoc();
+  const container = doc.createElement('div') as unknown as HTMLElement;
+  const list = [archive({})];
+  setLocale('en');
+  try {
+    renderArchiveList(container, list, () => {});
+    const btn = (container as unknown as StubEl).children[0]!.children[1]!;
+    assert.equal(btn.textContent, en.restore);
+
+    setLocale('pl');
+    renderArchiveList(container, list, () => {});
+    assert.strictEqual((container as unknown as StubEl).children[0]!.children[1]!, btn, 'button must be reused');
+    assert.equal(btn.textContent, pl.restore);
+  } finally {
+    setLocale('en');
+  }
 });
 
 test('restore view drops rows for archives no longer in the list', () => {

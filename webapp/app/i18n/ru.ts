@@ -4,6 +4,9 @@ import { pr } from './plural.js';
 
 const CARD = { one: 'карта', few: 'карты', many: 'карт', other: 'карт' };
 const CARD_GEN = { one: 'карты', few: 'карт', many: 'карт', other: 'карт' };
+// Accusative: the impersonal passive «записано» governs the accusative, not the
+// nominative CARD table.
+const CARD_ACC = { one: 'карту', few: 'карты', many: 'карт', other: 'карт' };
 const FILE = { one: 'файл', few: 'файла', many: 'файлов', other: 'файлов' };
 const BYTE = { one: 'байт', few: 'байта', many: 'байт', other: 'байт' };
 
@@ -44,7 +47,7 @@ export const ru: Messages = {
   progressDone: (written, total) => `✓ записано и проверено ${written} из ${total} ${pr(total, CARD_GEN)}`,
   progressWriting: (written, total) =>
     `✓ записано и проверено ${written} из ${total} — приложите следующую карту`,
-  archiveDone: (n) => `Готово — записано и проверено ${n} ${pr(n, CARD)}.`,
+  archiveDone: (n) => `Готово — записано и проверено ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Приложите карту ${i} из ${total} к считывателю…`,
   readerDisconnectedResume: 'Считыватель отключён — переподключитесь, чтобы продолжить.',
   rechunked: (payloadSize, total) =>
@@ -69,8 +72,6 @@ export const ru: Messages = {
   tapMoreCards: 'Приложите ещё карты или восстановите готовый архив.',
   skippedCard: (message) => `Карта пропущена: ${message}`,
   restore: 'Восстановить',
-  encrypted: '🔒 зашифровано',
-  unencrypted: 'без шифрования',
   archiveRow: (shortId, isEncrypted, received, total, complete) =>
     `Архив ${shortId}…  ${isEncrypted ? '🔒 зашифровано' : 'без шифрования'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `Восстановлено ${bytes} ${pr(bytes, BYTE)} → ${name}.`,
@@ -88,7 +89,6 @@ export const ru: Messages = {
   confirmClearAll: 'Удалить все сохранённые файлы? Это действие нельзя отменить.',
   download: 'Скачать',
   deleteBtn: 'Удалить',
-  plain: 'без шифрования',
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · сохранено ${size}`,
   clearedFiles: (n) => `Удалено ${n} ${pr(n, FILE)}.`,
   downloadedTo: (size, name) => `Скачано ${size} → ${name}.`,

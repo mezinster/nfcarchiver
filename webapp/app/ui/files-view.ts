@@ -39,15 +39,18 @@ export function renderFileList(
       row.setAttribute('data-file-id', f.id);
       const span = doc.createElement('span');
       const dl = doc.createElement('button');
-      dl.textContent = t.download;
       dl.addEventListener('click', () => handlers.onDownload(f.id));
       const del = doc.createElement('button');
-      del.textContent = t.deleteBtn;
       del.addEventListener('click', () => handlers.onDelete(f.id));
       row.append(span, dl, del);
       container.appendChild(row);
       existing.set(f.id, row);
     }
+    // Every label is rewritten on each render, not just at row creation: the
+    // rows outlive a language switch, so button text would otherwise stay
+    // frozen in the boot language forever.
     (row.children[0] as HTMLElement).textContent = label(f);
+    (row.children[1] as HTMLElement).textContent = t.download;
+    (row.children[2] as HTMLElement).textContent = t.deleteBtn;
   }
 }

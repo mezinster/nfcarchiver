@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderFileList, humanSize } from '../app/ui/files-view.js';
 import type { FileListItem } from '../src/storage/file-store.js';
+import { setLocale } from '../app/i18n/index.js';
+import { en } from '../app/i18n/en.js';
+import { pl } from '../app/i18n/pl.js';
 
 interface StubEl {
   tagName: string; className: string; textContent: string; disabled: boolean;
@@ -64,6 +67,31 @@ test('renderFileList wires Download and Delete to the row id', () => {
   row.children[2]!.click(); // Delete
   assert.deepEqual(dl, ['x']);
   assert.deepEqual(del, ['x']);
+});
+
+// Regression: the button labels used to be set only when the row was created,
+// so a language switch left them frozen in the boot language for the lifetime
+// of the row — a refresh() could not repair it, only deleting the file could.
+test('renderFileList re-labels Download/Delete after a language switch', () => {
+  const doc = makeDoc();
+  const container = doc.createElement('div') as unknown as HTMLElement;
+  const files = [item({})];
+  const handlers = { onDownload: () => {}, onDelete: () => {} };
+  setLocale('en');
+  try {
+    renderFileList(container, files, handlers);
+    const row = (container as unknown as StubEl).children[0]!;
+    assert.equal(row.children[1]!.textContent, en.download);
+    assert.equal(row.children[2]!.textContent, en.deleteBtn);
+
+    setLocale('pl');
+    renderFileList(container, files, handlers);
+    assert.strictEqual((container as unknown as StubEl).children[0]!, row, 'row must be reconciled, not rebuilt');
+    assert.equal(row.children[1]!.textContent, pl.download);
+    assert.equal(row.children[2]!.textContent, pl.deleteBtn);
+  } finally {
+    setLocale('en');
+  }
 });
 
 test('renderFileList drops rows for files no longer present', () => {

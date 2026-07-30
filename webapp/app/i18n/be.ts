@@ -4,6 +4,9 @@ import { pr } from './plural.js';
 
 const CARD = { one: 'карта', few: 'карты', many: 'карт', other: 'карт' };
 const CARD_GEN = { one: 'карты', few: 'карт', many: 'карт', other: 'карт' };
+// Accusative: the impersonal passive «запісана» governs the accusative, not the
+// nominative CARD table.
+const CARD_ACC = { one: 'карту', few: 'карты', many: 'карт', other: 'карт' };
 const FILE = { one: 'файл', few: 'файлы', many: 'файлаў', other: 'файлаў' };
 const BYTE = { one: 'байт', few: 'байты', many: 'байтаў', other: 'байтаў' };
 
@@ -44,7 +47,7 @@ export const be: Messages = {
   progressDone: (written, total) => `✓ запісана і праверана ${written} з ${total} ${pr(total, CARD_GEN)}`,
   progressWriting: (written, total) =>
     `✓ запісана і праверана ${written} з ${total} — прыкладзіце наступную карту`,
-  archiveDone: (n) => `Гатова — запісана і праверана ${n} ${pr(n, CARD)}.`,
+  archiveDone: (n) => `Гатова — запісана і праверана ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Прыкладзіце карту ${i} з ${total} да счытвальніка…`,
   readerDisconnectedResume: 'Счытвальнік адключаны — падключыцеся зноў, каб працягнуць.',
   rechunked: (payloadSize, total) =>
@@ -69,8 +72,6 @@ export const be: Messages = {
   tapMoreCards: 'Прыкладзіце яшчэ карты або аднавіце гатовы архіў.',
   skippedCard: (message) => `Карта прапушчана: ${message}`,
   restore: 'Аднавіць',
-  encrypted: '🔒 зашыфравана',
-  unencrypted: 'без шыфравання',
   archiveRow: (shortId, isEncrypted, received, total, complete) =>
     `Архіў ${shortId}…  ${isEncrypted ? '🔒 зашыфравана' : 'без шыфравання'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `Адноўлена ${bytes} ${pr(bytes, BYTE)} → ${name}.`,
@@ -88,7 +89,6 @@ export const be: Messages = {
   confirmClearAll: 'Выдаліць усе захаваныя файлы? Гэта нельга адмяніць.',
   download: 'Спампаваць',
   deleteBtn: 'Выдаліць',
-  plain: 'без шыфравання',
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · захавана ${size}`,
   clearedFiles: (n) => `Выдалена ${n} ${pr(n, FILE)}.`,
   downloadedTo: (size, name) => `Спампавана ${size} → ${name}.`,

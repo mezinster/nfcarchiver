@@ -4,14 +4,17 @@ import { pr } from './plural.js';
 
 const CARD = { one: 'karta', few: 'karty', many: 'kart', other: 'kart' };
 const CARD_GEN = { one: 'karty', few: 'kart', many: 'kart', other: 'kart' };
+// Accusative: the impersonal passive „zapisano” governs the accusative, not the
+// nominative CARD table.
+const CARD_ACC = { one: 'kartę', few: 'karty', many: 'kart', other: 'kart' };
 const FILE = { one: 'plik', few: 'pliki', many: 'plików', other: 'plików' };
 const BYTE = { one: 'bajt', few: 'bajty', many: 'bajtów', other: 'bajtów' };
 
 export const pl: Messages = {
   // — shell / device bar —
-  connect: 'Połącz z Chameleon',
+  connect: 'Połącz z Chameleonem',
   inspectCard: 'Zbadaj kartę',
-  themeToggle: 'Przełącz jasny/ciemny',
+  themeToggle: 'Przełącz jasny/ciemny motyw',
   language: 'Język',
   statusConnected: 'połączono',
   statusDisconnected: 'rozłączono',
@@ -44,11 +47,11 @@ export const pl: Messages = {
   progressDone: (written, total) => `✓ zapisano i zweryfikowano ${written} z ${total} ${pr(total, CARD_GEN)}`,
   progressWriting: (written, total) =>
     `✓ zapisano i zweryfikowano ${written} z ${total} — przyłóż następną kartę`,
-  archiveDone: (n) => `Gotowe — zapisano i zweryfikowano ${n} ${pr(n, CARD)}.`,
+  archiveDone: (n) => `Gotowe — zapisano i zweryfikowano ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Przyłóż kartę ${i} z ${total} do czytnika…`,
   readerDisconnectedResume: 'Czytnik rozłączony — połącz ponownie, aby kontynuować.',
   rechunked: (payloadSize, total) =>
-    `Na kartę mieści się ${payloadSize} B/chunk — zamiast tego ${total} ${pr(total, CARD)}.`,
+    `Na karcie mieści się ${payloadSize} B/chunk — zamiast tego ${total} ${pr(total, CARD)}.`,
   noCardTapHold: 'Nie wykryto karty — przyłóż kartę (trzymaj kilka mm od czytnika)…',
   unsupportedTapOther: 'Nieobsługiwany tag — przyłóż Mifare Classic 1K lub NTAG.',
   skippedTapDifferent: 'Pominięto. Przyłóż inną kartę…',
@@ -69,8 +72,6 @@ export const pl: Messages = {
   tapMoreCards: 'Przyłóż więcej kart lub przywróć kompletne archiwum.',
   skippedCard: (message) => `Pominięto kartę: ${message}`,
   restore: 'Przywróć',
-  encrypted: '🔒 zaszyfrowane',
-  unencrypted: 'niezaszyfrowane',
   archiveRow: (shortId, isEncrypted, received, total, complete) =>
     `Archiwum ${shortId}…  ${isEncrypted ? '🔒 zaszyfrowane' : 'niezaszyfrowane'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `Przywrócono ${bytes} ${pr(bytes, BYTE)} → ${name}.`,
@@ -88,7 +89,6 @@ export const pl: Messages = {
   confirmClearAll: 'Usunąć wszystkie zapisane pliki? Tego nie można cofnąć.',
   download: 'Pobierz',
   deleteBtn: 'Usuń',
-  plain: 'bez szyfrowania',
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · zapisano ${size}`,
   clearedFiles: (n) => `Usunięto ${n} ${pr(n, FILE)}.`,
   downloadedTo: (size, name) => `Pobrano ${size} → ${name}.`,

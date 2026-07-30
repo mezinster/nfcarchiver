@@ -34,7 +34,6 @@ export function renderArchiveList(
       row.setAttribute('data-archive-id', a.archiveId);
       const span = doc.createElement('span');
       const btn = doc.createElement('button');
-      btn.textContent = t.restore;
       // The row's archive id never changes, so binding it once is safe and keeps
       // the listener stable across updates.
       btn.addEventListener('click', () => onPick(a.archiveId));
@@ -44,7 +43,11 @@ export function renderArchiveList(
     }
     const span = row.children[0] as HTMLElement;
     const btn = row.children[1] as HTMLButtonElement;
+    // Both labels are rewritten on each render, not just at row creation: rows
+    // outlive a language switch, so the button text would otherwise stay frozen
+    // in the boot language forever.
     span.textContent = label(a);
+    btn.textContent = t.restore;
     btn.disabled = !a.complete;
   }
 }

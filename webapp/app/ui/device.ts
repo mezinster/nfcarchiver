@@ -12,7 +12,7 @@ import { type RawAntiColl } from '../diagnostics.js';
 import { openInspector } from './inspect-panel.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
-import { t } from '../i18n/index.js';
+import { t, onLocaleChange } from '../i18n/index.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -35,6 +35,13 @@ function updateInspectButton(): void {
   ($('inspect') as HTMLButtonElement).disabled = !connected || readerBusy;
 }
 
+/** #conn is NOT marked data-i18n: it carries live state, and applyStaticText()
+ *  would rewrite a live "connected" back to the disconnected text on every
+ *  locale change. This module owns it and re-derives it from `connected`. */
+function renderConn(): void {
+  $('conn').textContent = connected ? t.statusConnected : t.statusDisconnected;
+}
+
 export function currentTransport(): AutoTransport | null {
   return transport;
 }
@@ -54,6 +61,9 @@ export function onConnectionChange(cb: (connected: boolean) => void): () => void
 export function initDeviceBar(): void {
   const deviceStatus = $('device-status');
 
+  renderConn();
+  onLocaleChange(renderConn);
+
   $('connect').addEventListener('click', async () => {
     log.info('device', 'Connecting');
     try {
@@ -66,7 +76,7 @@ export function initDeviceBar(): void {
         transport = null;
         ultra = null;
         updateInspectButton();
-        $('conn').textContent = t.statusDisconnected;
+        renderConn();
         deviceStatus.textContent = t.readerDisconnectedClickConnect;
         log.warn('device', 'Disconnected');
         for (const cb of listeners) cb(false);
@@ -76,8 +86,8 @@ export function initDeviceBar(): void {
       await ultra.use(new WebbleAdapter());
       transport = new AutoTransport(new SdkChameleonDevice(ultra));
       await transport.connect();
-      $('conn').textContent = t.statusConnected;
       connected = true;
+      renderConn();
       updateInspectButton();
       for (const cb of listeners) cb(true);
       deviceStatus.textContent = t.connectedDot;

@@ -4,6 +4,9 @@ import { pr } from './plural.js';
 
 const CARD = { one: 'картка', few: 'картки', many: 'карток', other: 'карток' };
 const CARD_GEN = { one: 'картки', few: 'карток', many: 'карток', other: 'карток' };
+// Accusative: the impersonal passive «записано» governs the accusative, not the
+// nominative CARD table.
+const CARD_ACC = { one: 'картку', few: 'картки', many: 'карток', other: 'карток' };
 const FILE = { one: 'файл', few: 'файли', many: 'файлів', other: 'файлів' };
 const BYTE = { one: 'байт', few: 'байти', many: 'байтів', other: 'байтів' };
 
@@ -44,7 +47,7 @@ export const uk: Messages = {
   progressDone: (written, total) => `✓ записано та перевірено ${written} з ${total} ${pr(total, CARD_GEN)}`,
   progressWriting: (written, total) =>
     `✓ записано та перевірено ${written} з ${total} — прикладіть наступну картку`,
-  archiveDone: (n) => `Готово — записано та перевірено ${n} ${pr(n, CARD)}.`,
+  archiveDone: (n) => `Готово — записано та перевірено ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Прикладіть картку ${i} з ${total} до зчитувача…`,
   readerDisconnectedResume: 'Зчитувач відключено — підключіться знову, щоб продовжити.',
   rechunked: (payloadSize, total) =>
@@ -56,7 +59,7 @@ export const uk: Messages = {
 
   // — overwrite dialog —
   overwrite: 'Перезаписати',
-  overwriteAll: 'Перезаписати всі решту',
+  overwriteAll: 'Перезаписати решту',
   skip: 'Пропустити',
 
   // — restore tab —
@@ -69,8 +72,6 @@ export const uk: Messages = {
   tapMoreCards: 'Прикладіть ще картки або відновіть готовий архів.',
   skippedCard: (message) => `Картку пропущено: ${message}`,
   restore: 'Відновити',
-  encrypted: '🔒 зашифровано',
-  unencrypted: 'без шифрування',
   archiveRow: (shortId, isEncrypted, received, total, complete) =>
     `Архів ${shortId}…  ${isEncrypted ? '🔒 зашифровано' : 'без шифрування'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `Відновлено ${bytes} ${pr(bytes, BYTE)} → ${name}.`,
@@ -88,7 +89,6 @@ export const uk: Messages = {
   confirmClearAll: 'Видалити всі збережені файли? Цю дію неможливо скасувати.',
   download: 'Завантажити',
   deleteBtn: 'Видалити',
-  plain: 'без шифрування',
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · збережено ${size}`,
   clearedFiles: (n) => `Видалено ${n} ${pr(n, FILE)}.`,
   downloadedTo: (size, name) => `Завантажено ${size} → ${name}.`,

@@ -133,12 +133,67 @@ test('every translation matches English entry shapes and arity', () => {
   }
 });
 
+// CLDR categories at the counts that actually trip people up. East Slavic keys
+// on the last digit (21 -> one, 101 -> one); Polish reserves `one` for exactly 1
+// and sends 21/101 to `many`.
+const EAST_SLAVIC_CATEGORY: Record<number, string> = {
+  1: 'one', 21: 'one', 101: 'one', 2: 'few', 22: 'few', 5: 'many', 11: 'many',
+};
+const POLISH_CATEGORY: Record<number, string> = {
+  ...EAST_SLAVIC_CATEGORY, 21: 'many', 101: 'many',
+};
+const SLAVIC: Array<[string, Messages, Record<number, string>]> = [
+  ['ru', ru, EAST_SLAVIC_CATEGORY],
+  ['uk', uk, EAST_SLAVIC_CATEGORY],
+  ['be', be, EAST_SLAVIC_CATEGORY],
+  ['pl', pl, POLISH_CATEGORY],
+];
+
+/** The rendered string with the count blanked out, so only the noun form
+ *  (the thing plural selection controls) is compared. */
+function nounShape(rendered: string, n: number): string {
+  return rendered.replace(String(n), '#');
+}
+
 test('Slavic plurals select the right form at the boundaries', () => {
-  setPluralLocale('ru');
-  const one = ru.clearedFiles(1), few = ru.clearedFiles(2), many = ru.clearedFiles(5);
-  assert.notEqual(one, few);
-  assert.notEqual(few, many);
-  assert.equal(ru.clearedFiles(21), one.replace('1', '21'));
+  // One counted-noun entry per plural table in the Slavic catalogues:
+  // FILE, CARD (nominative) and CARD_ACC (accusative, via archiveDone).
+  const entries: Array<[string, (cat: Messages, n: number) => string]> = [
+    ['clearedFiles', (cat, n) => cat.clearedFiles(n)],
+    ['cardEstimate', (cat, n) => cat.cardEstimate(n, false)],
+    ['archiveDone', (cat, n) => cat.archiveDone(n)],
+  ];
+  for (const [locale, cat, categories] of SLAVIC) {
+    setPluralLocale(locale);
+    for (const [entry, render] of entries) {
+      const byCategory = new Map<string, string>();
+      for (const [count, category] of Object.entries(categories)) {
+        const n = Number(count);
+        const shape = nounShape(render(cat, n), n);
+        const seen = byCategory.get(category);
+        if (seen === undefined) byCategory.set(category, shape);
+        else assert.equal(shape, seen, `${locale}.${entry} picks a different form for "${category}" at n=${n}`);
+      }
+      assert.deepEqual(
+        [...byCategory.keys()].sort(), ['few', 'many', 'one'],
+        `${locale}.${entry} did not exercise all three categories`,
+      );
+      assert.equal(
+        new Set(byCategory.values()).size, 3,
+        `${locale}.${entry} renders the same noun for two different categories: ${[...byCategory.values()].join(' | ')}`,
+      );
+    }
+  }
+});
+
+// Regression: #conn carries live connection state, so it must NOT be marked
+// data-i18n — applyStaticText() runs on every locale change and would rewrite a
+// live "connected" back to the disconnected string. device.ts re-renders it.
+test('the connection-status span is not statically translated', () => {
+  const html = readFileSync(fileURLToPath(new URL('../../app/index.html', import.meta.url)), 'utf8');
+  const conn = /<span id="conn"[^>]*>/.exec(html);
+  assert.ok(conn, 'no #conn span in index.html');
+  assert.ok(!conn[0].includes('data-i18n'), `#conn must not be statically translated: ${conn[0]}`);
 });
 
 // Intl.PluralRules reports ['one', 'other'] for both locales, with `one` only at
