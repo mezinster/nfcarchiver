@@ -92,6 +92,10 @@ abstract class NfarFlags {
   }
 }
 
+/// How a tag stores an NFAR chunk. NDEF tags wrap the chunk in a MIME record
+/// inside a Type-2 TLV; Mifare Classic holds the raw chunk across data blocks.
+enum TagMedium { ndef, mifareClassic }
+
 /// NFC tag type specifications
 enum NfcTagType {
   /// NTAG213: 144 bytes user memory
@@ -102,6 +106,14 @@ enum NfcTagType {
 
   /// NTAG216: 888 bytes user memory
   ntag216(name: 'NTAG216', capacity: 888),
+
+  /// Mifare Classic 1K: 47 usable blocks x 16 B = 752 B of raw storage.
+  /// Value duplicated from card_layout.dart's cardCapacityBytes to keep this
+  /// file free of a lib/core/mifare/ import; the test asserts they agree.
+  mifareClassic1k(
+      name: 'Mifare Classic 1K',
+      capacity: 752,
+      medium: TagMedium.mifareClassic),
 
   /// MIFARE Ultralight: 48 bytes user memory
   mifareUltralight(name: 'MIFARE Ultralight', capacity: 48),
@@ -115,13 +127,24 @@ enum NfcTagType {
   /// Custom capacity (user-defined)
   custom(name: 'Custom', capacity: 0);
 
-  const NfcTagType({required this.name, required this.capacity});
+  const NfcTagType({
+    required this.name,
+    required this.capacity,
+    this.medium = TagMedium.ndef,
+  });
 
   final String name;
   final int capacity;
+  final TagMedium medium;
 
   /// Maximum payload size for this tag type
   int get maxPayloadSize {
+    // Mifare Classic carries the raw chunk with no NDEF framing at all, so only
+    // the NFAR header and CRC come off the top.
+    if (medium == TagMedium.mifareClassic) {
+      final available = capacity - NfarHeaderSize.total;
+      return available > 0 ? available : 0;
+    }
     // NDEF overhead includes:
     // - NDEF record header: 3-6 bytes (flags, type length, payload length)
     // - MIME type: 33 bytes ("application/vnd.nfcarchiver.chunk")

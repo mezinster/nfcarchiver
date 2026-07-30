@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_archiver/core/constants/nfar_format.dart';
+import 'package:nfc_archiver/core/mifare/card_layout.dart';
 
 /// NDEF record overhead for one NFAR chunk, as written to a Type-2 tag:
 /// 1 flags + 1 type length + 4 payload length (long form) + 33 MIME type.
@@ -46,6 +47,28 @@ void main() {
     test('never returns a negative payload for a tiny capacity', () {
       expect(NfcTagType.maxPayloadForCapacity(10), 0);
       expect(NfcTagType.maxPayloadForCapacity(0), 0);
+    });
+  });
+
+  group('Mifare Classic tag type', () {
+    test('carries the web app capacity and payload size', () {
+      expect(NfcTagType.mifareClassic1k.capacity, cardCapacityBytes);
+      expect(NfcTagType.mifareClassic1k.maxPayloadSize, cardPayloadSize);
+      expect(NfcTagType.mifareClassic1k.maxPayloadSize, 720);
+    });
+
+    test('subtracts no NDEF overhead — it is not an NDEF medium', () {
+      expect(NfcTagType.mifareClassic1k.medium, TagMedium.mifareClassic);
+      expect(
+        NfcTagType.mifareClassic1k.capacity -
+            NfcTagType.mifareClassic1k.maxPayloadSize,
+        NfarHeaderSize.total,
+      );
+    });
+
+    test('NDEF tag types keep their existing medium and sizes', () {
+      expect(NfcTagType.ntag215.medium, TagMedium.ndef);
+      expect(NfcTagType.ntag215.maxPayloadSize, 504 - 44 - 32);
     });
   });
 }
