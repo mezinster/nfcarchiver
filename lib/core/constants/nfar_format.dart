@@ -144,7 +144,16 @@ enum NfcTagType {
     // NFAR format overhead
     const nfarOverhead = NfarHeaderSize.total; // 32 bytes (28 header + 4 CRC)
 
-    final payload = ndefCapacity - ndefRecordOverhead - nfarOverhead;
+    // The NFC Forum Type-2 spec terminates the TLV area with a 0xFE byte, which
+    // shares the NDEF data area with the message. Android's ndef.maxSize does
+    // NOT reserve it, so filling the reported capacity exactly leaves no room
+    // and the terminator is silently dropped — producing a non-conformant tag
+    // one byte over-full. Reserving it here also makes this match the web app's
+    // chunkPayloadForCapacity(), so cards written by either app are identical.
+    const terminatorTlv = 1;
+
+    final payload =
+        ndefCapacity - ndefRecordOverhead - nfarOverhead - terminatorTlv;
     return payload > 0 ? payload : 0;
   }
 
