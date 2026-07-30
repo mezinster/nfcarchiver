@@ -12,6 +12,7 @@ import { build } from 'esbuild';
 import { copyFile, mkdir, readFile, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildMarker } from './build-marker.js';
 
 // This file runs as dist/scripts/build-site.js, so webapp/ is two levels up.
 const webappRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -19,6 +20,7 @@ const outDir = join(webappRoot, 'site');
 
 async function main(): Promise<void> {
   const sha = process.env.BUILD_SHA ?? 'dev';
+  const marker = buildMarker(sha);
 
   await rm(outDir, { recursive: true, force: true });
   await mkdir(join(outDir, 'dist'), { recursive: true });
@@ -35,6 +37,10 @@ async function main(): Promise<void> {
     // Unminified would be the deviation here, not the safe default.
     minify: true,
     define: { __BUILD_SHA__: JSON.stringify(sha) },
+    // The sentinel the healthcheck greps for. A banner is emitted verbatim and
+    // is immune to minification and tree-shaking, so it is present whether or
+    // not any application code happens to reference BUILD_SHA.
+    banner: { js: `/* ${marker} */` },
     logLevel: 'info',
   });
 
@@ -47,6 +53,9 @@ async function main(): Promise<void> {
   const html = await readFile(join(outDir, 'index.html'), 'utf8');
   if (bundle.length === 0) throw new Error('bundle is empty');
   if (html.length === 0) throw new Error('index.html is empty');
+  if (!bundle.includes(marker)) {
+    throw new Error(`bundle does not contain the build marker "${marker}" — the esbuild banner did not apply`);
+  }
   if (!bundle.includes(sha)) {
     throw new Error(`bundle does not contain BUILD_SHA "${sha}" — esbuild define did not apply`);
   }
@@ -54,7 +63,7 @@ async function main(): Promise<void> {
     throw new Error('index.html does not reference ./dist/main.js');
   }
 
-  console.log(`site/ built and verified — BUILD_SHA=${sha}, bundle ${bundle.length} B`);
+  console.log(`site/ built and verified — ${marker}, bundle ${bundle.length} B`);
 }
 
 main().catch((e: unknown) => {

@@ -276,8 +276,19 @@ prove CloudFront is serving this build rather than merely serving something."
 - Create: `webapp/test/healthcheck.test.ts`
 
 **Interfaces:**
-- Consumes: `BUILD_SHA` semantics from Task 1 — the SHA string is present verbatim in the served bundle.
+- Consumes: the build marker from Task 1 — `nfar-build:<sha>`, emitted as an esbuild banner.
 - Produces: `checkOnce(baseUrl: string, expectedSha: string, fetchImpl?: typeof fetch): Promise<CheckResult>`, `healthcheck(baseUrl: string, expectedSha: string, opts?: HealthcheckOptions): Promise<CheckResult>`, `interface CheckResult { ok: boolean; failures: string[] }`, and a CLI: `node dist/scripts/healthcheck.js <baseUrl> <expectedSha>` exiting 0 on healthy, 1 otherwise.
+
+> **Implementation note (deviation from the code listed below).** The listed
+> version searches the served bundle for the bare `expectedSha`. That was
+> implemented, and Step 5's end-to-end check caught it passing a *stale* deploy:
+> the bundle contains hex constants such as `"C82000000000"`, so the 7-character
+> needle `0000000` matched by coincidence. As shipped, the check instead matches
+> the prefixed sentinel `nfar-build:<sha>` emitted by esbuild's `banner` option,
+> with the format defined once in `scripts/build-marker.ts` and imported by both
+> `build-site.ts` and `healthcheck.ts`. A regression test covers the
+> hex-constant collision. Read the shipped files, not the listings below, when
+> touching this logic.
 
 - [ ] **Step 1: Write the failing test**
 
