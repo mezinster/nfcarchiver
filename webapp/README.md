@@ -52,6 +52,38 @@ for the manual real-device checklist (BLE pairing, round-trip, cross-read).
   report. Read-only, and disabled while an archive write or scan owns the reader.
 - A branded, themed (light/dark), tabbed UI.
 
+## Localization
+
+Seven locales, matching the Flutter app's language set: English (`en`), Russian
+(`ru`), Turkish (`tr`), Ukrainian (`uk`), Georgian (`ka`), Polish (`pl`), and
+Belarusian (`be`). Catalogues live in `app/i18n/`:
+
+- `en.ts` is the schema — it exports `en` and `type Messages = typeof en`. Every
+  other catalogue is declared `const xx: Messages = {…}`, so adding a key to
+  `en.ts` breaks `tsc` on the other six until it's translated everywhere; the
+  compiler is the completeness gate, not a script.
+- `plural.ts` wraps `Intl.PluralRules` for the languages with more plural forms
+  than English's two.
+- `index.ts` is the locale registry: detection from `navigator.languages`, a
+  manual override persisted at `localStorage['nfar-lang']` via the `<select
+  id="lang">` in the header, and the live `t` binding consumed throughout `app/`.
+- `dom.ts` applies static text through `data-i18n` / `data-i18n-placeholder` /
+  `data-i18n-title` attributes in `app/index.html`. `test/i18n.test.ts` reads
+  that HTML and asserts every `data-i18n` key resolves against the catalogue, so
+  markup and translations can't silently drift apart.
+
+Deliberately untranslated: Log tab entries and the card-inspection report body
+(`src/inspect/`) — both are meant to be pasted verbatim into bug reports, so
+English is more useful there than a translation. Also untranslated: the app
+name, chip designations (NTAG213/215/216, Mifare Classic 1K), and log-level
+names.
+
+**`t` is a live ESM binding, reassigned on language change.** Reading `t.key`
+inside a function always sees the current language. Destructuring it (`const {
+archiveTitle } = t`) or capturing it in a module-level constant snapshots one
+language permanently — `about-panel.ts` had exactly this bug and was
+restructured to build its sections per render instead of once at import time.
+
 ## Architecture
 
 Vanilla TypeScript, bundled by esbuild. No UI framework; the only runtime
@@ -78,6 +110,7 @@ webapp/
   app/                         # UI (thin DOM glue over the controllers)
     controller.ts              # DOM-free archive/restore state machines (tested)
     estimate.ts                # live card-count estimate
+    i18n/                      # locale catalogues + registry; en.ts is the schema
     ui/                        # shell (tabs+theme), device (owns transport), panels
   test/                        # node:test suites + FakeChameleon + interop fixtures
 ```
@@ -212,10 +245,10 @@ damaging a neighbouring application.
 - Marginal RF coupling (a card pressed flat vs a few mm off the reader) can make the
   scan return transient BCC/parity/collision errors; the transport treats those as
   "no tag yet" and keeps polling.
-- **Deferred:** localization (7 locales), an IndexedDB-backed file manager (the Files
-  tab is a placeholder), phone-native **Web NFC** writing (Android Chrome, no
-  Chameleon — reuses `nfc/ndef.ts`), NTAG blank-tag CC formatting (factory/
-  NDEF-formatted tags are assumed), and a device-disconnect path.
+- **Deferred:** an IndexedDB-backed file manager (the Files tab is a placeholder),
+  phone-native **Web NFC** writing (Android Chrome, no Chameleon — reuses
+  `nfc/ndef.ts`), NTAG blank-tag CC formatting (factory/NDEF-formatted tags are
+  assumed), and a device-disconnect path.
 
 ## License
 
