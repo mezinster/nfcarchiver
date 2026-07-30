@@ -97,6 +97,35 @@ test('a full-size chunk stays within the CC-declared NDEF area so Android can re
   assert.deepEqual(await t.readChunk(), full);
 });
 
+test('an interrupted write leaves an empty NDEF TLV, never a stale length over new bytes', async () => {
+  const device = new FakeChameleon();
+  const t = new NtagTransport(device, { pollMs: 1, defaultTimeoutMs: 500 });
+  await t.connect();
+  const uid = new Uint8Array([0x04, 7, 7, 7, 7, 7, 7]);
+  device.placeNtag(uid, NtagType.NTAG215);
+  await t.awaitTag();
+
+  // A card that already holds a complete, valid chunk.
+  await t.writeChunk(chunkBytes(200));
+  device.placeNtag(uid, NtagType.NTAG215);
+  await t.awaitTag();
+  assert.equal(await t.peekIsNfar(), true);
+
+  // Now the card leaves the field a few pages into overwriting it.
+  device.placeNtag(uid, NtagType.NTAG215);
+  await t.awaitTag();
+  device.failWriteAfter(3);
+  await assert.rejects(() => t.writeChunk(chunkBytes(200)));
+
+  // The TLV header must declare a ZERO-length NDEF message. Writing the real
+  // header first would leave a card announcing a full-length record over bytes
+  // that were never finished — which is what Android rejects outright as "not
+  // NDEF", with no way for the user to tell a half-written card from a dead one.
+  const header = device.pageOf(uid, 4);
+  assert.equal(header[0], 0x03, 'NDEF TLV tag must survive');
+  assert.equal(header[1], 0x00, 'TLV length must read as empty, not the new chunk length');
+});
+
 test('a chunk larger than the tag capacity is rejected', async () => {
   const device = new FakeChameleon();
   const t = new NtagTransport(device, { pollMs: 1, defaultTimeoutMs: 500 });

@@ -25,6 +25,7 @@ export class FakeChameleon implements ChameleonDevice {
   private field: string | null = null;
   private corruptNext = false;
   private truncateNext: number | null = null;
+  private failWriteIn: number | null = null;
   private readonly cards = new Map<string, Card>();
 
   defineCard(uid: Uint8Array, opts?: { keyA?: Uint8Array; sak?: number }): void {
@@ -65,8 +66,16 @@ export class FakeChameleon implements ChameleonDevice {
   truncateNextRead(keepBytes = 4): void {
     this.truncateNext = keepBytes;
   }
+  /** Simulate the card leaving the field partway through a multi-page write:
+   *  the next `afterWrites` page writes succeed, the one after that throws. */
+  failWriteAfter(afterWrites: number): void {
+    this.failWriteIn = afterWrites;
+  }
   blockOf(uid: Uint8Array, block: number): Uint8Array {
     return this.cards.get(hex(uid))!.image.slice(block * 16, block * 16 + 16);
+  }
+  pageOf(uid: Uint8Array, page: number): Uint8Array {
+    return this.cards.get(hex(uid))!.ntag!.pages.slice(page * 4, page * 4 + 4);
   }
 
   isConnected(): boolean {
@@ -106,6 +115,13 @@ export class FakeChameleon implements ChameleonDevice {
       return full;
     }
     if (cmd === 0xa2) { // WRITE one page
+      if (this.failWriteIn !== null) {
+        if (this.failWriteIn === 0) {
+          this.failWriteIn = null;
+          throw new CardAuthError('Card left the field mid-write');
+        }
+        this.failWriteIn -= 1;
+      }
       const page = data[1]!;
       ntag.pages.set(data.subarray(2, 6), page * 4);
       return new Uint8Array([0x0a]); // ACK
