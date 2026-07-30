@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 
 import '../../../core/constants/nfar_format.dart';
@@ -37,6 +38,11 @@ class NfcRepository {
     }
     return null;
   }
+
+  /// The codec list, in try order. Exposed read-only so a test can assert
+  /// against the production ordering itself rather than a local copy of it.
+  @visibleForTesting
+  List<TagCodec> get codecs => List.unmodifiable(_codecs);
 
   /// Cooldown period after successful write to prevent immediate re-read
   static const _writeCooldown = Duration(milliseconds: 2000);
@@ -160,14 +166,21 @@ class NfcRepository {
             return;
           }
 
-          // These pre-write checks are NDEF-specific: a Mifare Classic tag has
-          // no NDEF technology to query (`Ndef.from(tag)` is null), so it
-          // skips straight to `codec.writeChunk`, which does its own capacity
-          // check (`MifareCapacityException`) and auth check
+          // These pre-write checks are NDEF-specific and must key off which
+          // codec was actually selected, not off `Ndef.from(tag) != null`: a
+          // Mifare Classic card that some other app happened to NDEF-format
+          // still has non-null NDEF data, but Mifare-first routing still
+          // selects MifareTagCodec for it, and NDEF's writability/size numbers
+          // do not describe that raw block write. `codec is NdefTagCodec` is
+          // strictly narrower than `ndef != null` (it also requires
+          // MifareTagCodec.supports(tag) to have been false), so this cannot
+          // change behaviour for a tag that actually gets the NDEF codec.
+          // Mifare skips straight to `codec.writeChunk`, which does its own
+          // capacity check (`MifareCapacityException`) and auth check
           // (`MifareAuthException`) — both land in the catch below like any
           // other write failure. NDEF's checks and messages are unchanged.
-          final ndef = Ndef.from(tag);
-          if (ndef != null) {
+          if (codec is NdefTagCodec) {
+            final ndef = Ndef.from(tag)!;
             if (!ndef.isWritable) {
               onError('Tag is not writable');
               return;
