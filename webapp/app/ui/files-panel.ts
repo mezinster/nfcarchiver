@@ -6,6 +6,7 @@ import { PasswordRequiredError } from '../controller.js';
 import { DecryptionError } from '../../src/crypto.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
+import { t } from '../i18n/index.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -22,21 +23,21 @@ async function download(id: string, setStatus: (m: string) => void): Promise<voi
       a.download = name;
       a.click();
       URL.revokeObjectURL(a.href);
-      setStatus(`Downloaded ${humanSize(data.length)} → ${name}.`);
+      setStatus(t.downloadedTo(humanSize(data.length), name));
       log.info('files', 'Downloaded', { id, name });
       return;
     } catch (e) {
       if (e instanceof PasswordRequiredError || e instanceof DecryptionError) {
         if (attempt === 5) break;
-        const entered = prompt(e instanceof DecryptionError ? 'Wrong password. Enter password:' : 'This file is encrypted. Enter password:') ?? undefined;
-        if (entered === undefined) { setStatus('Cancelled.'); return; }
+        const entered = prompt(e instanceof DecryptionError ? t.promptWrongPassword : t.promptFileEncrypted) ?? undefined;
+        if (entered === undefined) { setStatus(t.cancelled); return; }
         pw = entered; continue;
       }
       setStatus(humanError(e));
       return;
     }
   }
-  setStatus('Too many failed password attempts.');
+  setStatus(t.tooManyPasswordAttempts);
 }
 
 export function initFilesPanel(): void {
@@ -51,18 +52,18 @@ export function initFilesPanel(): void {
       });
       const info = await filesController.info();
       $('files-empty').hidden = info.count > 0;
-      $('files-info').textContent = info.count === 0 ? '' : `${info.count} file(s) · ${humanSize(info.totalBytes)} stored`;
+      $('files-info').textContent = info.count === 0 ? '' : t.filesInfo(info.count, humanSize(info.totalBytes));
     } catch (e) {
       setStatus(humanError(e));
     }
   };
 
   $('files-clear').addEventListener('click', async () => {
-    if (!confirm('Delete all stored files? This cannot be undone.')) return;
+    if (!confirm(t.confirmClearAll)) return;
     const n = await filesController.clear();
     log.info('files', 'Cleared', { count: n });
     await refresh();
-    setStatus(`Cleared ${n} file(s).`);
+    setStatus(t.clearedFiles(n));
   });
 
   // Refresh whenever the Files tab is opened (and once at startup).

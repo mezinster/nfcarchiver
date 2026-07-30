@@ -9,6 +9,7 @@ import { RestoreController, PasswordRequiredError } from '../controller.js';
 import { DecryptionError } from '../../src/crypto.js';
 import { renderArchiveList } from './restore-view.js';
 import { humanError } from './errors.js';
+import { t } from '../i18n/index.js';
 import type { Transport } from '../../src/transport/transport.js';
 import type { StoredFile } from '../../src/storage/file-store.js';
 import type { Logger } from '../../src/log/logger.js';
@@ -63,16 +64,16 @@ export class RestoreOrchestrator {
         catch (e) {
           if (!(e instanceof PasswordRequiredError || e instanceof DecryptionError)) throw e;
           if (attempt === 5) break; // 5 passwords already tried
-          const entered = this.io.promptPassword(e instanceof DecryptionError ? 'Wrong password. Enter password:' : 'This archive is encrypted. Enter password:');
-          if (entered === null) { this.io.setStatus('Cancelled.'); this.io.log.info('restore', 'Cancelled', { id }); return; }
+          const entered = this.io.promptPassword(e instanceof DecryptionError ? t.promptWrongPassword : t.promptArchiveEncrypted);
+          if (entered === null) { this.io.setStatus(t.cancelled); this.io.log.info('restore', 'Cancelled', { id }); return; }
           pw = entered;
         }
       }
-      if (!result) { this.io.setStatus('Too many failed password attempts.'); this.io.log.warn('restore', 'Too many password attempts', { id }); return; }
+      if (!result) { this.io.setStatus(t.tooManyPasswordAttempts); this.io.log.warn('restore', 'Too many password attempts', { id }); return; }
       const name = result.fileName ?? this.io.fallbackName();
       if (result.fileName) this.io.setFileName(result.fileName);
       this.io.download(result.data, name);
-      this.io.setStatus(`Restored ${result.data.length} bytes → ${name}.`);
+      this.io.setStatus(t.restoredBytes(result.data.length, name));
       this.io.log.info('restore', 'Restored', { id, bytes: result.data.length, name });
       try {
         const meta = ctrl.detectedArchives().find((d) => d.archiveId === id);

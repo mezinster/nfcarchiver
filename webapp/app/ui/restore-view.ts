@@ -6,9 +6,10 @@
  * lost to a mid-interaction DOM teardown.
  */
 import type { DetectedArchive } from '../controller.js';
+import { t } from '../i18n/index.js';
 
 function label(a: DetectedArchive): string {
-  return `Archive ${a.shortId}…  ${a.isEncrypted ? '🔒 encrypted' : 'unencrypted'}  ·  ${a.received} / ${a.totalChunks} card(s)${a.complete ? ' ✓' : ''}`;
+  return t.archiveRow(a.shortId, a.isEncrypted, a.received, a.totalChunks, a.complete);
 }
 
 export function renderArchiveList(
@@ -33,7 +34,7 @@ export function renderArchiveList(
       row.setAttribute('data-archive-id', a.archiveId);
       const span = doc.createElement('span');
       const btn = doc.createElement('button');
-      btn.textContent = 'Restore';
+      btn.textContent = t.restore;
       // The row's archive id never changes, so binding it once is safe and keeps
       // the listener stable across updates.
       btn.addEventListener('click', () => onPick(a.archiveId));

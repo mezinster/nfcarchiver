@@ -4,6 +4,7 @@
  * so a click is never lost to a DOM teardown.
  */
 import type { FileListItem } from '../../src/storage/file-store.js';
+import { t } from '../i18n/index.js';
 
 export function humanSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -13,7 +14,7 @@ export function humanSize(bytes: number): string {
 
 function label(f: FileListItem): string {
   const when = new Date(f.createdAt).toLocaleString();
-  return `${f.name}  ·  ${humanSize(f.size)}  ·  ${when}  ·  ${f.isEncrypted ? '🔒 encrypted' : 'plain'}  ·  ${f.totalChunks} card(s)`;
+  return t.fileRow(f.name, humanSize(f.size), when, f.isEncrypted, f.totalChunks);
 }
 
 export function renderFileList(
@@ -38,10 +39,10 @@ export function renderFileList(
       row.setAttribute('data-file-id', f.id);
       const span = doc.createElement('span');
       const dl = doc.createElement('button');
-      dl.textContent = 'Download';
+      dl.textContent = t.download;
       dl.addEventListener('click', () => handlers.onDownload(f.id));
       const del = doc.createElement('button');
-      del.textContent = 'Delete';
+      del.textContent = t.deleteBtn;
       del.addEventListener('click', () => handlers.onDelete(f.id));
       row.append(span, dl, del);
       container.appendChild(row);

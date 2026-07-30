@@ -5,6 +5,7 @@ import { currentTransport, onConnectionChange, setReaderBusy } from './device.js
 import { filesController } from './files-panel.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
+import { t } from '../i18n/index.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -32,7 +33,7 @@ export function initRestorePanel(): void {
 
   onConnectionChange((connected) => {
     ($('scan') as HTMLButtonElement).disabled = !connected;
-    if (connected) setStatus('Scan a pile of cards to detect archives.');
+    if (connected) setStatus(t.restoreReady);
   });
 
   $('scan').addEventListener('click', async () => {
@@ -42,19 +43,19 @@ export function initRestorePanel(): void {
     scanAbort = new AbortController();
     ($('scan') as HTMLButtonElement).disabled = true;
     ($('stop-scan') as HTMLButtonElement).disabled = false;
-    setStatus('Scanning — tap cards on the reader…');
+    setStatus(t.scanning);
     setReaderBusy(true);
     log.info('scan', 'Scan started');
     try {
       for (;;) {
         try {
           await orch.scanStep(scanAbort.signal);
-          setStatus('Tap more cards, or Restore a complete one.');
+          setStatus(t.tapMoreCards);
         } catch (e) {
           if (e instanceof DOMException && e.name === 'AbortError') break;
           if (e instanceof TagTimeoutError) continue;
-          if (e instanceof UnsupportedTagError) { setStatus('Unsupported tag — tap a Mifare Classic 1K or NTAG.'); log.warn('scan', 'Unsupported tag'); continue; }
-          setStatus(`Skipped a card: ${humanError(e)}`);
+          if (e instanceof UnsupportedTagError) { setStatus(t.unsupportedTapOther); log.warn('scan', 'Unsupported tag'); continue; }
+          setStatus(t.skippedCard(humanError(e)));
           log.warn('scan', 'Skipped a card', { error: String(e) });
           continue;
         }
