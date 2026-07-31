@@ -176,7 +176,9 @@ export function initDeviceBar(): void {
   const activateWebNfc = async (): Promise<void> => {
     await teardownActiveReader();
     try {
-      transport = new WebNfcTransport(new BrowserNdefIO(), selectedNtagType());
+      const t0 = new WebNfcTransport(new BrowserNdefIO(), selectedNtagType());
+      await t0.connect();
+      transport = t0;
       reader = 'web-nfc';
       connected = true;
       renderConn();
