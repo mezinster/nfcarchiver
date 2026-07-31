@@ -11,6 +11,7 @@ import { ArchiveController, OverwriteRequiredError, type ArchiveRequest } from '
 import { TagTimeoutError, UnsupportedTagError, type Transport } from '../../src/transport/transport.js';
 import { humanError } from './errors.js';
 import { t } from '../i18n/index.js';
+import { ensureMinInterval, FailureBreaker } from '../../src/loop-guards.js';
 import type { Logger } from '../../src/log/logger.js';
 
 /** The user's answer when a tapped card already holds NFAR data:
@@ -73,7 +74,9 @@ export class ArchiveOrchestrator {
     // without this check is an unthrottled retry spin that never reconnects.
     let inUse = transport;
     const usable = (): boolean => this.io.isConnected() && this.io.activeTransport() === inUse;
+    const breaker = new FailureBreaker();
     while (!done) {
+      const iterationStart = Date.now();
       if (!usable()) {
         const swapped = this.io.isConnected();
         this.io.setStatus(swapped ? t.readerSwitchedResume : t.readerDisconnectedResume);
@@ -91,10 +94,21 @@ export class ArchiveOrchestrator {
         if (res.rechunkedTo) {
           this.io.setStatus(t.rechunked(res.rechunkedTo.payloadSize, res.rechunkedTo.total));
         }
+        breaker.reset();
       } catch (e) {
         if (!usable()) continue; // disconnect or reader swap — handled at the loop top
+        // Stopping must be immediate — checked before pacing, mirroring the
+        // restore loop's ordering exactly. Unreachable today (writeNextCard is
+        // always called with an undefined signal; no Stop control is wired to
+        // archive writes), but the moment one is, this keeps it from being
+        // delayed by ensureMinInterval and then swallowed into a retry.
+        if (e instanceof DOMException && e.name === 'AbortError') {
+          this.io.setStatus(t.cancelled);
+          this.io.log.info('archive', 'Write cancelled');
+          return;
+        }
+        await ensureMinInterval(iterationStart, 250);
         if (e instanceof TagTimeoutError) { this.io.setStatus(t.noCardTapHold); continue; }
-        if (e instanceof UnsupportedTagError) { this.io.setStatus(t.unsupportedTapOther); continue; }
         if (e instanceof OverwriteRequiredError) {
           const choice = await this.io.confirmOverwrite();
           if (choice === 'skip') { this.io.setStatus(t.skippedTapDifferent); continue; }
@@ -104,12 +118,35 @@ export class ArchiveOrchestrator {
             total = res.progress.total;
             done = res.done;
             this.render(res.progress.written, total, done);
+            breaker.reset();
           } catch (e2) {
             if (!usable()) continue;
             this.io.setStatus(t.retryAfter(humanError(e2)));
             this.io.log.warn('archive', 'Overwrite write failed — will retry', { error: String(e2) });
           }
           continue;
+        }
+        // An unsupported tag can only arise AFTER a real tap, so it is
+        // rate-limited by the user and cannot produce the runaway retry the
+        // breaker exists to stop. Counting it would be actively harmful: run()
+        // builds a fresh ArchiveController per press, so tripping the breaker
+        // means re-prepare() and re-tap from card 1 — five wrong-media taps at
+        // card 40 of 50 would discard 40 cards of work. Exempt, matching the
+        // restore loop (see restore-panel.ts).
+        if (e instanceof UnsupportedTagError) { this.io.setStatus(t.unsupportedTapOther); continue; }
+        // Waiting for the user is not failing: TagTimeoutError, an overwrite
+        // prompt, an unsupported tag and an abort (all above) must never count
+        // toward the breaker. Everything else does — CardReadError,
+        // WriteVerifyError, and anything a broken transport throws without a
+        // tap, which is exactly the fast-failure spin worth stopping.
+        const name = e instanceof Error ? e.name : 'unknown';
+        if (breaker.record(name)) {
+          // Leaving the bar up would freeze it mid-count on a session that has
+          // stopped for good; the status line carries the reason.
+          this.io.hideProgress();
+          this.io.setStatus(t.scanGaveUp(humanError(e)));
+          this.io.log.error('archive', 'Stopped after repeated failures', { error: String(e) });
+          return;
         }
         // Any other per-card failure (verify/auth/capacity/mid-write I-O): retry, never abort.
         this.io.setStatus(t.retryAfter(humanError(e)));

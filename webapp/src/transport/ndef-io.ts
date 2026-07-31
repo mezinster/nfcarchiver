@@ -26,6 +26,9 @@ export interface NdefReading {
 }
 
 export interface NdefIO {
+  /** Arm the single scan. Call once, before any awaitReading(). Rejects if the
+   *  browser refuses — permission denied, unsupported, or already scanning. */
+  start(): Promise<void>;
   /** Resolves with the first tag presented. Rejects on timeout or abort. */
   awaitReading(opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<NdefReading>;
   /** Write to the tag currently in the field. */

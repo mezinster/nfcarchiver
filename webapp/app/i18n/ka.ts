@@ -59,6 +59,7 @@ export const ka: Messages = {
   unsupportedTapOther: 'ტეგი მხარდაუჭერელია — მიადეთ Mifare Classic 1K ან NTAG.',
   skippedTapDifferent: 'გამოტოვებულია. მიადეთ სხვა ბარათი…',
   retryAfter: (message) => `${message} — გასამეორებლად მიადეთ ხელახლა.`,
+  scanGaveUp: (message) => `შეჩერდა განმეორებითი შეცდომების გამო: ${message}`,
 
   // — overwrite dialog —
   overwrite: 'გადაწერა',

@@ -32,7 +32,10 @@ export class WebNfcTransport implements Transport {
   constructor(private readonly io: NdefIO, private readonly tagType: NtagType) {}
 
   async connect(): Promise<void> {
-    // Nothing to open: the browser owns the radio. Present for interface parity.
+    // Arm the single scan here rather than lazily on first read: the permission
+    // prompt then appears when the user asked for NFC, inside their gesture,
+    // and a refusal surfaces at the button instead of inside a scan loop.
+    await this.io.start();
   }
 
   async disconnect(): Promise<void> {

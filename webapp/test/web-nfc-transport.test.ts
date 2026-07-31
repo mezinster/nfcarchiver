@@ -113,9 +113,14 @@ test('writeChunk emits one MIME record with the NFAR media type', async () => {
 });
 
 test('awaitTag rejects TagTimeoutError when no tag is presented', async () => {
-  const t = new WebNfcTransport(new FakeNdefIO(), NtagType.NTAG215);
+  const io = new FakeNdefIO();
+  const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
-  await assert.rejects(() => t.awaitTag(), TagTimeoutError);
+  // The tightened fake only fails fast when timeoutMs is set — with none, it
+  // waits for a tap that will never come (real Web NFC has no built-in
+  // timeout either). A bare awaitTag() would hang the suite, so this asserts
+  // through an explicit timeout, same as the transport contract does.
+  await assert.rejects(() => t.awaitTag({ timeoutMs: 20 }), TagTimeoutError);
 });
 
 test('writeChunk accepts a chunk exactly at the payload boundary and rejects one byte more', async () => {
@@ -148,7 +153,9 @@ test('a failed awaitTag() clears the stale cache from the previous tag', async (
   assert.equal(await t.peekIsNfar(), true);
 
   // Nothing queued: this awaitTag() rejects. Card A's reading must not linger.
-  await assert.rejects(() => t.awaitTag(), TagTimeoutError);
+  // timeoutMs is required for the tightened fake to fail fast rather than wait
+  // forever for a tap that never comes.
+  await assert.rejects(() => t.awaitTag({ timeoutMs: 20 }), TagTimeoutError);
   assert.equal(await t.peekIsNfar(), false);
   await assert.rejects(() => t.readChunk(), UnidentifiedTagError);
 });
@@ -227,6 +234,8 @@ test('a blank-serial card fails a restore scan loudly instead of being dropped',
 
 runTransportContract('WebNfcTransport+FakeNdefIO', () => {
   const io = new FakeNdefIO();
+  // connect() (called by runTransportContract itself) now arms the scan, so
+  // the factory need only build the transport.
   const transport = new WebNfcTransport(io, NtagType.NTAG215);
   return {
     transport,
@@ -237,4 +246,41 @@ runTransportContract('WebNfcTransport+FakeNdefIO', () => {
 }, {
   capacityBytes: ntagFactoryNdefCapacity(NtagType.NTAG215),
   maxChunkPayload: webNfcChunkPayload(NtagType.NTAG215),
+});
+
+test('a multi-card scan arms the reader exactly once', async () => {
+  const io = new FakeNdefIO();
+  const t = new WebNfcTransport(io, NtagType.NTAG215);
+  await t.connect();
+  for (let i = 1; i <= 3; i++) {
+    io.tap(`04:0${i}:02:03`);
+    const tag = await t.awaitTag();
+    assert.equal(tag.uid[1], i);
+  }
+  assert.equal(io.scanArmCount, 1, 'each card must reuse the one scan');
+});
+
+test('reading before the scan is started is a programming error', async () => {
+  const io = new FakeNdefIO();
+  io.tap('04:01:02:03');
+  await assert.rejects(() => io.awaitReading(), /not started/i);
+});
+
+test('starting twice is rejected, as the real API does', async () => {
+  const io = new FakeNdefIO();
+  await io.start();
+  await assert.rejects(() => io.start(), /already/i);
+});
+
+test('connect arms the scan, and a refusal surfaces from connect', async () => {
+  const ok = new FakeNdefIO();
+  await new WebNfcTransport(ok, NtagType.NTAG215).connect();
+  assert.equal(ok.scanArmCount, 1);
+
+  const bad = new FakeNdefIO();
+  bad.failStart = new Error('NFC permission denied');
+  await assert.rejects(
+    () => new WebNfcTransport(bad, NtagType.NTAG215).connect(),
+    /permission denied/,
+  );
 });

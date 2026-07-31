@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
-import { WriteVerifyError, type PresentedTag, type Transport } from '../src/transport/transport.js';
+import { CardReadError, UnsupportedTagError, WriteVerifyError, type PresentedTag, type Transport } from '../src/transport/transport.js';
 import { ArchiveOrchestrator, type ArchiveIO } from '../app/ui/archive-orchestrator.js';
 import { RestoreController } from '../app/controller.js';
 import { decodeChunk, encodeChunk } from '../src/chunk.js';
@@ -28,6 +28,24 @@ class FlakyWriteTransport implements Transport {
     if (this.writes === this.failOnWrite) throw new WriteVerifyError('simulated verify failure');
     return this.inner.writeChunk(bytes);
   }
+}
+
+/** Wraps a MockTransport and rejects the first N taps with UnsupportedTagError,
+ *  as the user works through a stack that starts with foreign cards. */
+class ForeignTagTransport implements Transport {
+  readonly name = 'foreign';
+  private taps = 0;
+  constructor(private readonly inner: MockTransport, private readonly foreignTaps: number) {}
+  connect() { return this.inner.connect(); }
+  disconnect() { return this.inner.disconnect(); }
+  async awaitTag(opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<PresentedTag> {
+    this.taps += 1;
+    if (this.taps <= this.foreignTaps) throw new UnsupportedTagError('not an NFAR-capable tag');
+    return this.inner.awaitTag(opts);
+  }
+  peekIsNfar() { return this.inner.peekIsNfar(); }
+  readChunk() { return this.inner.readChunk(); }
+  writeChunk(bytes: Uint8Array) { return this.inner.writeChunk(bytes); }
 }
 
 /** `active` is the transport the device bar owns — the loop compares the one it
@@ -138,6 +156,10 @@ test('swapping readers mid-archive adopts the new transport instead of spinning 
   const ioB = new FakeNdefIO();
   const tA = new WebNfcTransport(ioA, NtagType.NTAG215);
   const tB = new WebNfcTransport(ioB, NtagType.NTAG216);
+  // Arm both scans directly rather than via connect(): this test hands the
+  // orchestrator two already-live transports, with no device bar to connect them.
+  await ioA.start();
+  await ioB.start();
   ioA.tap('0a:00:00:01');
   ioB.tap('0b:00:00:02');
   ioB.tap('0b:00:00:03');
@@ -217,4 +239,47 @@ test('"overwrite all remaining" prompts once, then overwrites the rest silently'
     indices.push(decodeChunk(await inner.readChunk()).chunkIndex);
   }
   assert.deepEqual([...indices].sort((a, b) => a - b), [0, 1, 2], 'every card holds a new chunk');
+});
+
+test('the write loop stops after repeated identical failures instead of spinning', async () => {
+  let attempts = 0;
+  const failing = {
+    ...new MockTransport(),
+    name: 'always-fails',
+    async awaitTag() { attempts += 1; throw new CardReadError('boom'); },
+  } as unknown as Transport;
+
+  const { io, statuses, wasHidden } = makeIO(failing);
+  await new ArchiveOrchestrator(io).run(failing, {
+    data: new Uint8Array(50), fileName: 'x.bin', compress: false, payloadSize: 100,
+  });
+
+  assert.ok(attempts <= 6, `expected the breaker to stop it, got ${attempts} attempts`);
+  assert.ok(statuses.some((s) => s.includes('Stopped after repeated failures')));
+  // The session has stopped for good — a progress bar frozen mid-count would
+  // read as a write still in flight.
+  assert.equal(wasHidden(), true, 'progress hidden when the breaker gives up');
+});
+
+test('repeated wrong-media taps never trip the archive breaker', async () => {
+  // Tapping foreign cards while sorting a stack is normal use, and an
+  // unsupported tag can only arise after a real tap, so it can never be the
+  // fast-failure spin the breaker exists to stop. Counting it would discard the
+  // whole prepared archive — run() builds a fresh controller per press, so the
+  // user would have to start again from card 1.
+  const inner = new MockTransport();
+  const t = new ForeignTagTransport(inner, 6); // more than the breaker's limit of 5
+  const { io, statuses, wasHidden } = makeIO(t);
+  inner.enqueueTag(uid(0)); // the one good card, tapped after the foreign ones
+
+  await new ArchiveOrchestrator(io).run(t, {
+    data: new Uint8Array(50), fileName: 'x.bin', compress: false, payloadSize: 100,
+  });
+
+  assert.equal(wasHidden(), false, 'the session survived the foreign taps');
+  assert.ok(!statuses.some((s) => s.includes('Stopped after repeated failures')),
+    'the breaker must not trip on unsupported tags');
+  inner.enqueueTag(uid(0));
+  await inner.awaitTag();
+  assert.equal(decodeChunk(await inner.readChunk()).chunkIndex, 0, 'the archive still completed');
 });

@@ -97,23 +97,45 @@ Phone NFC's limits are the Web NFC API's, not a missing feature:
 a restore scan, or a card inspection in progress) — the same `readerBusy`
 interlock that also gates **Inspect card**.
 
-**Unverified on real hardware:** `app/ui/browser-ndef-io.ts` is the only file
-that touches `NDEFReader`, and two of its behaviours are written from the Web
-NFC specification, not from an observed Chrome session:
+**Scan model.** `app/ui/browser-ndef-io.ts` (`BrowserNdefIO`) is the only file
+that touches `NDEFReader`. It arms exactly one scan per connection —
+`WebNfcTransport.connect()` calls `io.start()` once, up front, in the user's
+gesture, so a refusal surfaces at the **Use phone NFC** button rather than
+inside a scan loop — and that single scan is reused for every card for the
+rest of the session; nothing ever calls `scan()` a second time on the same
+reader. A reading that arrives with no `awaitReading()` call waiting for it
+(the gap between one card finishing and the loop asking for the next) is held
+for two seconds and served to whichever call comes next, then discarded.
+`app/ui/archive-orchestrator.ts` and `app/ui/restore-panel.ts` both pace their
+retry loops to at least 250 ms/iteration and stop after five consecutive
+failures of the *same* error name, via `ensureMinInterval` / `FailureBreaker`
+in `src/loop-guards.ts`. Neither counts `TagTimeoutError`,
+`OverwriteRequiredError`, or an abort against that limit — waiting for the
+user to tap is not failing. The restore loop additionally excludes
+`UnsupportedTagError`: a restore pile legitimately contains foreign cards, so
+tapping several while sorting a stack is normal use. The archive loop counts
+`UnsupportedTagError` like any other failure, because a wrong-media tap during
+an active write is a genuine failure to progress.
 
-- the `DOMException` → `CardCapacityError` mapping (`NotSupportedError` /
-  `NetworkError` on a write that doesn't fit) may not match what Chrome
-  actually raises for an undersized card;
-- `awaitReading()` assumes `scan({ signal })` rejects with `AbortError` once
-  the passed `AbortSignal` fires. If Chrome instead just stops firing
-  `onreading`/`onreadingerror` without ever settling that promise, the pending
-  `awaitReading()` call never resolves or rejects — so whatever is awaiting a
-  tag (`awaitTag()` in `WebNfcTransport`, called from `writeNextCard()` /
-  `scanNextCard()` in `app/controller.ts`) is left waiting indefinitely. Those
-  call sites pass only `{ signal }`, no `timeoutMs`, so nothing rescues it.
-  Treat both as open questions until validated on an Android phone
-  running Chrome; [`HARDWARE_TESTING.md`](HARDWARE_TESTING.md) does not yet
-  have a phone-NFC checklist (it's Chameleon-only today).
+This replaces an earlier, real production incident: the previous version of
+`awaitReading()` called `scan()` again on every call, which aborted the still-live
+scan and re-armed the same `NDEFReader` in the same tick — a call that rejects
+*synchronously* on Chrome. The unthrottled retry loop around it then spun
+tightly enough to lock up the renderer (186% CPU, one `setReaderMode` call
+against eight tag discoveries in logcat) so hard the user couldn't press Stop
+or switch tabs on a Pixel 8 Pro. Abort itself was never the problem.
+
+Kept from before, still true: the `DOMException` → `CardCapacityError` mapping
+(`NotSupportedError` / `NetworkError` on a write that doesn't fit) is written
+from the Web NFC specification, not from an observed Chrome session, and may
+not match what Chrome actually raises for an undersized card.
+
+**Still unproven on real hardware:** whether `scan()` succeeds at all on a
+phone, and whether `onreading` then fires repeatedly off that one persistent
+scan across many taps, the way the whole design assumes. Treat both as open
+questions until validated on an Android phone running Chrome;
+[`HARDWARE_TESTING.md`](HARDWARE_TESTING.md) does not yet have a phone-NFC
+checklist (it's Chameleon-only today).
 
 ## Localization
 

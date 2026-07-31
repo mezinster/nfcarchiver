@@ -59,6 +59,7 @@ export const tr: Messages = {
   unsupportedTapOther: 'Desteklenmeyen etiket — Mifare Classic 1K veya NTAG okutun.',
   skippedTapDifferent: 'Atlandı. Farklı bir kart okutun…',
   retryAfter: (message) => `${message} — yeniden denemek için tekrar okutun.`,
+  scanGaveUp: (message) => `Tekrarlanan hatalar nedeniyle durduruldu: ${message}`,
 
   // — overwrite dialog —
   overwrite: 'Üzerine yaz',
