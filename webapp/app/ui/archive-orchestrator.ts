@@ -97,6 +97,16 @@ export class ArchiveOrchestrator {
         breaker.reset();
       } catch (e) {
         if (!usable()) continue; // disconnect or reader swap — handled at the loop top
+        // Stopping must be immediate — checked before pacing, mirroring the
+        // restore loop's ordering exactly. Unreachable today (writeNextCard is
+        // always called with an undefined signal; no Stop control is wired to
+        // archive writes), but the moment one is, this keeps it from being
+        // delayed by ensureMinInterval and then swallowed into a retry.
+        if (e instanceof DOMException && e.name === 'AbortError') {
+          this.io.setStatus(t.cancelled);
+          this.io.log.info('archive', 'Write cancelled');
+          return;
+        }
         await ensureMinInterval(iterationStart, 250);
         if (e instanceof TagTimeoutError) { this.io.setStatus(t.noCardTapHold); continue; }
         if (e instanceof OverwriteRequiredError) {
@@ -117,15 +127,16 @@ export class ArchiveOrchestrator {
           continue;
         }
         // Waiting for the user is not failing: TagTimeoutError, an overwrite
-        // prompt and an abort must never count toward the breaker — everything
-        // else (including an unsupported tag) does.
-        if (!(e instanceof DOMException && e.name === 'AbortError')) {
-          const name = e instanceof Error ? e.name : 'unknown';
-          if (breaker.record(name)) {
-            this.io.setStatus(t.scanGaveUp(humanError(e)));
-            this.io.log.error('archive', 'Stopped after repeated failures', { error: String(e) });
-            return;
-          }
+        // prompt and an abort (above) must never count toward the breaker.
+        // Everything else — including an unsupported tag — does: unlike the
+        // restore loop, where a pile of cards legitimately contains foreign
+        // media, a wrong-media tap during an active write is a genuine
+        // failure to make progress (see restore-panel.ts for the mirror case).
+        const name = e instanceof Error ? e.name : 'unknown';
+        if (breaker.record(name)) {
+          this.io.setStatus(t.scanGaveUp(humanError(e)));
+          this.io.log.error('archive', 'Stopped after repeated failures', { error: String(e) });
+          return;
         }
         if (e instanceof UnsupportedTagError) { this.io.setStatus(t.unsupportedTapOther); continue; }
         // Any other per-card failure (verify/auth/capacity/mid-write I-O): retry, never abort.

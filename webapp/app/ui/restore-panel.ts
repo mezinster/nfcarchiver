@@ -58,9 +58,15 @@ export function initRestorePanel(): void {
         } catch (e) {
           if (e instanceof DOMException && e.name === 'AbortError') break;
           if (e instanceof TagTimeoutError) continue;
+          // A restore pile legitimately contains foreign cards — tapping
+          // several unsupported ones while sorting through a stack is normal
+          // use, not a stuck loop, so this must never count toward the
+          // breaker. (Unlike the archive loop, where a wrong-media tap during
+          // an active write IS a genuine failure to progress — see
+          // archive-orchestrator.ts for the mirror case.)
+          if (e instanceof UnsupportedTagError) { setStatus(t.unsupportedTapOther); log.warn('scan', 'Unsupported tag'); continue; }
           // Waiting for the user is not failing: TagTimeoutError and an abort
-          // must never count toward the breaker — everything else (including
-          // an unsupported tag) does.
+          // (above) must never count toward the breaker — everything else does.
           await ensureMinInterval(iterationStart, 250);
           const name = e instanceof Error ? e.name : 'unknown';
           if (breaker.record(name)) {
@@ -68,7 +74,6 @@ export function initRestorePanel(): void {
             log.error('scan', 'Stopped after repeated failures', { error: String(e) });
             break;
           }
-          if (e instanceof UnsupportedTagError) { setStatus(t.unsupportedTapOther); log.warn('scan', 'Unsupported tag'); continue; }
           setStatus(t.skippedCard(humanError(e)));
           log.warn('scan', 'Skipped a card', { error: String(e) });
           continue;
