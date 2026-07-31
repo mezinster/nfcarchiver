@@ -126,19 +126,28 @@ export class ArchiveOrchestrator {
           }
           continue;
         }
+        // An unsupported tag can only arise AFTER a real tap, so it is
+        // rate-limited by the user and cannot produce the runaway retry the
+        // breaker exists to stop. Counting it would be actively harmful: run()
+        // builds a fresh ArchiveController per press, so tripping the breaker
+        // means re-prepare() and re-tap from card 1 — five wrong-media taps at
+        // card 40 of 50 would discard 40 cards of work. Exempt, matching the
+        // restore loop (see restore-panel.ts).
+        if (e instanceof UnsupportedTagError) { this.io.setStatus(t.unsupportedTapOther); continue; }
         // Waiting for the user is not failing: TagTimeoutError, an overwrite
-        // prompt and an abort (above) must never count toward the breaker.
-        // Everything else — including an unsupported tag — does: unlike the
-        // restore loop, where a pile of cards legitimately contains foreign
-        // media, a wrong-media tap during an active write is a genuine
-        // failure to make progress (see restore-panel.ts for the mirror case).
+        // prompt, an unsupported tag and an abort (all above) must never count
+        // toward the breaker. Everything else does — CardReadError,
+        // WriteVerifyError, and anything a broken transport throws without a
+        // tap, which is exactly the fast-failure spin worth stopping.
         const name = e instanceof Error ? e.name : 'unknown';
         if (breaker.record(name)) {
+          // Leaving the bar up would freeze it mid-count on a session that has
+          // stopped for good; the status line carries the reason.
+          this.io.hideProgress();
           this.io.setStatus(t.scanGaveUp(humanError(e)));
           this.io.log.error('archive', 'Stopped after repeated failures', { error: String(e) });
           return;
         }
-        if (e instanceof UnsupportedTagError) { this.io.setStatus(t.unsupportedTapOther); continue; }
         // Any other per-card failure (verify/auth/capacity/mid-write I-O): retry, never abort.
         this.io.setStatus(t.retryAfter(humanError(e)));
         this.io.log.warn('archive', 'Card write failed — will retry', { error: String(e) });

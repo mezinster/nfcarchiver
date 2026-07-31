@@ -1,6 +1,6 @@
 /** Restore tab: thin adapter — builds the DOM/browser IO for RestoreOrchestrator and runs the scan-step loop. */
 import { RestoreOrchestrator, type RestoreIO } from './restore-orchestrator.js';
-import { TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
+import { CardAuthError, TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
 import { currentTransport, onConnectionChange, setReaderBusy } from './device.js';
 import { filesController } from './files-panel.js';
 import { humanError } from './errors.js';
@@ -59,12 +59,21 @@ export function initRestorePanel(): void {
           if (e instanceof DOMException && e.name === 'AbortError') break;
           if (e instanceof TagTimeoutError) continue;
           // A restore pile legitimately contains foreign cards — tapping
-          // several unsupported ones while sorting through a stack is normal
-          // use, not a stuck loop, so this must never count toward the
-          // breaker. (Unlike the archive loop, where a wrong-media tap during
-          // an active write IS a genuine failure to progress — see
-          // archive-orchestrator.ts for the mirror case.)
-          if (e instanceof UnsupportedTagError) { setStatus(t.unsupportedTapOther); log.warn('scan', 'Unsupported tag'); continue; }
+          // several of them while sorting through a stack is normal use, not a
+          // stuck loop, so neither may count toward the breaker. Both errors
+          // are needed to cover "foreign card": UnsupportedTagError is only
+          // raised for SAK values outside 0x00/0x08, so a foreign *Mifare
+          // Classic* (SAK 0x08 — hotel key, transit card, office badge) routes
+          // to the Classic transport instead and fails on its non-factory keys
+          // with CardAuthError. Same user situation, different error.
+          // (The archive loop exempts UnsupportedTagError for the same reason:
+          // it can only arise after a real tap, so it is user-rate-limited and
+          // cannot produce the spin the breaker exists to stop.)
+          if (e instanceof UnsupportedTagError || e instanceof CardAuthError) {
+            setStatus(t.unsupportedTapOther);
+            log.warn('scan', 'Foreign card — skipped', { error: String(e) });
+            continue;
+          }
           // Waiting for the user is not failing: TagTimeoutError and an abort
           // (above) must never count toward the breaker — everything else does.
           await ensureMinInterval(iterationStart, 250);
