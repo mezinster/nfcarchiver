@@ -57,32 +57,52 @@ Play's limit is 4000 characters.
 git tag -a v1.1.0 -m "1.1.0" && git push origin v1.1.0
 ```
 
-## 6. F-Droid metadata
+## 6. F-Droid — usually nothing to do
 
-`fdroid/com.nfcarchiver.nfc_archiver.yml` is a **local copy**. The authoritative
-file lives in [fdroiddata](https://gitlab.com/fdroid/fdroiddata) and is updated
-by merge request. The local copy has drifted before — it currently carries the
-1.0.8 and 1.1.0 build entries only, while upstream also has 1.0.9–1.0.12.
+**Routine version bumps need no manual action.** The metadata is configured for
+automatic updates:
 
-For each release, add a `Builds:` entry and update `CurrentVersion` /
-`CurrentVersionCode`.
-
-**`commit:` must be the full SHA of the release commit on master — never a tag
-reference.** A new entry is committed with `REPLACE_WITH_RELEASE_COMMIT_SHA` as a
-deliberate tripwire; substituting it is step one of submitting the MR:
-
-```bash
-git rev-parse v1.1.0^{commit}
+```yaml
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
 ```
 
-Then, in a fdroiddata checkout:
+F-Droid's bot watches the repo's **git tags**, reads `versionName` and
+`versionCode` straight out of `pubspec.yaml` with that regex, and generates the
+new `Builds:` entry itself by cloning the previous one. Pushing the tag in step 5
+is the entire trigger.
+
+Two things follow from that:
+
+- **`pubspec.yaml`'s `version:` must stay in `X.Y.Z+N` form.** The regex depends
+  on it. Break the format and F-Droid silently stops seeing new releases.
+- **The build recipe is inherited.** Whatever `sudo`/`prebuild`/`build` the last
+  entry used is what the new one gets.
+
+`fdroid/com.nfcarchiver.nfc_archiver.yml` in this repo is a **reference mirror**,
+not the file F-Droid builds from — the authoritative copy lives in
+[fdroiddata](https://gitlab.com/fdroid/fdroiddata) and is bot-maintained. The
+mirror has drifted before; it currently holds 1.0.8 and 1.1.0 while upstream also
+has 1.0.9–1.0.12.
+
+### When a manual MR IS required
+
+Only when the **build recipe itself** changes — not when the version does:
+
+- a new dependency needs an extra `prebuild` step or a system package
+- the JDK, `compileSdk`, or Flutter pinning changes
+- `srclibs`, `rm`, or `scandelete` need adjusting
+
+In that case, edit the file in a fdroiddata checkout and run:
 
 ```bash
 rewritemeta com.nfcarchiver.nfc_archiver
 ```
 
-`rewritemeta` enforces field ordering and line formatting — `sudo:` must follow
-`commit:`, and compound shell commands must be on a single line.
+It enforces field ordering and line formatting — `sudo:` must follow `commit:`,
+and compound shell commands must be on a single line. Use the **full commit SHA**
+in `commit:`, never a tag reference.
 
 ### Constraints that must not drift
 
@@ -103,7 +123,7 @@ rewritemeta com.nfcarchiver.nfc_archiver
   `rxandroid`, `kotlin-stdlib`, `protobuf-javalite`) are Apache-2.0 or BSD-3.
   **Never add `flutter_blue_plus`** — it relicensed to a custom non-free licence
   and F-Droid would reject the app.
-- **`pubspec.lock` is tracked**, so F-Droid resolves the same versions verified
+- **`pubspec.lock` is tracked**, so F-Droid resolves the versions verified
   locally.
 
 ## 7. Verify the built APK

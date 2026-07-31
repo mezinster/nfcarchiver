@@ -130,7 +130,11 @@ A browser port that reads/writes NFAR archives on physical cards, either via a C
 
 ## F-Droid Build Notes
 
-F-Droid metadata lives in `fdroid/com.nfcarchiver.nfc_archiver.yml` (local copy) and is submitted via MR to [fdroiddata](https://gitlab.com/fdroid/fdroiddata). Key gotchas for future updates:
+F-Droid metadata lives in `fdroid/com.nfcarchiver.nfc_archiver.yml` (a reference mirror); the authoritative copy is in [fdroiddata](https://gitlab.com/fdroid/fdroiddata).
+
+**Routine version bumps need no manual MR.** `AutoUpdateMode: Version` + `UpdateCheckMode: Tags` + `UpdateCheckData` mean F-Droid's bot watches git tags, reads the version from `pubspec.yaml`, and generates the `Builds:` entry itself — pushing a `vX.Y.Z` tag is the whole trigger. An MR is needed only when the **build recipe** changes (a new prebuild step, system package, JDK/SDK/Flutter pinning, `srclibs`/`rm`/`scandelete`). See `docs/RELEASING.md`.
+
+Key gotchas:
 
 - **`compileSdk` must stay at 34** — F-Droid's build server has a JDK 21 `jlink`/`JdkImageTransform` bug with SDK 35. Do not bump `compileSdk` unless F-Droid upgrades their JDK or the bug is fixed. The build also installs JDK 17 from Debian Bookworm as a workaround.
 - **Flutter version is pinned from the release workflow** — `prebuild` extracts `FLUTTER_VERSION` from `.github/workflows/release.yml` via `sed`. If you rename/restructure the workflow, the F-Droid build will break.
