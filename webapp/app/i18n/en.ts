@@ -60,6 +60,7 @@ export const en = {
   unsupportedTapOther: 'Unsupported tag — tap a Mifare Classic 1K or NTAG.',
   skippedTapDifferent: 'Skipped. Tap a different card…',
   retryAfter: (message: string) => `${message} — re-tap to retry.`,
+  scanGaveUp: (message: string) => `Stopped after repeated failures: ${message}`,
 
   // — overwrite dialog —
   overwrite: 'Overwrite',

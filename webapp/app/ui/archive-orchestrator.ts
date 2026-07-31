@@ -11,6 +11,7 @@ import { ArchiveController, OverwriteRequiredError, type ArchiveRequest } from '
 import { TagTimeoutError, UnsupportedTagError, type Transport } from '../../src/transport/transport.js';
 import { humanError } from './errors.js';
 import { t } from '../i18n/index.js';
+import { ensureMinInterval, FailureBreaker } from '../../src/loop-guards.js';
 import type { Logger } from '../../src/log/logger.js';
 
 /** The user's answer when a tapped card already holds NFAR data:
@@ -73,7 +74,9 @@ export class ArchiveOrchestrator {
     // without this check is an unthrottled retry spin that never reconnects.
     let inUse = transport;
     const usable = (): boolean => this.io.isConnected() && this.io.activeTransport() === inUse;
+    const breaker = new FailureBreaker();
     while (!done) {
+      const iterationStart = Date.now();
       if (!usable()) {
         const swapped = this.io.isConnected();
         this.io.setStatus(swapped ? t.readerSwitchedResume : t.readerDisconnectedResume);
@@ -91,10 +94,11 @@ export class ArchiveOrchestrator {
         if (res.rechunkedTo) {
           this.io.setStatus(t.rechunked(res.rechunkedTo.payloadSize, res.rechunkedTo.total));
         }
+        breaker.reset();
       } catch (e) {
         if (!usable()) continue; // disconnect or reader swap — handled at the loop top
+        await ensureMinInterval(iterationStart, 250);
         if (e instanceof TagTimeoutError) { this.io.setStatus(t.noCardTapHold); continue; }
-        if (e instanceof UnsupportedTagError) { this.io.setStatus(t.unsupportedTapOther); continue; }
         if (e instanceof OverwriteRequiredError) {
           const choice = await this.io.confirmOverwrite();
           if (choice === 'skip') { this.io.setStatus(t.skippedTapDifferent); continue; }
@@ -104,6 +108,7 @@ export class ArchiveOrchestrator {
             total = res.progress.total;
             done = res.done;
             this.render(res.progress.written, total, done);
+            breaker.reset();
           } catch (e2) {
             if (!usable()) continue;
             this.io.setStatus(t.retryAfter(humanError(e2)));
@@ -111,6 +116,18 @@ export class ArchiveOrchestrator {
           }
           continue;
         }
+        // Waiting for the user is not failing: TagTimeoutError, an overwrite
+        // prompt and an abort must never count toward the breaker — everything
+        // else (including an unsupported tag) does.
+        if (!(e instanceof DOMException && e.name === 'AbortError')) {
+          const name = e instanceof Error ? e.name : 'unknown';
+          if (breaker.record(name)) {
+            this.io.setStatus(t.scanGaveUp(humanError(e)));
+            this.io.log.error('archive', 'Stopped after repeated failures', { error: String(e) });
+            return;
+          }
+        }
+        if (e instanceof UnsupportedTagError) { this.io.setStatus(t.unsupportedTapOther); continue; }
         // Any other per-card failure (verify/auth/capacity/mid-write I-O): retry, never abort.
         this.io.setStatus(t.retryAfter(humanError(e)));
         this.io.log.warn('archive', 'Card write failed — will retry', { error: String(e) });

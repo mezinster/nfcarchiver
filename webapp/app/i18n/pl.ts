@@ -62,6 +62,7 @@ export const pl: Messages = {
   unsupportedTapOther: 'Nieobsługiwany tag — przyłóż Mifare Classic 1K lub NTAG.',
   skippedTapDifferent: 'Pominięto. Przyłóż inną kartę…',
   retryAfter: (message) => `${message} — przyłóż ponownie, aby spróbować jeszcze raz.`,
+  scanGaveUp: (message) => `Zatrzymano po powtarzających się błędach: ${message}`,
 
   // — overwrite dialog —
   overwrite: 'Nadpisz',

@@ -62,6 +62,7 @@ export const be: Messages = {
   unsupportedTapOther: 'Метка не падтрымліваецца — прыкладзіце Mifare Classic 1K або NTAG.',
   skippedTapDifferent: 'Прапушчана. Прыкладзіце іншую карту…',
   retryAfter: (message) => `${message} — прыкладзіце зноў, каб паўтарыць.`,
+  scanGaveUp: (message) => `Спынена з-за паўторных памылак: ${message}`,
 
   // — overwrite dialog —
   overwrite: 'Перазапісаць',

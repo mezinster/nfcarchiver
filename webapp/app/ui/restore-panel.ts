@@ -6,6 +6,7 @@ import { filesController } from './files-panel.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
 import { t } from '../i18n/index.js';
+import { ensureMinInterval, FailureBreaker } from '../../src/loop-guards.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -46,14 +47,27 @@ export function initRestorePanel(): void {
     setStatus(t.scanning);
     setReaderBusy(true);
     log.info('scan', 'Scan started');
+    const breaker = new FailureBreaker();
     try {
       for (;;) {
+        const iterationStart = Date.now();
         try {
           await orch.scanStep(scanAbort.signal);
+          breaker.reset();
           setStatus(t.tapMoreCards);
         } catch (e) {
           if (e instanceof DOMException && e.name === 'AbortError') break;
           if (e instanceof TagTimeoutError) continue;
+          // Waiting for the user is not failing: TagTimeoutError and an abort
+          // must never count toward the breaker — everything else (including
+          // an unsupported tag) does.
+          await ensureMinInterval(iterationStart, 250);
+          const name = e instanceof Error ? e.name : 'unknown';
+          if (breaker.record(name)) {
+            setStatus(t.scanGaveUp(humanError(e)));
+            log.error('scan', 'Stopped after repeated failures', { error: String(e) });
+            break;
+          }
           if (e instanceof UnsupportedTagError) { setStatus(t.unsupportedTapOther); log.warn('scan', 'Unsupported tag'); continue; }
           setStatus(t.skippedCard(humanError(e)));
           log.warn('scan', 'Skipped a card', { error: String(e) });

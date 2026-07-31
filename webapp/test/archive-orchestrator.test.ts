@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
-import { WriteVerifyError, type PresentedTag, type Transport } from '../src/transport/transport.js';
+import { CardReadError, WriteVerifyError, type PresentedTag, type Transport } from '../src/transport/transport.js';
 import { ArchiveOrchestrator, type ArchiveIO } from '../app/ui/archive-orchestrator.js';
 import { RestoreController } from '../app/controller.js';
 import { decodeChunk, encodeChunk } from '../src/chunk.js';
@@ -220,4 +220,21 @@ test('"overwrite all remaining" prompts once, then overwrites the rest silently'
     indices.push(decodeChunk(await inner.readChunk()).chunkIndex);
   }
   assert.deepEqual([...indices].sort((a, b) => a - b), [0, 1, 2], 'every card holds a new chunk');
+});
+
+test('the write loop stops after repeated identical failures instead of spinning', async () => {
+  let attempts = 0;
+  const failing = {
+    ...new MockTransport(),
+    name: 'always-fails',
+    async awaitTag() { attempts += 1; throw new CardReadError('boom'); },
+  } as unknown as Transport;
+
+  const { io, statuses } = makeIO(failing);
+  await new ArchiveOrchestrator(io).run(failing, {
+    data: new Uint8Array(50), fileName: 'x.bin', compress: false, payloadSize: 100,
+  });
+
+  assert.ok(attempts <= 6, `expected the breaker to stop it, got ${attempts} attempts`);
+  assert.ok(statuses.some((s) => s.includes('Stopped after repeated failures')));
 });
