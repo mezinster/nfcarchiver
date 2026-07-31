@@ -65,3 +65,21 @@ export class UnsupportedTagError extends Error {
     this.name = 'UnsupportedTagError';
   }
 }
+
+/**
+ * There is no usable tag: either none has been presented, or one was presented
+ * whose identity the reader could not establish (Web NFC hands us an empty
+ * serial number on some cards and some Android builds).
+ *
+ * Identity is not cosmetic — the archive and restore loops key their
+ * already-written / already-seen sets on the UID, so an unidentifiable card
+ * must fail loudly rather than be given a substitute UID. A minted-empty UID
+ * collides every such card onto one key, and a random one would let the same
+ * card be written twice. Both are silent data loss; a re-tap prompt is not.
+ */
+export class UnidentifiedTagError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnidentifiedTagError';
+  }
+}

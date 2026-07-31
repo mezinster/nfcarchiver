@@ -17,7 +17,10 @@ export interface NdefReadRecord {
 }
 
 export interface NdefReading {
-  /** Colon-separated hex, e.g. "04:7b:cd:a4:82:26:81". May be empty. */
+  /** Colon-separated hex, e.g. "04:7b:cd:a4:82:26:81". May be empty — Chrome
+   *  reports no serial for some cards and some Android builds. WebNfcTransport
+   *  rejects that tap (UnidentifiedTagError) rather than working with a card it
+   *  cannot tell apart from any other. */
   serialNumber: string;
   records: NdefReadRecord[];
 }

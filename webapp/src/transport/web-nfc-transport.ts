@@ -20,6 +20,7 @@ import { NfarFormatError, TOTAL_OVERHEAD } from '../chunk.js';
 import type { NdefIO, NdefReading } from './ndef-io.js';
 import { uidFromSerialNumber } from './ndef-io.js';
 import { CardCapacityError } from '../mifare/card-layout.js';
+import { UnidentifiedTagError } from './transport.js';
 import type { PresentedTag, Transport } from './transport.js';
 
 export class WebNfcTransport implements Transport {
@@ -45,6 +46,16 @@ export class WebNfcTransport implements Transport {
     // then silently answer for a card that is no longer on the reader.
     this.current = null;
     const reading = await this.io.awaitReading(opts);
+    // Chrome reports an empty serial for cards (and Android builds) that expose
+    // no UID over Web NFC. uidFromSerialNumber('') is a zero-length UID, and the
+    // archive/restore loops key their already-written / already-seen sets on
+    // that UID: every blank-serial card would collide onto the same key, so
+    // cards 2..N would look already-handled and be skipped in silence. Fail the
+    // tap instead — and do NOT cache the reading, or peek/read would go on
+    // answering for a card we cannot name.
+    if (reading.serialNumber === '') {
+      throw new UnidentifiedTagError('The card reported no serial number, so it cannot be told apart from other cards');
+    }
     this.current = reading;
     return {
       uid: uidFromSerialNumber(reading.serialNumber),
@@ -69,6 +80,12 @@ export class WebNfcTransport implements Transport {
   }
 
   async readChunk(): Promise<Uint8Array> {
+    // No cached reading means no tag was ever presented, the last tap failed, or
+    // a write invalidated the cache — in none of those did we look at a card and
+    // find it non-NFAR, which is the only thing NfarFormatError may claim.
+    if (this.current === null) {
+      throw new UnidentifiedTagError('No tag is present — tap a card, then read');
+    }
     const bytes = this.cachedChunk();
     if (bytes === null) throw new NfarFormatError('This tag holds no NFAR NDEF data');
     return bytes;

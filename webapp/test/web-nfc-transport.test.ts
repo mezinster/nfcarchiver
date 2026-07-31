@@ -33,8 +33,9 @@ import { runTransportContract } from './transport-contract.js';
 import { encodeNdefMime } from '../src/nfc/ndef.js';
 import { encodeChunk, NfarFormatError, type Chunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
-import { TagTimeoutError } from '../src/transport/transport.js';
+import { TagTimeoutError, UnidentifiedTagError } from '../src/transport/transport.js';
 import { CardCapacityError } from '../src/mifare/card-layout.js';
+import { ArchiveController, RestoreController } from '../app/controller.js';
 
 function nfarRecords(payloadLen: number) {
   const payload = new Uint8Array(payloadLen).map((_, i) => (i + 1) % 256);
@@ -83,6 +84,9 @@ test('a blank tag peeks false rather than throwing', async () => {
   await t.connect();
   await t.awaitTag();
   assert.equal(await t.peekIsNfar(), false);
+  // A real card WAS presented and read — it simply holds no NFAR data. That is
+  // the one case NfarFormatError describes.
+  await assert.rejects(() => t.readChunk(), NfarFormatError);
 });
 
 test('a foreign NDEF record peeks false', async () => {
@@ -146,7 +150,7 @@ test('a failed awaitTag() clears the stale cache from the previous tag', async (
   // Nothing queued: this awaitTag() rejects. Card A's reading must not linger.
   await assert.rejects(() => t.awaitTag(), TagTimeoutError);
   assert.equal(await t.peekIsNfar(), false);
-  await assert.rejects(() => t.readChunk(), NfarFormatError);
+  await assert.rejects(() => t.readChunk(), UnidentifiedTagError);
 });
 
 test('writeChunk invalidates the cache — a stale peek/read cannot serve pre-write content', async () => {
@@ -167,14 +171,58 @@ test('writeChunk invalidates the cache — a stale peek/read cannot serve pre-wr
   // No re-tap yet: the cache must not silently serve the pre-write reading as
   // if it reflected the new write.
   assert.equal(await t.peekIsNfar(), false);
-  await assert.rejects(() => t.readChunk(), NfarFormatError);
+  await assert.rejects(() => t.readChunk(), UnidentifiedTagError);
 });
 
-test('readChunk before any awaitTag() throws NfarFormatError rather than crashing', async () => {
+test('readChunk with no tag present reports "no tag", not "bad tag"', async () => {
   const t = new WebNfcTransport(new FakeNdefIO(), NtagType.NTAG215);
   await t.connect();
   assert.equal(await t.peekIsNfar(), false);
-  await assert.rejects(() => t.readChunk(), NfarFormatError);
+  // NfarFormatError would claim we looked at a card and it held no NFAR data.
+  // No card was ever presented — a different fact, and a different error.
+  await assert.rejects(() => t.readChunk(), UnidentifiedTagError);
+});
+
+test('awaitTag rejects a blank serial instead of minting a colliding identity', async () => {
+  const io = new FakeNdefIO();
+  io.tap('', nfarRecords(50).records);
+  const t = new WebNfcTransport(io, NtagType.NTAG215);
+  await t.connect();
+  await assert.rejects(() => t.awaitTag(), UnidentifiedTagError);
+  // The unusable reading must not be cached either: peek/read on a card whose
+  // identity we could not establish would speak for an unknown card.
+  assert.equal(await t.peekIsNfar(), false);
+  await assert.rejects(() => t.readChunk(), UnidentifiedTagError);
+});
+
+test('blank-serial cards cannot collide into one archive identity', async () => {
+  // Every blank serial used to map to uid key '' — card 2 looked "already
+  // written" and writeNextCard returned {done:false} with no error and no
+  // progress, so the archive could never finish.
+  const io = new FakeNdefIO();
+  io.tap('');
+  io.tap('');
+  const t = new WebNfcTransport(io, NtagType.NTAG215);
+  await t.connect();
+  const ctrl = new ArchiveController(t);
+  const total = await ctrl.prepare({
+    data: crypto.getRandomValues(new Uint8Array(1200)),
+    fileName: 'blob.bin', compress: false, payloadSize: 420,
+  });
+  assert.ok(total >= 2, `expected a multi-card archive, got ${total}`);
+  await assert.rejects(() => ctrl.writeNextCard(), UnidentifiedTagError);
+  await assert.rejects(() => ctrl.writeNextCard(), UnidentifiedTagError);
+  assert.equal(io.writes.length, 0, 'nothing may be written under an identity we could not establish');
+});
+
+test('a blank-serial card fails a restore scan loudly instead of being dropped', async () => {
+  const io = new FakeNdefIO();
+  io.tap('', nfarRecords(50).records);
+  const t = new WebNfcTransport(io, NtagType.NTAG215);
+  await t.connect();
+  const ctrl = new RestoreController(t);
+  await assert.rejects(() => ctrl.scanNextCard(), UnidentifiedTagError);
+  assert.deepEqual(ctrl.detectedArchives(), [], 'no archive may be attributed to an unidentified card');
 });
 
 runTransportContract('WebNfcTransport+FakeNdefIO', () => {

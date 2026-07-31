@@ -55,6 +55,7 @@ export const ru: Messages = {
   archiveDone: (n) => `Готово — записано и проверено ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Приложите карту ${i} из ${total} к считывателю…`,
   readerDisconnectedResume: 'Считыватель отключён — переподключитесь, чтобы продолжить.',
+  readerSwitchedResume: 'Считыватель изменён — продолжаем на новом считывателе.',
   rechunked: (payloadSize, total) =>
     `На карту помещается ${payloadSize} B/chunk — вместо этого ${total} ${pr(total, CARD)}.`,
   noCardTapHold: 'Карта не обнаружена — приложите карту (держите в паре мм от считывателя)…',
@@ -142,5 +143,6 @@ export const ru: Messages = {
   errPasswordRequired: 'Этот архив зашифрован — введите пароль.',
   errWrongPassword: 'Неверный пароль.',
   errUnsupportedTag: 'Метка не поддерживается — используйте Mifare Classic 1K или NTAG213/215/216.',
+  errUnidentifiedTag: 'Карта не сообщила свой идентификатор — уберите её и приложите снова.',
   errNdefFormat: 'На этой метке нет данных NFAR NDEF.',
 };
