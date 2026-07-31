@@ -805,5 +805,85 @@
   "readerSearch": "Search",
   "@readerSearch": {
     "description": "Button that starts a Bluetooth scan"
+  },
+  "inspectTitle": "Inspect card",
+  "@inspectTitle": {
+    "description": "Card inspector dialog title"
+  },
+  "inspectIdentity": "Identity",
+  "@inspectIdentity": {
+    "description": "Identity section heading"
+  },
+  "inspectNfar": "NFAR chunk",
+  "@inspectNfar": {
+    "description": "NFAR chunk section heading"
+  },
+  "inspectRaw": "Raw",
+  "@inspectRaw": {
+    "description": "Raw dump section heading"
+  },
+  "inspectHoldStill": "Hold the card still on the reader…",
+  "@inspectHoldStill": {
+    "description": "Shown while the dump starts"
+  },
+  "inspectDone": "Inspection complete.",
+  "@inspectDone": {
+    "description": "Shown when the dump finished"
+  },
+  "inspectStopped": "Stopped.",
+  "@inspectStopped": {
+    "description": "Shown when the user cancelled"
+  },
+  "inspectCardLost": "Card left the field — partial dump.",
+  "@inspectCardLost": {
+    "description": "Shown when the card left the field mid-dump"
+  },
+  "inspectCopy": "Copy",
+  "@inspectCopy": {
+    "description": "Copy the report to the clipboard"
+  },
+  "inspectCopied": "Report copied.",
+  "@inspectCopied": {
+    "description": "Confirmation after copying"
+  },
+  "inspectShare": "Share",
+  "@inspectShare": {
+    "description": "Share the report as a file"
+  },
+  "inspectClose": "Close",
+  "@inspectClose": {
+    "description": "Close the inspector"
+  },
+  "inspectNeedsChameleon": "Card inspection needs a Chameleon — phone NFC has no raw card access.",
+  "@inspectNeedsChameleon": {
+    "description": "Tooltip when the inspector is unavailable on phone NFC"
+  },
+  "inspectReading": "Reading {done} of {total}…",
+  "@inspectReading": {
+    "description": "Progress while reading",
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "description": "Units read so far"
+      },
+      "total": {
+        "type": "int",
+        "description": "Total units"
+      }
+    }
+  },
+  "inspectRead": "Read {done} of {total}",
+  "@inspectRead": {
+    "description": "Progress when reading finished",
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "description": "Units read so far"
+      },
+      "total": {
+        "type": "int",
+        "description": "Total units"
+      }
+    }
   }
 }

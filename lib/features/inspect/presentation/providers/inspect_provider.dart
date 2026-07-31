@@ -63,13 +63,14 @@ class InspectNotifier extends StateNotifier<InspectState> {
   /// True only for the run that currently owns the state.
   bool _owns(CancellationToken t) => identical(t, _token);
 
-  Future<void> start(ChameleonDevice dev) async {
+  Future<void> start(ChameleonDevice dev, {InspectStrings? strings}) async {
     _token?.cancel();
     final token = CancellationToken();
     _token = token;
 
     state = const InspectState(isRunning: true);
-    await runInspection(dev, _OwnedSink(this, token), token: token);
+    await runInspection(dev, _OwnedSink(this, token),
+        token: token, strings: strings);
 
     // Only the owning run may declare the inspection finished; a stale run
     // reaching here must leave the newer one's isRunning alone.

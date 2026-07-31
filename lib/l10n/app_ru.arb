@@ -171,5 +171,20 @@
   "readerConnectFailed": "Не удалось подключиться к Chameleon.",
   "readerPhoneSubtitle": "Использует собственный NFC телефона",
   "readerChameleonSubtitle": "Добавляет Mifare Classic и осмотр карты через Bluetooth",
-  "readerSearch": "Найти"
+  "readerSearch": "Найти",
+  "inspectTitle": "Осмотр карты",
+  "inspectIdentity": "Идентификация",
+  "inspectNfar": "Фрагмент NFAR",
+  "inspectRaw": "Сырые данные",
+  "inspectHoldStill": "Держите карту неподвижно на считывателе…",
+  "inspectDone": "Осмотр завершён.",
+  "inspectStopped": "Остановлено.",
+  "inspectCardLost": "Карта убрана — частичный дамп.",
+  "inspectCopy": "Копировать",
+  "inspectCopied": "Отчёт скопирован.",
+  "inspectShare": "Поделиться",
+  "inspectClose": "Закрыть",
+  "inspectNeedsChameleon": "Для осмотра карты нужен Chameleon — у NFC телефона нет прямого доступа к карте.",
+  "inspectReading": "Чтение {done} из {total}…",
+  "inspectRead": "Прочитано {done} из {total}"
 }

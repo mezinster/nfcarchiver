@@ -17,8 +17,10 @@ Future<void> runInspection(
   ChameleonDevice dev,
   InspectSink sink, {
   CancellationToken? token,
+  InspectStrings? strings,
 }) async {
-  sink.setStatus('Hold the card still on the reader…');
+  final s = strings ?? InspectStrings.english();
+  sink.setStatus(s.holdStill);
 
   // Advisory only. readBlock performs its own select, so a card that refuses
   // anticollision can still be dumped in full — a failure here must not stop
@@ -45,7 +47,7 @@ Future<void> runInspection(
           seen.add(unit);
           sink.appendRow(formatUnitRow(unit));
           sink.setProgress(
-            done == total ? 'Read $done of $total' : 'Reading $done of $total…',
+            done == total ? s.read(done, total) : s.reading(done, total),
           );
 
           // Re-describe only while the chunk is still incomplete; once the
@@ -79,10 +81,10 @@ Future<void> runInspection(
     );
     sink.setStatus(
       result.aborted
-          ? 'Stopped.'
+          ? s.stopped
           : result.cardLost
-              ? 'Card left the field — partial dump.'
-              : 'Inspection complete.',
+              ? s.cardLost
+              : s.done,
     );
     log.info('inspect', 'Inspection finished', {
       'units': result.units.length,
