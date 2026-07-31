@@ -47,13 +47,31 @@ export class BrowserNdefIO implements NdefIO {
     }
 
     return new Promise<NdefReading>((resolve, reject) => {
-      const timer = opts?.timeoutMs === undefined ? null : setTimeout(() => {
-        ac.abort();
-        reject(new TagTimeoutError(`No tag presented within ${opts.timeoutMs}ms`));
-      }, opts.timeoutMs);
+      let timer: ReturnType<typeof setTimeout> | null = null;
+
+      // Every settlement path — resolve, reject, whichever fires first — runs
+      // through here once, so "clear the timer / detach the handlers / free
+      // this.scanning" holds by construction instead of by remembering to
+      // repeat it at each call site. Safe to invoke more than once: a second
+      // call is a no-op (timer already cleared, handlers already null, and
+      // resolve/reject on an already-settled promise is a no-op too).
+      const cleanup = (): void => {
+        if (timer !== null) clearTimeout(timer);
+        reader.onreading = null;
+        reader.onreadingerror = null;
+        if (this.scanning === ac) this.scanning = null;
+      };
+
+      if (opts?.timeoutMs !== undefined) {
+        timer = setTimeout(() => {
+          ac.abort();
+          cleanup();
+          reject(new TagTimeoutError(`No tag presented within ${opts.timeoutMs}ms`));
+        }, opts.timeoutMs);
+      }
 
       reader.onreading = (event) => {
-        if (timer !== null) clearTimeout(timer);
+        cleanup();
         resolve({
           serialNumber: event.serialNumber ?? '',
           records: event.message.records.map((rec) => ({
@@ -66,10 +84,13 @@ export class BrowserNdefIO implements NdefIO {
         });
       };
       reader.onreadingerror = () => {
-        if (timer !== null) clearTimeout(timer);
+        cleanup();
         reject(new Error('Could not read the tag — hold it still and try again'));
       };
-      reader.scan({ signal: ac.signal }).catch(reject);
+      reader.scan({ signal: ac.signal }).catch((e: unknown) => {
+        cleanup();
+        reject(e);
+      });
     });
   }
 
