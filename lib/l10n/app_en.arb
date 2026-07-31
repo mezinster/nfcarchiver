@@ -1,57 +1,46 @@
 {
   "@@locale": "en",
-
   "appTitle": "NFC Archiver",
   "@appTitle": {
     "description": "Application title"
   },
-
   "nfcChecking": "Checking NFC...",
   "@nfcChecking": {
     "description": "Status message while checking NFC availability"
   },
-
   "nfcAvailable": "NFC is available",
   "@nfcAvailable": {
     "description": "Status when NFC is available"
   },
-
   "nfcUnavailable": "NFC is not available",
   "@nfcUnavailable": {
     "description": "Status when NFC is not available"
   },
-
   "mainHeading": "Store files across\nmultiple NFC tags",
   "@mainHeading": {
     "description": "Main heading on home screen"
   },
-
   "createArchive": "Create Archive",
   "@createArchive": {
     "description": "Create archive button title"
   },
-
   "createArchiveDesc": "Split a file into multiple NFC tags",
   "@createArchiveDesc": {
     "description": "Create archive button description"
   },
-
   "restoreArchive": "Restore Archive",
   "@restoreArchive": {
     "description": "Restore archive button title"
   },
-
   "restoreArchiveDesc": "Scan tags to restore a file",
   "@restoreArchiveDesc": {
     "description": "Restore archive button description"
   },
-
-  "copyright": "NFC Archiver \u00a9 2026",
+  "copyright": "NFC Archiver © 2026",
   "@copyright": {
     "description": "Copyright text (fallback before version loads)"
   },
-
-  "versionFooter": "NFC Archiver v{version} (Build {build}) \u00a9 2026",
+  "versionFooter": "NFC Archiver v{version} (Build {build}) © 2026",
   "@versionFooter": {
     "description": "Footer text with version and build number",
     "placeholders": {
@@ -65,47 +54,38 @@
       }
     }
   },
-
   "buildLabel": "Build",
   "@buildLabel": {
     "description": "Label for build number in About dialog"
   },
-
   "aboutAppDescription": "A distributed data archive system using NFC tags. Store files across multiple NFC tags and restore them later.",
   "@aboutAppDescription": {
     "description": "About dialog description"
   },
-
   "aboutSupportedTags": "Supported tags: NTAG213/215/216, MIFARE Ultralight",
   "@aboutSupportedTags": {
     "description": "Supported NFC tags in about dialog"
   },
-
   "selectFile": "Select File",
   "@selectFile": {
     "description": "Title for file picker screen"
   },
-
   "tapToSelectFile": "Tap to select a file",
   "@tapToSelectFile": {
     "description": "Instruction to tap for file selection"
   },
-
   "chooseFileToArchive": "Choose any file to archive to NFC tags",
   "@chooseFileToArchive": {
     "description": "Subtitle for file picker"
   },
-
   "configureArchive": "Configure Archive",
   "@configureArchive": {
     "description": "Button to configure archive settings"
   },
-
   "couldNotAccessFile": "Could not access file",
   "@couldNotAccessFile": {
     "description": "Error when file cannot be accessed"
   },
-
   "errorSelectingFile": "Error selecting file: {error}",
   "@errorSelectingFile": {
     "description": "Error message when file selection fails",
@@ -116,27 +96,22 @@
       }
     }
   },
-
   "settings": "Settings",
   "@settings": {
     "description": "Settings screen title"
   },
-
   "noFileSelected": "No file selected",
   "@noFileSelected": {
     "description": "Message when no file is selected"
   },
-
   "archiveSettings": "Archive Settings",
   "@archiveSettings": {
     "description": "Archive settings screen title"
   },
-
   "nfcTagType": "NFC Tag Type",
   "@nfcTagType": {
     "description": "NFC tag type selection header"
   },
-
   "bytesCapacity": "{bytes} bytes capacity",
   "@bytesCapacity": {
     "description": "Tag capacity description",
@@ -147,67 +122,54 @@
       }
     }
   },
-
   "enableCompression": "Enable Compression",
   "@enableCompression": {
     "description": "Compression switch title"
   },
-
   "compressionSubtitle": "Reduce size with GZIP compression",
   "@compressionSubtitle": {
     "description": "Compression switch subtitle"
   },
-
   "enableEncryption": "Enable Encryption",
   "@enableEncryption": {
     "description": "Encryption switch title"
   },
-
   "encryptionSubtitle": "Protect with AES-256-GCM",
   "@encryptionSubtitle": {
     "description": "Encryption switch subtitle"
   },
-
   "password": "Password",
   "@password": {
     "description": "Password field label"
   },
-
   "enterPassword": "Enter encryption password",
   "@enterPassword": {
     "description": "Password hint text"
   },
-
   "pleaseEnterPassword": "Please enter a password",
   "@pleaseEnterPassword": {
     "description": "Validation message for empty password"
   },
-
   "archiveEstimate": "Archive Estimate",
   "@archiveEstimate": {
     "description": "Archive estimate card title"
   },
-
   "originalSize": "Original size",
   "@originalSize": {
     "description": "Original file size label"
   },
-
   "estimatedProcessedSize": "Estimated processed size",
   "@estimatedProcessedSize": {
     "description": "Estimated size after processing"
   },
-
   "tagsNeeded": "Tags needed",
   "@tagsNeeded": {
     "description": "Number of tags needed"
   },
-
   "payloadPerTag": "Payload per tag",
   "@payloadPerTag": {
     "description": "Payload size per tag"
   },
-
   "bytesUnit": "{bytes} bytes",
   "@bytesUnit": {
     "description": "Bytes with unit",
@@ -218,22 +180,18 @@
       }
     }
   },
-
   "startArchiving": "Start Archiving",
   "@startArchiving": {
     "description": "Button to start archiving"
   },
-
   "writingToTags": "Writing to Tags",
   "@writingToTags": {
     "description": "Write progress screen title"
   },
-
   "tagTooSmall": "Tag Too Small",
   "@tagTooSmall": {
     "description": "Dialog title for small tag"
   },
-
   "tagTooSmallMessage": "This tag has {available} bytes available, but the chunk needs {required} bytes.",
   "@tagTooSmallMessage": {
     "description": "Message explaining tag is too small",
@@ -248,12 +206,10 @@
       }
     }
   },
-
   "reconfigureForTagSize": "Would you like to reconfigure the archive for this tag size?",
   "@reconfigureForTagSize": {
     "description": "Question about reconfiguring for smaller tags"
   },
-
   "reconfigureDetails": "This will split the data into {chunks} smaller chunks ({bytes} bytes each).",
   "@reconfigureDetails": {
     "description": "Details about reconfiguration",
@@ -268,27 +224,22 @@
       }
     }
   },
-
   "cannotReconfigureChunksWritten": "Cannot reconfigure: chunks have already been written.",
   "@cannotReconfigureChunksWritten": {
     "description": "Error when cannot reconfigure because chunks are written"
   },
-
   "tagTooSmallForData": "This tag is too small to store any data.",
   "@tagTooSmallForData": {
     "description": "Error when tag is too small for any data"
   },
-
   "useDifferentTag": "Use Different Tag",
   "@useDifferentTag": {
     "description": "Button to use a different tag"
   },
-
   "reconfigure": "Reconfigure",
   "@reconfigure": {
     "description": "Button to reconfigure archive"
   },
-
   "reconfiguredNowUsingTags": "Reconfigured: now using {count} tags",
   "@reconfiguredNowUsingTags": {
     "description": "Success message after reconfiguration",
@@ -299,17 +250,14 @@
       }
     }
   },
-
   "failedToReconfigure": "Failed to reconfigure archive",
   "@failedToReconfigure": {
     "description": "Error message when reconfiguration fails"
   },
-
   "holdTagNearDevice": "Hold tag near device",
   "@holdTagNearDevice": {
     "description": "Instruction to hold tag near device"
   },
-
   "readyToWriteTag": "Ready to write tag {index}",
   "@readyToWriteTag": {
     "description": "Ready to write message",
@@ -320,7 +268,6 @@
       }
     }
   },
-
   "chunkOfTotal": "Chunk {current} of {total}",
   "@chunkOfTotal": {
     "description": "Chunk progress indicator",
@@ -335,22 +282,18 @@
       }
     }
   },
-
   "writeToTag": "Write to Tag",
   "@writeToTag": {
     "description": "Button to write to tag"
   },
-
   "cancel": "Cancel",
   "@cancel": {
     "description": "Cancel button"
   },
-
   "skipThisTag": "Skip this tag",
   "@skipThisTag": {
     "description": "Button to skip current tag"
   },
-
   "writingChunk": "Writing chunk {index}...",
   "@writingChunk": {
     "description": "Status while writing chunk",
@@ -361,17 +304,14 @@
       }
     }
   },
-
   "tagWritten": "Tag Written!",
   "@tagWritten": {
     "description": "Success message after writing tag"
   },
-
   "removeTagFromDevice": "Remove the tag from your device",
   "@removeTagFromDevice": {
     "description": "Instruction to remove tag"
   },
-
   "bytesWritten": "{bytes} bytes written",
   "@bytesWritten": {
     "description": "Number of bytes written",
@@ -382,17 +322,14 @@
       }
     }
   },
-
   "continueButton": "Continue",
   "@continueButton": {
     "description": "Continue button"
   },
-
   "archiveComplete": "Archive Complete!",
   "@archiveComplete": {
     "description": "Archive complete title"
   },
-
   "tagsWritten": "{count} tags written",
   "@tagsWritten": {
     "description": "Number of tags written",
@@ -403,42 +340,34 @@
       }
     }
   },
-
   "done": "Done",
   "@done": {
     "description": "Done button"
   },
-
   "error": "Error",
   "@error": {
     "description": "Error title"
   },
-
   "tryAgain": "Try Again",
   "@tryAgain": {
     "description": "Try again button"
   },
-
   "unexpectedState": "Unexpected state",
   "@unexpectedState": {
     "description": "Message for unexpected application state"
   },
-
   "cancelArchive": "Cancel Archive?",
   "@cancelArchive": {
     "description": "Cancel archive dialog title"
   },
-
   "progressWillBeLost": "Progress will be lost. Are you sure you want to cancel?",
   "@progressWillBeLost": {
     "description": "Warning about losing progress"
   },
-
   "progress": "Progress",
   "@progress": {
     "description": "Progress label"
   },
-
   "tagsProgress": "{current} / {total} tags",
   "@tagsProgress": {
     "description": "Tags progress indicator",
@@ -453,7 +382,6 @@
       }
     }
   },
-
   "holdTagNearDeviceToWrite": "Hold tag near device to write chunk {current} of {total}",
   "@holdTagNearDeviceToWrite": {
     "description": "NFC write message",
@@ -468,47 +396,38 @@
       }
     }
   },
-
   "scanTags": "Scan Tags",
   "@scanTags": {
     "description": "Scan screen title"
   },
-
   "scanningForTags": "Scanning for tags...",
   "@scanningForTags": {
     "description": "Status while scanning"
   },
-
   "preparingScanner": "Preparing scanner...",
   "@preparingScanner": {
     "description": "Status while preparing scanner"
   },
-
   "holdEachTagNear": "Hold each NFC tag near your device",
   "@holdEachTagNear": {
     "description": "Instruction for scanning tags"
   },
-
   "holdDeviceNearTag": "Hold your device near an NFC tag",
   "@holdDeviceNearTag": {
     "description": "NFC read session message"
   },
-
   "newChunkFound": "New chunk found!",
   "@newChunkFound": {
     "description": "Message when new chunk is found"
   },
-
   "duplicateChunk": "Duplicate chunk",
   "@duplicateChunk": {
     "description": "Message for duplicate chunk"
   },
-
   "archivesInProgress": "Archives in progress",
   "@archivesInProgress": {
     "description": "Header for in-progress archives"
   },
-
   "archiveId": "Archive {id}...",
   "@archiveId": {
     "description": "Archive ID display",
@@ -519,12 +438,10 @@
       }
     }
   },
-
   "allChunksReceived": "All chunks received!",
   "@allChunksReceived": {
     "description": "Message when all chunks are received"
   },
-
   "chunksFromArchive": "{count} chunks from archive",
   "@chunksFromArchive": {
     "description": "Number of chunks received",
@@ -535,32 +452,26 @@
       }
     }
   },
-
   "fileName": "File name",
   "@fileName": {
     "description": "File name field label"
   },
-
   "fileNameHint": "Leave default to use original filename",
   "@fileNameHint": {
     "description": "File name hint text"
   },
-
   "fileNameHelper": "Original filename will be used if available",
   "@fileNameHelper": {
     "description": "File name helper text"
   },
-
   "archiveIsEncrypted": "This archive is encrypted",
   "@archiveIsEncrypted": {
     "description": "Encrypted archive message"
   },
-
   "enterDecryptionPassword": "Enter decryption password",
   "@enterDecryptionPassword": {
     "description": "Password hint for decryption"
   },
-
   "charactersCount": "{count} characters",
   "@charactersCount": {
     "description": "Character count display",
@@ -571,17 +482,14 @@
       }
     }
   },
-
   "scanMoreTags": "Scan more tags",
   "@scanMoreTags": {
     "description": "Button to scan more tags"
   },
-
   "archiveRestored": "Archive Restored!",
   "@archiveRestored": {
     "description": "Restore complete title"
   },
-
   "savedTo": "Saved to: {path}",
   "@savedTo": {
     "description": "Saved file path message",
@@ -592,22 +500,18 @@
       }
     }
   },
-
   "shareFile": "Share File",
   "@shareFile": {
     "description": "Share file button"
   },
-
   "dataCorruptionDetected": "Data Corruption Detected",
   "@dataCorruptionDetected": {
     "description": "Data corruption error title"
   },
-
   "restoreFailed": "Restore Failed",
   "@restoreFailed": {
     "description": "Restore failed title"
   },
-
   "rescanTags": "Rescan {count} Tag(s)",
   "@rescanTags": {
     "description": "Rescan corrupted tags button",
@@ -618,107 +522,86 @@
       }
     }
   },
-
   "tryDifferentPassword": "Try Different Password",
   "@tryDifferentPassword": {
     "description": "Try different password button"
   },
-
   "pleaseEnterThePassword": "Please enter the password",
   "@pleaseEnterThePassword": {
     "description": "Validation message for password"
   },
-
   "english": "English",
   "@english": {
     "description": "English language name"
   },
-
   "russian": "Russian",
   "@russian": {
     "description": "Russian language name"
   },
-
   "turkish": "Turkish",
   "@turkish": {
     "description": "Turkish language name"
   },
-
   "ukrainian": "Ukrainian",
   "@ukrainian": {
     "description": "Ukrainian language name"
   },
-
   "georgian": "Georgian",
   "@georgian": {
     "description": "Georgian language name"
   },
-
   "polish": "Polish",
   "@polish": {
     "description": "Polish language name"
   },
-
   "belarusian": "Belarusian",
   "@belarusian": {
     "description": "Belarusian language name"
   },
-
   "language": "Language",
   "@language": {
     "description": "Language setting label"
   },
-
   "file": "File",
   "@file": {
     "description": "File mode button label"
   },
-
   "text": "Text",
   "@text": {
     "description": "Text mode button label"
   },
-
   "enterTextToArchive": "Enter text to archive",
   "@enterTextToArchive": {
     "description": "Text input header"
   },
-
   "typeYourTextHere": "Type your text here...",
   "@typeYourTextHere": {
     "description": "Text input placeholder"
   },
-
   "textRestored": "Text Restored!",
   "@textRestored": {
     "description": "Text restore complete title"
   },
-
   "textCopied": "Text copied to clipboard",
   "@textCopied": {
     "description": "Text copy confirmation"
   },
-
   "copyText": "Copy text",
   "@copyText": {
     "description": "Copy text button tooltip"
   },
-
   "couldNotDecodeText": "[Could not decode text]",
   "@couldNotDecodeText": {
     "description": "Error when text decoding fails"
   },
-
   "archivedFiles": "Archived Files",
   "@archivedFiles": {
     "description": "File manager screen title"
   },
-
   "archivedFilesDesc": "Manage restored files",
   "@archivedFilesDesc": {
     "description": "File manager description on home screen"
   },
-
   "storageUsage": "{count} files ({size})",
   "@storageUsage": {
     "description": "Storage usage summary",
@@ -733,27 +616,22 @@
       }
     }
   },
-
   "noArchivedFiles": "No archived files",
   "@noArchivedFiles": {
     "description": "Empty state title in file manager"
   },
-
   "noArchivedFilesDesc": "Restored files will appear here",
   "@noArchivedFilesDesc": {
     "description": "Empty state description in file manager"
   },
-
   "deleteFile": "Delete File",
   "@deleteFile": {
     "description": "Delete file button label"
   },
-
   "delete": "Delete",
   "@delete": {
     "description": "Delete confirmation button"
   },
-
   "deleteFileConfirmation": "Are you sure you want to delete \"{fileName}\"?",
   "@deleteFileConfirmation": {
     "description": "Delete file confirmation message",
@@ -764,7 +642,6 @@
       }
     }
   },
-
   "fileDeleted": "\"{fileName}\" deleted",
   "@fileDeleted": {
     "description": "File deleted snackbar message",
@@ -775,17 +652,14 @@
       }
     }
   },
-
   "deleteAll": "Delete All",
   "@deleteAll": {
     "description": "Delete all button label"
   },
-
   "deleteAllFiles": "Delete All Files?",
   "@deleteAllFiles": {
     "description": "Delete all confirmation dialog title"
   },
-
   "deleteAllConfirmation": "This will permanently delete all {count} archived files. This cannot be undone.",
   "@deleteAllConfirmation": {
     "description": "Delete all confirmation message",
@@ -796,12 +670,10 @@
       }
     }
   },
-
   "allFilesDeleted": "All files deleted",
   "@allFilesDeleted": {
     "description": "All files deleted snackbar message"
   },
-
   "modifiedDate": "Modified: {date}",
   "@modifiedDate": {
     "description": "File modified date display",
@@ -812,42 +684,34 @@
       }
     }
   },
-
   "privacyPolicy": "Privacy Policy",
   "@privacyPolicy": {
     "description": "Privacy policy button label in About dialog"
   },
-
   "privacyPolicyTitle": "Privacy Policy",
   "@privacyPolicyTitle": {
     "description": "Privacy policy screen title"
   },
-
   "privacyPolicyContent": "NFC Archiver is designed with privacy as a core principle. The app operates entirely offline and does not collect, transmit, or store any personal data.\n\nData Collection\nWe do not collect any data. No personal information, usage analytics, tracking, crash reports, cookies, identifiers, or advertising data.\n\nNFC Access\nNFC functionality is used exclusively for reading and writing data to physical NFC tags held near your device. All NFC operations are local — no data is transmitted over the network.\n\nFile Processing\nFiles you select for archiving are processed entirely on your device. File data is read from local storage, optionally compressed and encrypted on-device, split into chunks, and written to NFC tags. No file data is ever uploaded or transmitted to any server.\n\nEncryption\nWhen you enable encryption, your password is used locally to derive an encryption key (PBKDF2). Your password is never stored, logged, or transmitted. Encryption and decryption happen entirely on your device.\n\nThird-Party Services\nNFC Archiver uses no third-party services — no analytics, no cloud storage, no remote servers, no social media integrations.\n\nPermissions\nThe app requests only the permissions necessary for its core functionality: NFC access to read and write tags, and storage access for files you choose to archive or restore.",
   "@privacyPolicyContent": {
     "description": "Full privacy policy text displayed in the app"
   },
-
   "clearAllSessions": "Clear all sessions",
   "@clearAllSessions": {
     "description": "App bar button to clear all incomplete sessions"
   },
-
   "clearAllSessionsConfirm": "Delete all incomplete restore sessions?",
   "@clearAllSessionsConfirm": {
     "description": "Confirmation dialog text for clearing all sessions"
   },
-
   "deleteSession": "Delete session",
   "@deleteSession": {
     "description": "Button/tooltip to delete a single session"
   },
-
   "deleteSessionConfirm": "Delete this incomplete session?",
   "@deleteSessionConfirm": {
     "description": "Confirmation dialog text for deleting a session"
   },
-
   "lastUpdated": "Last updated {dateTime}",
   "@lastUpdated": {
     "description": "Timestamp showing when session was last updated",
@@ -858,25 +722,88 @@
       }
     }
   },
-
   "sessionsCleared": "All sessions cleared",
   "@sessionsCleared": {
     "description": "Snackbar message after clearing all sessions"
   },
-
   "sessionDeleted": "Session deleted",
   "@sessionDeleted": {
     "description": "Snackbar message after deleting a session"
   },
-
   "mifareNotSupportedOnDevice": "This looks like a Mifare Classic card. Your phone's NFC chip can't read them.",
   "@mifareNotSupportedOnDevice": {
     "description": "Shown when a Mifare Classic card is tapped on a phone whose NFC controller lacks CRYPTO1 support"
   },
-
   "tagTypeMismatch": "That's a {tapped} card, but this archive is configured for {configured} — change the tag type in Settings.",
   "@tagTypeMismatch": {
     "description": "Shown when the tapped card's medium differs from the configured tag type",
-    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
+    "placeholders": {
+      "tapped": {
+        "type": "String"
+      },
+      "configured": {
+        "type": "String"
+      }
+    }
+  },
+  "readerTitle": "Reader",
+  "@readerTitle": {
+    "description": "Section heading for the active card reader"
+  },
+  "readerPhoneNfc": "Phone NFC",
+  "@readerPhoneNfc": {
+    "description": "Name of the phone's built-in NFC reader"
+  },
+  "readerChameleon": "Chameleon Ultra",
+  "@readerChameleon": {
+    "description": "Name of the Chameleon Ultra reader"
+  },
+  "readerSelect": "Select reader",
+  "@readerSelect": {
+    "description": "Button opening the reader picker"
+  },
+  "readerScanning": "Searching for Chameleons…",
+  "@readerScanning": {
+    "description": "Shown while scanning for Bluetooth devices"
+  },
+  "readerNoDevices": "No Chameleon found. Check it is switched on and nearby.",
+  "@readerNoDevices": {
+    "description": "Shown when a Bluetooth scan found nothing"
+  },
+  "readerConnecting": "Connecting…",
+  "@readerConnecting": {
+    "description": "Shown while connecting to a Chameleon"
+  },
+  "readerConnected": "Connected",
+  "@readerConnected": {
+    "description": "Shown when a reader is connected"
+  },
+  "readerDisconnect": "Disconnect",
+  "@readerDisconnect": {
+    "description": "Button that drops the Chameleon connection"
+  },
+  "readerBluetoothOff": "Bluetooth is off. Turn it on to use a Chameleon.",
+  "@readerBluetoothOff": {
+    "description": "Shown when the Bluetooth radio is off"
+  },
+  "readerPermissionDenied": "Bluetooth permission is required to find a Chameleon.",
+  "@readerPermissionDenied": {
+    "description": "Shown when Bluetooth permission was refused"
+  },
+  "readerConnectFailed": "Could not connect to the Chameleon.",
+  "@readerConnectFailed": {
+    "description": "Shown when connecting to a Chameleon failed"
+  },
+  "readerPhoneSubtitle": "Uses the phone's own NFC radio",
+  "@readerPhoneSubtitle": {
+    "description": "Explains what the phone reader does"
+  },
+  "readerChameleonSubtitle": "Adds Mifare Classic and card inspection over Bluetooth",
+  "@readerChameleonSubtitle": {
+    "description": "Explains what the Chameleon reader adds"
+  },
+  "readerSearch": "Search",
+  "@readerSearch": {
+    "description": "Button that starts a Bluetooth scan"
   }
 }

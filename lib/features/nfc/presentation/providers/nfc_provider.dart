@@ -5,13 +5,7 @@ import '../../../../core/models/chunk.dart';
 import '../../../../core/models/nfc_tag_info.dart';
 import '../../data/phone_nfc_reader.dart';
 import '../../domain/card_reader.dart';
-
-/// The reader every card operation goes through.
-///
-/// Defaults to the phone's own radio, so nothing changes until a Chameleon is
-/// explicitly selected. Overriding this provider is how the reader is swapped —
-/// there is no other path, which is what keeps exactly one reader active.
-final activeReaderProvider = StateProvider<CardReader>((ref) => PhoneNfcReader());
+import 'reader_provider.dart';
 
 /// Provider for NFC availability.
 final nfcAvailableProvider = FutureProvider<bool>((ref) async {

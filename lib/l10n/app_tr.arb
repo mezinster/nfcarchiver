@@ -1,6 +1,5 @@
 {
   "@@locale": "tr",
-
   "appTitle": "NFC Archivcisi",
   "nfcChecking": "NFC kontrol ediliyor...",
   "nfcAvailable": "NFC kullanılabilir",
@@ -10,19 +9,17 @@
   "createArchiveDesc": "Bir dosyayı birden fazla NFC etiketine böl",
   "restoreArchive": "Arşivi Geri Yükle",
   "restoreArchiveDesc": "Dosyayı geri yüklemek için etiketleri tara",
-  "copyright": "NFC Arşivcisi \u00a9 2026",
-  "versionFooter": "NFC Arşivcisi v{version} (Yapı {build}) \u00a9 2026",
+  "copyright": "NFC Arşivcisi © 2026",
+  "versionFooter": "NFC Arşivcisi v{version} (Yapı {build}) © 2026",
   "buildLabel": "Yapı",
   "aboutAppDescription": "NFC etiketleri kullanan dağıtık veri arşivleme sistemi. Dosyaları birden fazla NFC etiketinde saklayın ve daha sonra geri yükleyin.",
   "aboutSupportedTags": "Desteklenen etiketler: NTAG213/215/216, MIFARE Ultralight",
-
   "selectFile": "Dosya Seç",
   "tapToSelectFile": "Dosya seçmek için dokunun",
   "chooseFileToArchive": "NFC etiketlerine arşivlemek için herhangi bir dosya seçin",
   "configureArchive": "Arşivi Yapılandır",
   "couldNotAccessFile": "Dosyaya erişilemedi",
   "errorSelectingFile": "Dosya seçme hatası: {error}",
-
   "settings": "Ayarlar",
   "noFileSelected": "Dosya seçilmedi",
   "archiveSettings": "Arşiv Ayarları",
@@ -42,7 +39,6 @@
   "payloadPerTag": "Etiket başına veri",
   "bytesUnit": "{bytes} bayt",
   "startArchiving": "Arşivlemeyi Başlat",
-
   "writingToTags": "Etiketlere Yazılıyor",
   "tagTooSmall": "Etiket Çok Küçük",
   "tagTooSmallMessage": "Bu etikette {available} bayt mevcut, ancak parça için {required} bayt gerekiyor.",
@@ -54,7 +50,6 @@
   "reconfigure": "Yeniden Yapılandır",
   "reconfiguredNowUsingTags": "Yeniden yapılandırıldı: şimdi {count} etiket kullanılıyor",
   "failedToReconfigure": "Arşiv yeniden yapılandırılamadı",
-
   "holdTagNearDevice": "Etiketi cihaza yakın tutun",
   "readyToWriteTag": "Etiket {index} yazmaya hazır",
   "chunkOfTotal": "Parça {current} / {total}",
@@ -77,7 +72,6 @@
   "progress": "İlerleme",
   "tagsProgress": "{current} / {total} etiket",
   "holdTagNearDeviceToWrite": "Parça {current} / {total} yazmak için etiketi cihaza yakın tutun",
-
   "scanTags": "Etiketleri Tara",
   "scanningForTags": "Etiketler taranıyor...",
   "preparingScanner": "Tarayıcı hazırlanıyor...",
@@ -104,7 +98,6 @@
   "rescanTags": "{count} Etiketi Yeniden Tara",
   "tryDifferentPassword": "Farklı Şifre Dene",
   "pleaseEnterThePassword": "Lütfen şifreyi girin",
-
   "english": "İngilizce",
   "russian": "Rusça",
   "turkish": "Türkçe",
@@ -113,7 +106,6 @@
   "polish": "Lehçe",
   "belarusian": "Belarusça",
   "language": "Dil",
-
   "file": "Dosya",
   "text": "Metin",
   "enterTextToArchive": "Arşivlenecek metni girin",
@@ -122,7 +114,6 @@
   "textCopied": "Metin panoya kopyalandı",
   "copyText": "Metni kopyala",
   "couldNotDecodeText": "[Metin çözülemedi]",
-
   "archivedFiles": "Arşivlenmiş Dosyalar",
   "archivedFilesDesc": "Geri yüklenen dosyaları yönet",
   "storageUsage": "{count} dosya ({size})",
@@ -137,24 +128,48 @@
   "deleteAllConfirmation": "Bu işlem tüm {count} arşivlenmiş dosyayı kalıcı olarak silecektir. Bu geri alınamaz.",
   "allFilesDeleted": "Tüm dosyalar silindi",
   "modifiedDate": "Değiştirilme: {date}",
-
   "privacyPolicy": "Gizlilik Politikası",
   "privacyPolicyTitle": "Gizlilik Politikası",
   "privacyPolicyContent": "NFC Arşivcisi, gizliliği temel ilke olarak benimser. Uygulama tamamen çevrimdışı çalışır ve hiçbir kişisel veri toplamaz, iletmez veya saklamaz.\n\nVeri Toplama\nHiçbir veri toplamıyoruz. Kişisel bilgi, kullanım analitiği, izleme, çökme raporları, çerezler, tanımlayıcılar veya reklam verileri bulunmamaktadır.\n\nNFC Erişimi\nNFC işlevi yalnızca cihazınıza yakın tutulan fiziksel NFC etiketlerine veri okumak ve yazmak için kullanılır. Tüm NFC işlemleri yereldir — ağ üzerinden hiçbir veri iletilmez.\n\nDosya İşleme\nArşivlemek için seçtiğiniz dosyalar tamamen cihazınızda işlenir. Dosya verileri yerel depolama alanından okunur, isteğe bağlı olarak cihazda sıkıştırılır ve şifrelenir, parçalara bölünür ve NFC etiketlerine yazılır. Hiçbir dosya verisi herhangi bir sunucuya yüklenmez veya iletilmez.\n\nŞifreleme\nŞifrelemeyi etkinleştirdiğinizde, şifreniz yerel olarak bir şifreleme anahtarı türetmek için kullanılır (PBKDF2). Şifreniz asla saklanmaz, günlüğe kaydedilmez veya iletilmez. Şifreleme ve şifre çözme tamamen cihazınızda gerçekleşir.\n\nÜçüncü Taraf Hizmetleri\nNFC Arşivcisi hiçbir üçüncü taraf hizmeti kullanmaz — analitik, bulut depolama, uzak sunucu veya sosyal medya entegrasyonu yoktur.\n\nİzinler\nUygulama yalnızca temel işlevleri için gerekli izinleri ister: etiketleri okumak ve yazmak için NFC erişimi ve arşivlemek veya geri yüklemek istediğiniz dosyalar için depolama erişimi.",
-
   "clearAllSessions": "Tüm oturumları temizle",
   "clearAllSessionsConfirm": "Tüm tamamlanmamış geri yükleme oturumları silinsin mi?",
   "deleteSession": "Oturumu sil",
   "deleteSessionConfirm": "Bu tamamlanmamış oturum silinsin mi?",
   "lastUpdated": "Son güncelleme {dateTime}",
   "@lastUpdated": {
-    "placeholders": { "dateTime": { "type": "String" } }
+    "placeholders": {
+      "dateTime": {
+        "type": "String"
+      }
+    }
   },
   "sessionsCleared": "Tüm oturumlar temizlendi",
   "sessionDeleted": "Oturum silindi",
   "mifareNotSupportedOnDevice": "Bu bir Mifare Classic kart gibi görünüyor. Telefonunuzun NFC çipi bunları okuyamaz.",
   "tagTypeMismatch": "Bu bir {tapped} kart, ancak bu arşiv {configured} için yapılandırılmış — etiket türünü Ayarlar'dan değiştirin.",
   "@tagTypeMismatch": {
-    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
-  }
+    "placeholders": {
+      "tapped": {
+        "type": "String"
+      },
+      "configured": {
+        "type": "String"
+      }
+    }
+  },
+  "readerTitle": "Okuyucu",
+  "readerPhoneNfc": "Telefon NFC’si",
+  "readerChameleon": "Chameleon Ultra",
+  "readerSelect": "Okuyucu seç",
+  "readerScanning": "Chameleon aranıyor…",
+  "readerNoDevices": "Chameleon bulunamadı. Açık ve yakında olduğundan emin olun.",
+  "readerConnecting": "Bağlanıyor…",
+  "readerConnected": "Bağlandı",
+  "readerDisconnect": "Bağlantıyı kes",
+  "readerBluetoothOff": "Bluetooth kapalı. Chameleon kullanmak için açın.",
+  "readerPermissionDenied": "Chameleon bulmak için Bluetooth izni gerekir.",
+  "readerConnectFailed": "Chameleon’a bağlanılamadı.",
+  "readerPhoneSubtitle": "Telefonun kendi NFC’sini kullanır",
+  "readerChameleonSubtitle": "Bluetooth üzerinden Mifare Classic ve kart incelemesi ekler",
+  "readerSearch": "Ara"
 }

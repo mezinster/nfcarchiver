@@ -4,7 +4,6 @@ import '../../../../core/chameleon/ble_chameleon_device.dart';
 import '../../data/chameleon_reader.dart';
 import '../../data/phone_nfc_reader.dart';
 import '../../domain/card_reader.dart';
-import 'nfc_provider.dart';
 
 enum ReaderKind { phone, chameleon }
 
@@ -130,15 +129,19 @@ class ReaderController extends StateNotifier<ReaderState> {
 
 final readerControllerProvider =
     StateNotifierProvider<ReaderController, ReaderState>((ref) {
-  final controller = ReaderController(
+  return ReaderController(
     makePhone: PhoneNfcReader.new,
     makeChameleon: (deviceId) =>
         ChameleonReader(BleChameleonDevice(deviceId: deviceId)),
   );
-  // Keep the seam every card operation reads in step with the selection. This
-  // is the single wire between choosing a reader and using one.
-  controller.addListener((s) {
-    ref.read(activeReaderProvider.notifier).state = s.reader;
-  });
-  return controller;
 });
+
+/// The reader every card operation goes through.
+///
+/// DERIVED from the controller rather than pushed into by it. An earlier
+/// version used addListener, which fires immediately and so modified another
+/// provider during this one's build — something Riverpod forbids outright.
+/// Deriving also removes the possibility of the two disagreeing.
+final activeReaderProvider = Provider<CardReader>(
+  (ref) => ref.watch(readerControllerProvider).reader,
+);

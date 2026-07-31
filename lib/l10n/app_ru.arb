@@ -1,6 +1,5 @@
 {
   "@@locale": "ru",
-
   "appTitle": "NFC Архиватор",
   "nfcChecking": "Проверка NFC...",
   "nfcAvailable": "NFC доступен",
@@ -10,19 +9,17 @@
   "createArchiveDesc": "Разбить файл на несколько NFC-меток",
   "restoreArchive": "Восстановить архив",
   "restoreArchiveDesc": "Сканировать метки для восстановления файла",
-  "copyright": "NFC Архиватор \u00a9 2026",
-  "versionFooter": "NFC Архиватор v{version} (Сборка {build}) \u00a9 2026",
+  "copyright": "NFC Архиватор © 2026",
+  "versionFooter": "NFC Архиватор v{version} (Сборка {build}) © 2026",
   "buildLabel": "Сборка",
   "aboutAppDescription": "Распределённая система архивации данных с использованием NFC-меток. Храните файлы на нескольких NFC-метках и восстанавливайте их позже.",
   "aboutSupportedTags": "Поддерживаемые метки: NTAG213/215/216, MIFARE Ultralight",
-
   "selectFile": "Выбор файла",
   "tapToSelectFile": "Нажмите для выбора файла",
   "chooseFileToArchive": "Выберите любой файл для архивации на NFC-метки",
   "configureArchive": "Настроить архив",
   "couldNotAccessFile": "Не удалось получить доступ к файлу",
   "errorSelectingFile": "Ошибка при выборе файла: {error}",
-
   "settings": "Настройки",
   "noFileSelected": "Файл не выбран",
   "archiveSettings": "Настройки архива",
@@ -42,7 +39,6 @@
   "payloadPerTag": "Данных на метку",
   "bytesUnit": "{bytes} байт",
   "startArchiving": "Начать архивацию",
-
   "writingToTags": "Запись на метки",
   "tagTooSmall": "Метка слишком мала",
   "tagTooSmallMessage": "На этой метке доступно {available} байт, но для чанка требуется {required} байт.",
@@ -54,7 +50,6 @@
   "reconfigure": "Перенастроить",
   "reconfiguredNowUsingTags": "Перенастроено: теперь используется {count} меток",
   "failedToReconfigure": "Не удалось перенастроить архив",
-
   "holdTagNearDevice": "Поднесите метку к устройству",
   "readyToWriteTag": "Готов к записи метки {index}",
   "chunkOfTotal": "Чанк {current} из {total}",
@@ -77,7 +72,6 @@
   "progress": "Прогресс",
   "tagsProgress": "{current} / {total} меток",
   "holdTagNearDeviceToWrite": "Поднесите метку к устройству для записи чанка {current} из {total}",
-
   "scanTags": "Сканирование меток",
   "scanningForTags": "Поиск меток...",
   "preparingScanner": "Подготовка сканера...",
@@ -104,7 +98,6 @@
   "rescanTags": "Пересканировать {count} метку(и)",
   "tryDifferentPassword": "Попробовать другой пароль",
   "pleaseEnterThePassword": "Пожалуйста, введите пароль",
-
   "english": "Английский",
   "russian": "Русский",
   "turkish": "Турецкий",
@@ -113,7 +106,6 @@
   "polish": "Польский",
   "belarusian": "Белорусский",
   "language": "Язык",
-
   "file": "Файл",
   "text": "Текст",
   "enterTextToArchive": "Введите текст для архивации",
@@ -122,7 +114,6 @@
   "textCopied": "Текст скопирован в буфер обмена",
   "copyText": "Копировать текст",
   "couldNotDecodeText": "[Не удалось декодировать текст]",
-
   "archivedFiles": "Архивированные файлы",
   "archivedFilesDesc": "Управление восстановленными файлами",
   "storageUsage": "{count} файлов ({size})",
@@ -137,24 +128,48 @@
   "deleteAllConfirmation": "Это безвозвратно удалит все {count} архивированных файлов. Это действие нельзя отменить.",
   "allFilesDeleted": "Все файлы удалены",
   "modifiedDate": "Изменён: {date}",
-
   "privacyPolicy": "Политика конфиденциальности",
   "privacyPolicyTitle": "Политика конфиденциальности",
   "privacyPolicyContent": "NFC Архиватор разработан с конфиденциальностью как основным принципом. Приложение работает полностью офлайн и не собирает, не передаёт и не хранит никаких персональных данных.\n\nСбор данных\nМы не собираем никаких данных. Никакой личной информации, аналитики использования, отслеживания, отчётов об ошибках, файлов cookie, идентификаторов или рекламных данных.\n\nДоступ к NFC\nФункция NFC используется исключительно для чтения и записи данных на физические NFC-метки, поднесённые к вашему устройству. Все операции NFC выполняются локально — данные не передаются по сети.\n\nОбработка файлов\nФайлы, которые вы выбираете для архивации, обрабатываются полностью на вашем устройстве. Данные файлов считываются из локального хранилища, при необходимости сжимаются и шифруются на устройстве, разбиваются на части и записываются на NFC-метки. Данные файлов никогда не загружаются и не передаются на какой-либо сервер.\n\nШифрование\nПри включении шифрования ваш пароль используется локально для создания ключа шифрования (PBKDF2). Ваш пароль никогда не сохраняется, не регистрируется и не передаётся. Шифрование и расшифровка происходят полностью на вашем устройстве.\n\nСторонние сервисы\nNFC Архиватор не использует сторонних сервисов — никакой аналитики, облачного хранилища, удалённых серверов или интеграций с социальными сетями.\n\nРазрешения\nПриложение запрашивает только разрешения, необходимые для основных функций: доступ к NFC для чтения и записи меток, а также доступ к хранилищу для файлов, которые вы выбираете для архивации или восстановления.",
-
   "clearAllSessions": "Очистить все сессии",
   "clearAllSessionsConfirm": "Удалить все незавершённые сессии восстановления?",
   "deleteSession": "Удалить сессию",
   "deleteSessionConfirm": "Удалить эту незавершённую сессию?",
   "lastUpdated": "Обновлено {dateTime}",
   "@lastUpdated": {
-    "placeholders": { "dateTime": { "type": "String" } }
+    "placeholders": {
+      "dateTime": {
+        "type": "String"
+      }
+    }
   },
   "sessionsCleared": "Все сессии удалены",
   "sessionDeleted": "Сессия удалена",
   "mifareNotSupportedOnDevice": "Похоже, это карта Mifare Classic. NFC-модуль вашего телефона не может их читать.",
   "tagTypeMismatch": "Это карта {tapped}, но этот архив настроен для {configured} — измените тип метки в Настройках.",
   "@tagTypeMismatch": {
-    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
-  }
+    "placeholders": {
+      "tapped": {
+        "type": "String"
+      },
+      "configured": {
+        "type": "String"
+      }
+    }
+  },
+  "readerTitle": "Считыватель",
+  "readerPhoneNfc": "NFC телефона",
+  "readerChameleon": "Chameleon Ultra",
+  "readerSelect": "Выбрать считыватель",
+  "readerScanning": "Поиск устройств Chameleon…",
+  "readerNoDevices": "Chameleon не найден. Проверьте, включён ли он и находится ли рядом.",
+  "readerConnecting": "Подключение…",
+  "readerConnected": "Подключено",
+  "readerDisconnect": "Отключить",
+  "readerBluetoothOff": "Bluetooth выключен. Включите его, чтобы использовать Chameleon.",
+  "readerPermissionDenied": "Для поиска Chameleon нужно разрешение Bluetooth.",
+  "readerConnectFailed": "Не удалось подключиться к Chameleon.",
+  "readerPhoneSubtitle": "Использует собственный NFC телефона",
+  "readerChameleonSubtitle": "Добавляет Mifare Classic и осмотр карты через Bluetooth",
+  "readerSearch": "Найти"
 }
