@@ -3,10 +3,16 @@ import assert from 'node:assert/strict';
 import { BrowserNdefIO, type NdefReaderLike } from '../app/ui/browser-ndef-io.js';
 
 /** A stand-in NDEFReader that records how often a scan was armed and lets a
- *  test deliver reading events by hand. */
+ *  test deliver reading events by hand. `onreading`'s parameter is typed as
+ *  the full event shape (not narrowed to what `deliver` happens to send) so
+ *  this class satisfies `NdefReaderLike`'s function-type-literal member under
+ *  `strictFunctionTypes` without loosening that production type. */
 class FakeReader implements NdefReaderLike {
   scanCount = 0;
-  onreading: ((e: { serialNumber: string; message: { records: [] } }) => void) | null = null;
+  onreading: ((e: {
+    serialNumber: string;
+    message: { records: Array<{ recordType: string; mediaType?: string; data?: DataView }> };
+  }) => void) | null = null;
   onreadingerror: ((e: unknown) => void) | null = null;
   failScan: Error | null = null;
 
@@ -68,4 +74,27 @@ test('stop() ends the scan and clears the buffer', async () => {
   reader.deliver('04:cc');
   io.stop();
   await assert.rejects(() => io.awaitReading(), /not started/i);
+});
+
+test('a second start() while one is in flight is rejected without arming a second scan', async () => {
+  const reader = new FakeReader();
+  const io = new BrowserNdefIO(() => reader);
+  const first = io.start();
+  await assert.rejects(() => io.start(), /already in progress/i);
+  await first;
+  assert.equal(reader.scanCount, 1);
+});
+
+test('a buffered reading older than BUFFER_MS is discarded, not replayed', async () => {
+  const reader = new FakeReader();
+  let clock = 0;
+  const io = new BrowserNdefIO(() => reader, () => clock);
+  await io.start();
+
+  reader.deliver('04:dd'); // buffered at clock=0, with nobody waiting
+  clock = 2001; // BUFFER_MS is 2000ms — this reading is now stale
+
+  const pending = io.awaitReading();
+  reader.deliver('04:ee'); // a fresh tap arrives after the wait is armed
+  assert.equal((await pending).serialNumber, '04:ee');
 });
