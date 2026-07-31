@@ -2,9 +2,9 @@
 import { ArchiveOrchestrator, type ArchiveIO, type OverwriteChoice } from './archive-orchestrator.js';
 import type { Transport } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
-import { NtagType, ntagChunkPayloadSize } from '../../src/nfc/type2.js';
+import { NtagType, ntagChunkPayloadSize, webNfcChunkPayload } from '../../src/nfc/type2.js';
 import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
-import { currentTransport, isConnected, onConnectionChange, setReaderBusy } from './device.js';
+import { activeReaderName, currentTransport, isConnected, onConnectionChange, setReaderBusy } from './device.js';
 import { humanError } from './errors.js';
 import { t } from '../i18n/index.js';
 import { log } from '../../src/log/logger.js';
@@ -13,11 +13,32 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 function selectedPayloadSize(): number {
   const v = ($('target-tag') as HTMLSelectElement).value;
+  const webNfc = activeReaderName() === 'web-nfc';
   if (v === 'auto') return CARD_PAYLOAD_SIZE; // nominal preview size; the real card decides on tap
-  if (v === 'NTAG213') return ntagChunkPayloadSize(NtagType.NTAG213);
-  if (v === 'NTAG215') return ntagChunkPayloadSize(NtagType.NTAG215);
-  if (v === 'NTAG216') return ntagChunkPayloadSize(NtagType.NTAG216);
+  // Under Web NFC there is no capability-container tap to re-chunk from, so the
+  // estimate must already match the factory CC's usable area (webNfcChunkPayload),
+  // not the raw-memory estimate the Chameleon path uses (ntagChunkPayloadSize) —
+  // see PR #41 / #48 / #49 for the truncation bug this guards against.
+  if (v === 'NTAG213') return webNfc ? webNfcChunkPayload(NtagType.NTAG213) : ntagChunkPayloadSize(NtagType.NTAG213);
+  if (v === 'NTAG215') return webNfc ? webNfcChunkPayload(NtagType.NTAG215) : ntagChunkPayloadSize(NtagType.NTAG215);
+  if (v === 'NTAG216') return webNfc ? webNfcChunkPayload(NtagType.NTAG216) : ntagChunkPayloadSize(NtagType.NTAG216);
   return Number(v); // "720" for Mifare Classic 1K
+}
+
+/** Keeps `#target-tag` sane for the active reader. Web NFC exposes no capability
+ *  container, so "Auto-detect" (which relies on tapping a real card to discover
+ *  it) is meaningless there — disable the option and, if it was selected, fall
+ *  back to a concrete chip. Does NOT touch archive-status itself: that element
+ *  also carries archive progress/error text (see the onConnectionChange
+ *  handler below), and writing here unconditionally would clobber a message
+ *  mid-archive if the user swaps readers while a write is in progress (the
+ *  Connect/Use-phone-NFC buttons stay enabled during archiving). */
+function syncTargetTagForReader(): void {
+  const sel = $('target-tag') as HTMLSelectElement;
+  const auto = sel.querySelector<HTMLOptionElement>('option[value="auto"]')!;
+  const webNfc = activeReaderName() === 'web-nfc';
+  auto.disabled = webNfc;
+  if (webNfc && sel.value === 'auto') sel.value = 'NTAG215';
 }
 
 export function initArchivePanel(): void {
@@ -78,7 +99,14 @@ export function initArchivePanel(): void {
 
   onConnectionChange((connected) => {
     ($('archive') as HTMLButtonElement).disabled = !connected || archiving;
-    if (connected && !archiving) setStatus(t.archiveReady);
+    syncTargetTagForReader();
+    // Guarded the same way the pre-existing archiveReady write was: while a
+    // write is in progress, this element carries live progress/error text
+    // (see ArchiveOrchestrator's io.setStatus calls) that a reader hand-off
+    // must not stomp.
+    if (connected && !archiving) {
+      setStatus(activeReaderName() === 'web-nfc' ? t.autoDetectNeedsChameleon : t.archiveReady);
+    }
   });
 
   $('archive').addEventListener('click', async () => {
