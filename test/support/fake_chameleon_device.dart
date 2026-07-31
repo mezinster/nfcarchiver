@@ -64,6 +64,8 @@ class FakeChameleonDevice implements ChameleonDevice {
   bool _cardPresent = true;
   bool _corruptWrites = false;
   bool _failAnticollision = false;
+  bool _corruptBcc = false;
+  bool _truncateAnticollision = false;
   bool _failGetVersion = false;
   /// NTAG215's storage-size code, as byte 6 of GET_VERSION.
   int _storageByte = 0x11;
@@ -89,6 +91,13 @@ class FakeChameleonDevice implements ChameleonDevice {
   void overrideSak(int value) => sak = value;
 
   void failAnticollision() => _failAnticollision = true;
+
+  /// The card returns a BCC that disagrees with its own UID — a malformed
+  /// or UID-writable "magic" card.
+  void corruptBcc() => _corruptBcc = true;
+
+  /// Anticollision answers with fewer than the 5 bytes it must return.
+  void truncateAnticollision() => _truncateAnticollision = true;
 
   /// The tag stops answering GET_VERSION — how a non-NTAG Type-2 tag behaves.
   void failGetVersion() => _failGetVersion = true;
@@ -137,13 +146,14 @@ class FakeChameleonDevice implements ChameleonDevice {
     bool appendCrc = false,
     bool autoSelect = false,
     bool checkResponseCrc = false,
+    bool activateRfField = false,
     bool keepRfField = false,
     int dataBitLength = 0,
   }) async {
     if (!_cardPresent) throw const CardReadException('No card in the field');
 
-    // REQA — 7 bits, answers with ATQA.
-    if (data.length == 1 && data[0] == 0x26) {
+    // WUPA (0x52) / REQA (0x26) — 7-bit frames, answered with ATQA.
+    if (data.length == 1 && (data[0] == 0x52 || data[0] == 0x26)) {
       if (_failAnticollision) throw const CardReadException('No response to REQA');
       return (await scanTag())!.atqa;
     }
@@ -156,8 +166,10 @@ class FakeChameleonDevice implements ChameleonDevice {
           ? Uint8List.fromList(tag.uid)
           // For a 7-byte UID, CL1 carries 0x88 followed by the first 3 bytes.
           : Uint8List.fromList([0x88, tag.uid[0], tag.uid[1], tag.uid[2]]);
-      final bcc = cl1.reduce((a, b) => a ^ b);
-      return Uint8List.fromList([...cl1, bcc]);
+      var bcc = cl1.reduce((a, b) => a ^ b);
+      if (_corruptBcc) bcc ^= 0xff;
+      final full = Uint8List.fromList([...cl1, bcc]);
+      return _truncateAnticollision ? Uint8List.sublistView(full, 0, 3) : full;
     }
 
     // NTAG GET_VERSION: 0x60 -> 8 bytes, byte 6 being the storage-size code.

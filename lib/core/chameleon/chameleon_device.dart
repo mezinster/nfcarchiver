@@ -16,6 +16,24 @@ class ScannedTag {
   final Uint8List atqa;
 }
 
+/// The raw-frame capability alone.
+///
+/// Split out so the identity probe can depend on exactly what it needs — an
+/// arbitrary frame exchange — rather than on a whole device. [ChameleonDevice]
+/// implements it, so any device satisfies it; Dart's `implements` is nominal,
+/// so this supertype has to be declared rather than merely matched.
+abstract class RawAntiColl {
+  Future<Uint8List> transceive14a(
+    Uint8List data, {
+    bool appendCrc,
+    bool autoSelect,
+    bool checkResponseCrc,
+    bool activateRfField,
+    bool keepRfField,
+    int dataBitLength,
+  });
+}
+
 /// Narrow seam over a Chameleon Ultra.
 ///
 /// Deliberately mirrors `webapp/src/transport/chameleon-device.ts` member for
@@ -27,7 +45,7 @@ class ScannedTag {
 /// Everything above this interface (the card dump, the Mifare layout, the
 /// reader) is testable against a fake, so only the implementation of THIS
 /// interface needs real hardware.
-abstract class ChameleonDevice {
+abstract class ChameleonDevice implements RawAntiColl {
   bool get isConnected;
 
   Future<void> connect();
@@ -43,12 +61,21 @@ abstract class ChameleonDevice {
   /// Send a raw ISO 14443-A frame and return the response.
   ///
   /// [dataBitLength] of 0 means "all of the final byte" — the wire protocol
-  /// normalises it, so callers pass 0 for whole-byte frames.
+  /// normalises it, so callers pass 0 for whole-byte frames. A 7-bit frame
+  /// (WUPA, REQA) passes 7.
+  ///
+  /// [activateRfField] and [keepRfField] bracket a multi-frame exchange that
+  /// must not lose the field between steps: the anticollision probe raises the
+  /// field on WUPA, keeps it up, and drops it after cascade level 1. Letting
+  /// the field collapse in between would restart the tag and invalidate the
+  /// sequence.
+  @override
   Future<Uint8List> transceive14a(
     Uint8List data, {
     bool appendCrc = false,
     bool autoSelect = false,
     bool checkResponseCrc = false,
+    bool activateRfField = false,
     bool keepRfField = false,
     int dataBitLength = 0,
   });
