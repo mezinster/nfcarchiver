@@ -9,6 +9,7 @@ import { encodeChunk, decodeChunk, type Chunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
 import { UnsupportedTagError } from '../src/transport/transport.js';
 import type { ChameleonDevice } from '../src/transport/chameleon-device.js';
+import { runTransportContract } from './transport-contract.js';
 
 const NTAG215_UID = new Uint8Array([0x04, 1, 2, 3, 4, 5, 6]);
 
@@ -154,3 +155,14 @@ test('detectType surfaces UnsupportedTagError for an unrecognized GET_VERSION st
   await t.connect();
   await assert.rejects(() => t.awaitTag(), UnsupportedTagError);
 });
+
+// An NTAG215's CC declares a 496 B NDEF area, so its usable chunk payload is
+// chunkPayloadForCapacity(496) = 420 — smaller than raw user memory (504).
+runTransportContract('NtagTransport+FakeChameleon', () => {
+  const device = new FakeChameleon();
+  const t = new NtagTransport(device, { pollMs: 1, defaultTimeoutMs: 500 });
+  return {
+    transport: t,
+    tap: (uid: Uint8Array) => { device.placeNtag(uid, NtagType.NTAG215); },
+  };
+}, { capacityBytes: 504, maxChunkPayload: chunkPayloadForCapacity(496) });

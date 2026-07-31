@@ -8,7 +8,7 @@ import { FakeChameleon } from './fake-chameleon.js';
 import { runTransportContract } from './transport-contract.js';
 import { encodeChunk, type Chunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
-import { USABLE_BLOCK_INDEXES, CARD_PAYLOAD_SIZE } from '../src/mifare/card-layout.js';
+import { USABLE_BLOCK_INDEXES, CARD_CAPACITY_BYTES, CARD_PAYLOAD_SIZE } from '../src/mifare/card-layout.js';
 
 function chunkBytes(payloadLen: number): Uint8Array {
   const payload = new Uint8Array(payloadLen).map((_, i) => (i + 5) % 256);
@@ -23,7 +23,7 @@ runTransportContract('ChameleonBleTransport+FakeChameleon', () => {
   const device = new FakeChameleon();
   const transport = new ChameleonBleTransport(device, { pollMs: 1, defaultTimeoutMs: 500 });
   return { transport, tap: (uid) => device.place(uid) };
-});
+}, { capacityBytes: CARD_CAPACITY_BYTES, maxChunkPayload: CARD_PAYLOAD_SIZE });
 
 test('connect delegates to the device; awaitTag polls scanTag', async () => {
   const device = new FakeChameleon();
