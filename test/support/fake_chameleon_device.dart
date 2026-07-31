@@ -64,6 +64,9 @@ class FakeChameleonDevice implements ChameleonDevice {
   bool _cardPresent = true;
   bool _corruptWrites = false;
   bool _failAnticollision = false;
+  bool _failGetVersion = false;
+  /// NTAG215's storage-size code, as byte 6 of GET_VERSION.
+  int _storageByte = 0x11;
   int? _failFromBlock;
   Duration _perBlockDelay = Duration.zero;
 
@@ -86,6 +89,13 @@ class FakeChameleonDevice implements ChameleonDevice {
   void overrideSak(int value) => sak = value;
 
   void failAnticollision() => _failAnticollision = true;
+
+  /// The tag stops answering GET_VERSION — how a non-NTAG Type-2 tag behaves.
+  void failGetVersion() => _failGetVersion = true;
+
+  /// Override the GET_VERSION storage byte, so an unrecognised chip can be
+  /// tested without inventing a whole new fake.
+  void overrideStorageByte(int value) => _storageByte = value;
 
   /// Slows each block read so cancellation and superseded-run tests have a run
   /// long enough to interrupt.
@@ -148,6 +158,16 @@ class FakeChameleonDevice implements ChameleonDevice {
           : Uint8List.fromList([0x88, tag.uid[0], tag.uid[1], tag.uid[2]]);
       final bcc = cl1.reduce((a, b) => a ^ b);
       return Uint8List.fromList([...cl1, bcc]);
+    }
+
+    // NTAG GET_VERSION: 0x60 -> 8 bytes, byte 6 being the storage-size code.
+    if (data.length == 1 && data[0] == 0x60) {
+      if (_failGetVersion) {
+        throw const CardReadException('No response to GET_VERSION');
+      }
+      return Uint8List.fromList(
+        [0x00, 0x04, 0x04, 0x02, 0x01, 0x00, _storageByte, 0x03],
+      );
     }
 
     // NTAG READ: 0x30 <page> -> 4 pages (16 bytes).
