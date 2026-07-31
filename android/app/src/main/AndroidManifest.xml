@@ -1,7 +1,25 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- NFC Permissions -->
     <uses-permission android:name="android.permission.NFC" />
+
+    <!-- Bluetooth LE, for the Chameleon Ultra reader.
+         neverForLocation is what keeps a location permission — and the
+         appearance of tracking — out of the app: we scan for one device we
+         own, never to infer where the user is. F-Droid flags tracking
+         anti-features, and an unqualified BLUETOOTH_SCAN implies location. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"
+        tools:targetApi="s" />
+    <!-- Pre-Android-12 equivalents; capped so they are not requested on 12+. -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-feature android:name="android.hardware.bluetooth_le"
+        android:required="false" />
     <uses-feature android:name="android.hardware.nfc" android:required="true" />
 
     <!-- Storage Permissions for file access -->
