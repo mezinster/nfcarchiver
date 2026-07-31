@@ -53,13 +53,24 @@ export class BrowserNdefIO implements NdefIO {
       // through here once, so "clear the timer / detach the handlers / free
       // this.scanning" holds by construction instead of by remembering to
       // repeat it at each call site. Safe to invoke more than once: a second
-      // call is a no-op (timer already cleared, handlers already null, and
-      // resolve/reject on an already-settled promise is a no-op too).
+      // call is a no-op (timer already cleared, handlers already null-or-not-
+      // ours, and resolve/reject on an already-settled promise is a no-op).
+      //
+      // A settling wait may only tear down state it still owns: the handlers
+      // live on the *shared* reader, so this guard is not optional the way it
+      // would be for a private field. Overlapping calls abort the previous
+      // AbortController synchronously (this.scanning?.abort() below) but the
+      // previous call's own scan().catch(cleanup) doesn't run until a later
+      // microtask — by then a newer call may already have installed its own
+      // onreading/onreadingerror on this same reader. Nulling them here
+      // unconditionally would wipe a newer call's handlers out from under it.
       const cleanup = (): void => {
         if (timer !== null) clearTimeout(timer);
-        reader.onreading = null;
-        reader.onreadingerror = null;
-        if (this.scanning === ac) this.scanning = null;
+        if (this.scanning === ac) {
+          reader.onreading = null;
+          reader.onreadingerror = null;
+          this.scanning = null;
+        }
       };
 
       if (opts?.timeoutMs !== undefined) {
