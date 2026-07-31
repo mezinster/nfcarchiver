@@ -18,14 +18,19 @@ function render(): void {
   container.innerHTML = '';
   for (const s of sections()) {
     const h = document.createElement('h3');
+    h.className = 'section-label';
     h.textContent = s.h;
     container.appendChild(h);
+    // One card per section, not per paragraph: a section's body lines belong
+    // together, and carding each <p> separately would fragment them.
+    const card = document.createElement('div');
+    card.className = 'card about-card';
     for (const line of s.body) {
       const p = document.createElement('p');
-      p.className = 'muted';
       p.textContent = line;
-      container.appendChild(p);
+      card.appendChild(p);
     }
+    container.appendChild(card);
   }
 }
 

@@ -83,6 +83,9 @@ function updateDeviceButtons(): void {
  *  locale change. This module owns it and re-derives it from `connected`. */
 function renderConn(): void {
   $('conn').textContent = connected ? t.statusConnected : t.statusDisconnected;
+  // Drives the pill's dot colour in CSS, so connection state reads at a glance
+  // rather than only from the text.
+  $('device-pill').setAttribute('data-connected', String(connected));
 }
 
 export function currentTransport(): Transport | null {

@@ -93,7 +93,9 @@ test('restore works for multiple archives, repeatedly, independent of the scan l
 
   const rows = (container as unknown as StubEl).children;
   assert.equal(rows.length, 2, 'both archives detected as rows');
-  const btn = (rowIdx: number) => rows[rowIdx]!.children[1]!; // [span, Restore button]
+  // Row shape: [icon-tile, row-text, row-control] with the Restore button
+  // inside row-control. See app/ui/restore-view.ts.
+  const btn = (rowIdx: number) => rows[rowIdx]!.children[2]!.children[0]!;
 
   // Click archive A's Restore button -> restores the plain archive.
   await btn(0).click();
@@ -133,7 +135,7 @@ test('restoreArchive ignores a wrong-then-cancelled password without downloading
   orch.startSession(rt);
   cards.forEach((b, i) => rt.enqueueTag(new Uint8Array([3, 0, 0, i]), b));
   for (let i = 0; i < cards.length; i++) await orch.scanStep(signal());
-  await (container as unknown as StubEl).children[0]!.children[1]!.click();
+  await (container as unknown as StubEl).children[0]!.children[2]!.children[0]!.click();
   assert.equal(downloads.length, 0, 'cancelled restore downloads nothing');
 });
 
@@ -149,7 +151,7 @@ test('restoreArchive tries the last entered password (no off-by-one)', async () 
   orch.startSession(rt);
   cards.forEach((b, i) => rt.enqueueTag(new Uint8Array([4, 0, 0, i]), b));
   for (let i = 0; i < cards.length; i++) await orch.scanStep(signal());
-  await (container as unknown as StubEl).children[0]!.children[1]!.click();
+  await (container as unknown as StubEl).children[0]!.children[2]!.children[0]!.click();
   assert.equal(downloads.length, 1, 'the 5th (correct) password is actually tried');
   assert.deepEqual(downloads[0]!.data, secret);
 });

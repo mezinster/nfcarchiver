@@ -35,22 +35,39 @@ export function renderFileList(
     let row = existing.get(f.id);
     if (row === undefined) {
       row = doc.createElement('div');
-      row.className = 'file';
+      row.className = 'row';
       row.setAttribute('data-file-id', f.id);
-      const span = doc.createElement('span');
+
+      const tile = doc.createElement('span');
+      tile.className = 'icon-tile';
+      tile.innerHTML = '<svg class="ico"><use href="#i-folder"/></svg>';
+
+      const text = doc.createElement('div');
+      text.className = 'row-text';
+      const name = doc.createElement('div');
+      name.className = 'row-name';
+      text.append(name);
+
+      const control = doc.createElement('div');
+      control.className = 'row-control';
       const dl = doc.createElement('button');
+      dl.className = 'btn-tonal';
       dl.addEventListener('click', () => handlers.onDownload(f.id));
       const del = doc.createElement('button');
+      del.className = 'btn-text';
       del.addEventListener('click', () => handlers.onDelete(f.id));
-      row.append(span, dl, del);
+      control.append(dl, del);
+
+      row.append(tile, text, control);
       container.appendChild(row);
       existing.set(f.id, row);
     }
     // Every label is rewritten on each render, not just at row creation: the
     // rows outlive a language switch, so button text would otherwise stay
     // frozen in the boot language forever.
-    (row.children[0] as HTMLElement).textContent = label(f);
-    (row.children[1] as HTMLElement).textContent = t.download;
-    (row.children[2] as HTMLElement).textContent = t.deleteBtn;
+    const controls = row.children[2] as HTMLElement;
+    ((row.children[1] as HTMLElement).children[0] as HTMLElement).textContent = label(f);
+    (controls.children[0] as HTMLElement).textContent = t.download;
+    (controls.children[1] as HTMLElement).textContent = t.deleteBtn;
   }
 }

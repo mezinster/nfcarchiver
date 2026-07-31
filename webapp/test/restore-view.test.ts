@@ -15,6 +15,7 @@ interface StubEl {
   tagName: string;
   className: string;
   textContent: string;
+  innerHTML: string;
   disabled: boolean;
   children: StubEl[];
   parent: StubEl | null;
@@ -35,7 +36,7 @@ function makeDoc(): StubDoc {
   const doc: StubDoc = {
     createElement(tag: string): StubEl {
       const el: StubEl = {
-        tagName: tag.toUpperCase(), className: '', textContent: '', disabled: false,
+        tagName: tag.toUpperCase(), className: '', textContent: '', innerHTML: '', disabled: false,
         children: [], parent: null, ownerDocument: doc, attrs: {}, listeners: {},
         append(...kids) { for (const k of kids) { k.parent = el; el.children.push(k); } },
         appendChild(kid) { kid.parent = el; el.children.push(kid); return kid; },
@@ -63,13 +64,13 @@ test('restore view reuses button elements across identical re-renders (a click i
   const list = [archive({})];
 
   renderArchiveList(container, list, (id) => picks.push(id));
-  const firstBtn = (container as unknown as StubEl).children[0]!.children[1]!;
+  const firstBtn = (container as unknown as StubEl).children[0]!.children[2]!.children[0]!;
 
   // A card resting on the reader makes the scan loop re-render the SAME list
   // dozens of times a second. The button the user is about to click must not be
   // torn down and replaced underneath them.
   renderArchiveList(container, list, (id) => picks.push(id));
-  const secondBtn = (container as unknown as StubEl).children[0]!.children[1]!;
+  const secondBtn = (container as unknown as StubEl).children[0]!.children[2]!.children[0]!;
 
   assert.strictEqual(firstBtn, secondBtn, 'Restore button must be reused, not recreated');
   secondBtn.click();
@@ -82,12 +83,12 @@ test('restore view disables the button for an incomplete archive and enables it 
   const id = 'a71a4318-0000-0000-0000-000000000000';
 
   renderArchiveList(container, [archive({ archiveId: id, shortId: 'a71a4318', totalChunks: 6, received: 3, complete: false })], () => {});
-  const btn = (container as unknown as StubEl).children[0]!.children[1]!;
+  const btn = (container as unknown as StubEl).children[0]!.children[2]!.children[0]!;
   assert.equal(btn.disabled, true, 'incomplete archive button is disabled');
 
   // Last chunks arrive: same archive id, now complete -> same button, re-enabled.
   renderArchiveList(container, [archive({ archiveId: id, shortId: 'a71a4318', totalChunks: 6, received: 6, complete: true })], () => {});
-  assert.strictEqual((container as unknown as StubEl).children[0]!.children[1]!, btn, 'same row/button reused');
+  assert.strictEqual((container as unknown as StubEl).children[0]!.children[2]!.children[0]!, btn, 'same row/button reused');
   assert.equal(btn.disabled, false, 'completed archive button is enabled');
 });
 
@@ -101,12 +102,12 @@ test('restore view re-labels the Restore button after a language switch', () => 
   setLocale('en');
   try {
     renderArchiveList(container, list, () => {});
-    const btn = (container as unknown as StubEl).children[0]!.children[1]!;
+    const btn = (container as unknown as StubEl).children[0]!.children[2]!.children[0]!;
     assert.equal(btn.textContent, en.restore);
 
     setLocale('pl');
     renderArchiveList(container, list, () => {});
-    assert.strictEqual((container as unknown as StubEl).children[0]!.children[1]!, btn, 'button must be reused');
+    assert.strictEqual((container as unknown as StubEl).children[0]!.children[2]!.children[0]!, btn, 'button must be reused');
     assert.equal(btn.textContent, pl.restore);
   } finally {
     setLocale('en');
