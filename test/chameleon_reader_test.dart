@@ -201,6 +201,50 @@ void main() {
     });
   });
 
+  test('a resting card is not re-read when the session RESTARTS', () async {
+    // Observed on hardware: the restore screen restarts the session after
+    // every successful read (a phone-NFC habit, where one tap is one session).
+    // Clearing the resting-card guard on start made the same card look new
+    // each time, so it was re-read about once a second forever.
+    final dev = FakeChameleonDevice.classic1k();
+    _writeChunkToCard(dev, validChunkBytes());
+    await dev.connect();
+
+    final reader = _reader(dev);
+    var reads = 0;
+    await reader.startReadSession(
+        onChunkRead: (_, __) => reads++, onError: (_) {});
+    await pumpUntil(() => reads == 1);
+
+    // Restart exactly as the screen does after a success.
+    final stop = await reader.startReadSession(
+        onChunkRead: (_, __) => reads++, onError: (_) {});
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    stop();
+
+    expect(reads, 1, reason: 'the card never left the field');
+  });
+
+  test('connecting clears the guard, so a card already resting is picked up',
+      () async {
+    final dev = FakeChameleonDevice.classic1k();
+    _writeChunkToCard(dev, validChunkBytes());
+    final reader = _reader(dev);
+
+    var reads = 0;
+    await reader.startReadSession(
+        onChunkRead: (_, __) => reads++, onError: (_) {});
+    await pumpUntil(() => reads == 1);
+
+    // Reconnecting is a fresh start: whatever is on the reader is new again.
+    await reader.connect();
+    final stop = await reader.startReadSession(
+        onChunkRead: (_, __) => reads++, onError: (_) {});
+    await pumpUntil(() => reads == 2);
+    stop();
+    expect(reads, 2);
+  });
+
   test('starting a session twice supersedes — it does not stack loops', () async {
     // The first hardware scan hung on exactly this: scan_screen restarts the
     // session on every error, each start spawned another poll loop, and they

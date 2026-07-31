@@ -45,6 +45,13 @@ class ChameleonReader implements CardReader {
   /// A card left in the field would otherwise be re-read every poll and flood
   /// the restore loop with duplicates of one chunk. Cleared when the field goes
   /// empty, so lifting and re-presenting the same card reads it again.
+  ///
+  /// Deliberately NOT cleared when a session starts. The restore screen
+  /// restarts the session after every successful read — a phone-NFC habit,
+  /// where one tap is one session — and clearing here made a resting card look
+  /// new each time, so it was re-read about once a second forever. Observed on
+  /// hardware. It IS cleared on [connect], so a card already resting when the
+  /// user connects is still picked up.
   String? _currentUid;
 
   /// Visible for tests: whether a session loop is running.
@@ -69,7 +76,10 @@ class ChameleonReader implements CardReader {
   void clearWriteCooldown() => _lastWriteAt = null;
 
   @override
-  Future<void> connect() => _device.connect();
+  Future<void> connect() async {
+    _currentUid = null;
+    await _device.connect();
+  }
 
   @override
   Future<void> disconnect() async {
@@ -96,7 +106,6 @@ class ChameleonReader implements CardReader {
   }) async {
     final gen = ++_generation;
     _sessionActive = true;
-    _currentUid = null;
     log.info('reader', 'Read session started', {'gen': gen});
 
     unawaited(_pollLoop(gen, (tag) async {
@@ -137,6 +146,8 @@ class ChameleonReader implements CardReader {
   }) async {
     final gen = ++_generation;
     _sessionActive = true;
+    // A write session DOES clear it: the user is presenting cards to be
+    // written, and the card resting from a previous read must not be skipped.
     _currentUid = null;
     final bytes = chunk.toBytes();
     log.info('reader', 'Write session started', {'bytes': bytes.length, 'gen': gen});
