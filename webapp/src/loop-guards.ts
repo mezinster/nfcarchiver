@@ -9,9 +9,17 @@
  * enough that the user cannot even press Stop.
  */
 
-/** Wait out the remainder of `minMs` since `startedAt`. */
+/** Wait out the remainder of `minMs` since `startedAt`.
+ *
+ *  Clamped at `minMs`: `startedAt` comes from the wall clock, which can step
+ *  BACKWARDS mid-loop (an NTP correction, or the user changing the clock or
+ *  timezone on a phone while scanning). Unclamped, `remaining` then far exceeds
+ *  `minMs` and this schedules a timeout of that length — during which the loop
+ *  sleeps deaf to its abort signal, so the scan looks hung and Stop appears
+ *  dead. That is the very failure mode these guards exist to remove, so a
+ *  nonsensical clock can never buy more than one interval of delay. */
 export function ensureMinInterval(startedAt: number, minMs: number): Promise<void> {
-  const remaining = minMs - (Date.now() - startedAt);
+  const remaining = Math.min(minMs, minMs - (Date.now() - startedAt));
   if (remaining <= 0) return Promise.resolve();
   return new Promise((resolve) => setTimeout(resolve, remaining));
 }

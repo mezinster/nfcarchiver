@@ -14,6 +14,16 @@ test('ensureMinInterval waits out the remainder', async () => {
   assert.ok(Date.now() - before >= 100, 'should have waited roughly the interval');
 });
 
+test('a startedAt in the future cannot stretch the wait past minMs', async () => {
+  // A backward wall-clock step (NTP correction, or the user changing the clock
+  // or timezone mid-scan) leaves startedAt ahead of now. Unclamped this would
+  // sleep for the whole skew, deaf to the abort signal — Stop would look dead.
+  const before = Date.now();
+  await ensureMinInterval(Date.now() + 60_000, 120);
+  const waited = Date.now() - before;
+  assert.ok(waited < 1000, `wait must be bounded by minMs, waited ${waited}ms`);
+});
+
 test('the breaker trips after the limit of identical failures', () => {
   const b = new FailureBreaker(3);
   assert.equal(b.record('CardReadError'), false);
