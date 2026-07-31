@@ -12,6 +12,9 @@ function activateTab(name: string): void {
     const panel = $(`panel-${t}`);
     const selected = t === name;
     btn.setAttribute('aria-selected', String(selected));
+    // The strip scrolls horizontally (five labels do not fit a 360px viewport
+    // in RU or KA), so a selection landing off-screen must be brought into view.
+    if (selected) btn.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     panel.hidden = !selected;
   }
 }

@@ -30,19 +30,34 @@ export function renderArchiveList(
     let row = existing.get(a.archiveId);
     if (row === undefined) {
       row = doc.createElement('div');
-      row.className = 'arch';
+      row.className = 'row';
       row.setAttribute('data-archive-id', a.archiveId);
-      const span = doc.createElement('span');
-      const btn = doc.createElement('button');
+
+      const tile = doc.createElement('span');
+      tile.className = 'icon-tile';
+      tile.innerHTML = '<svg class="ico"><use href="#i-card"/></svg>';
+
+      const text = doc.createElement('div');
+      text.className = 'row-text';
+      const name = doc.createElement('div');
+      name.className = 'row-name';
+      text.append(name);
+
+      const control = doc.createElement('div');
+      control.className = 'row-control';
+      const newBtn = doc.createElement('button');
+      newBtn.className = 'btn-tonal';
       // The row's archive id never changes, so binding it once is safe and keeps
       // the listener stable across updates.
-      btn.addEventListener('click', () => onPick(a.archiveId));
-      row.append(span, btn);
+      newBtn.addEventListener('click', () => onPick(a.archiveId));
+      control.append(newBtn);
+
+      row.append(tile, text, control);
       container.appendChild(row);
       existing.set(a.archiveId, row);
     }
-    const span = row.children[0] as HTMLElement;
-    const btn = row.children[1] as HTMLButtonElement;
+    const span = (row.children[1] as HTMLElement).children[0] as HTMLElement;
+    const btn = (row.children[2] as HTMLElement).children[0] as HTMLButtonElement;
     // Both labels are rewritten on each render, not just at row creation: rows
     // outlive a language switch, so the button text would otherwise stay frozen
     // in the boot language forever.

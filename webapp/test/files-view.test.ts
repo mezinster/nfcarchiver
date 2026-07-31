@@ -7,7 +7,7 @@ import { en } from '../app/i18n/en.js';
 import { pl } from '../app/i18n/pl.js';
 
 interface StubEl {
-  tagName: string; className: string; textContent: string; disabled: boolean;
+  tagName: string; className: string; textContent: string; innerHTML: string; disabled: boolean;
   children: StubEl[]; parent: StubEl | null; ownerDocument: StubDoc;
   attrs: Record<string, string>; listeners: Record<string, Array<() => void>>;
   append(...k: StubEl[]): void; appendChild(k: StubEl): StubEl; remove(): void;
@@ -19,7 +19,7 @@ function makeDoc(): StubDoc {
   const doc: StubDoc = {
     createElement(tag) {
       const el: StubEl = {
-        tagName: tag.toUpperCase(), className: '', textContent: '', disabled: false,
+        tagName: tag.toUpperCase(), className: '', textContent: '', innerHTML: '', disabled: false,
         children: [], parent: null, ownerDocument: doc, attrs: {}, listeners: {},
         append(...k) { for (const c of k) { c.parent = el; el.children.push(c); } },
         appendChild(k) { k.parent = el; el.children.push(k); return k; },
@@ -63,8 +63,8 @@ test('renderFileList wires Download and Delete to the row id', () => {
   const dl: string[] = []; const del: string[] = [];
   renderFileList(container, [item({ id: 'x' })], { onDownload: (id) => dl.push(id), onDelete: (id) => del.push(id) });
   const row = (container as unknown as StubEl).children[0]!;
-  row.children[1]!.click(); // Download
-  row.children[2]!.click(); // Delete
+  row.children[2]!.children[0]!.click(); // Download
+  row.children[2]!.children[1]!.click(); // Delete
   assert.deepEqual(dl, ['x']);
   assert.deepEqual(del, ['x']);
 });
@@ -81,14 +81,14 @@ test('renderFileList re-labels Download/Delete after a language switch', () => {
   try {
     renderFileList(container, files, handlers);
     const row = (container as unknown as StubEl).children[0]!;
-    assert.equal(row.children[1]!.textContent, en.download);
-    assert.equal(row.children[2]!.textContent, en.deleteBtn);
+    assert.equal(row.children[2]!.children[0]!.textContent, en.download);
+    assert.equal(row.children[2]!.children[1]!.textContent, en.deleteBtn);
 
     setLocale('pl');
     renderFileList(container, files, handlers);
     assert.strictEqual((container as unknown as StubEl).children[0]!, row, 'row must be reconciled, not rebuilt');
-    assert.equal(row.children[1]!.textContent, pl.download);
-    assert.equal(row.children[2]!.textContent, pl.deleteBtn);
+    assert.equal(row.children[2]!.children[0]!.textContent, pl.download);
+    assert.equal(row.children[2]!.children[1]!.textContent, pl.deleteBtn);
   } finally {
     setLocale('en');
   }
