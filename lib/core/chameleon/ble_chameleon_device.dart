@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 
+import '../log/logger.dart';
 import 'chameleon_commands.dart';
 import 'chameleon_device.dart';
 import 'chameleon_frame.dart';
@@ -57,6 +58,7 @@ class BleChameleonDevice implements ChameleonDevice {
   @override
   Future<void> connect() async {
     if (_connected) return;
+    log.info('ble', 'Connecting', {'deviceId': deviceId});
 
     final ready = Completer<void>();
     _connSub = _ble
@@ -66,6 +68,7 @@ class BleChameleonDevice implements ChameleonDevice {
         )
         .listen(
       (update) {
+        log.debug('ble', 'GATT state', {'state': update.connectionState.name});
         if (update.connectionState == DeviceConnectionState.connected) {
           if (!ready.isCompleted) ready.complete();
         } else if (update.connectionState ==
@@ -79,11 +82,13 @@ class BleChameleonDevice implements ChameleonDevice {
         }
       },
       onError: (Object e) {
+        log.error('ble', 'GATT error', {'error': e.toString()});
         if (!ready.isCompleted) ready.completeError(e);
       },
     );
 
     await ready.future;
+    log.info('ble', 'GATT connected; subscribing to notifications');
 
     _notifySub = _ble.subscribeToCharacteristic(_char(txCharUuid)).listen(
       (bytes) => _onNotification(Uint8List.fromList(bytes)),
@@ -91,6 +96,7 @@ class BleChameleonDevice implements ChameleonDevice {
     );
 
     _connected = true;
+    log.info('ble', 'Switching device to READER mode');
 
     // The Chameleon boots into EMULATOR mode and silently refuses every HF
     // command until switched. This is invisible from the device seam — the
@@ -101,14 +107,17 @@ class BleChameleonDevice implements ChameleonDevice {
       encodeChangeDeviceMode(ChameleonDeviceMode.reader),
     );
     _deviceMode = ChameleonDeviceMode.reader;
+    log.info('ble', 'Reader mode accepted');
 
     // Proves the link actually carries frames, so a half-open GATT connection
     // fails here rather than at the first card operation.
-    await _sendCommand(ChameleonCmd.getAppVersion, Uint8List(0));
+    final version = await _sendCommand(ChameleonCmd.getAppVersion, Uint8List(0));
+    log.info('ble', 'Connected', {'appVersion': hexDump(version.data)});
   }
 
   @override
   Future<void> disconnect() async {
+    log.info('ble', 'Disconnecting', {'deviceId': deviceId});
     _connected = false;
     _deviceMode = null;
     await _notifySub?.cancel();
@@ -208,9 +217,15 @@ class BleChameleonDevice implements ChameleonDevice {
     _pendingCmd = cmd;
 
     try {
+      final frameBytes = encodeFrame(cmd, data);
+      log.debug('frame', 'TX', {
+        'cmd': cmd,
+        'len': data.length,
+        'hex': hexDump(frameBytes),
+      });
       await _ble.writeCharacteristicWithoutResponse(
         _char(rxCharUuid),
-        value: encodeFrame(cmd, data),
+        value: frameBytes,
       );
       final frame = await completer.future.timeout(
         timeout,
@@ -228,19 +243,39 @@ class BleChameleonDevice implements ChameleonDevice {
   }
 
   void _onNotification(Uint8List bytes) {
+    // Logged BEFORE parsing: if the parser mis-handles real BLE boundaries,
+    // the raw notification sizes are the only evidence of what actually
+    // arrived.
+    log.debug('frame', 'RX notification', {
+      'len': bytes.length,
+      'hex': hexDump(bytes),
+    });
     for (final frame in _parser.feed(bytes)) {
+      log.debug('frame', 'RX frame', {
+        'cmd': frame.cmd,
+        'status': '0x${frame.status.toRadixString(16).padLeft(2, '0')}',
+        'len': frame.data.length,
+        'data': hexDump(frame.data),
+      });
       final pending = _pending;
       // A frame for a command we are not waiting on is stale — most likely the
       // late answer to a command that already timed out. Dropping it is
       // correct: completing the CURRENT waiter with it would answer the wrong
       // question, which is the same superseded-operation hazard guarded
       // elsewhere in this project.
-      if (pending == null || frame.cmd != _pendingCmd) continue;
+      if (pending == null || frame.cmd != _pendingCmd) {
+        log.warn('frame', 'Dropped unmatched frame', {
+          'got': frame.cmd,
+          'awaiting': _pendingCmd,
+        });
+        continue;
+      }
       if (!pending.isCompleted) pending.complete(frame);
     }
   }
 
   void _onLinkLost() {
+    log.warn('ble', 'Link lost');
     _connected = false;
     _deviceMode = null;
     _failPending(const CardReadException('The Chameleon link dropped'));
@@ -256,6 +291,10 @@ class BleChameleonDevice implements ChameleonDevice {
         status == ChameleonStatus.success) {
       return;
     }
+    log.warn('frame', 'Command failed', {
+      'cmd': cmd,
+      'status': '0x${status.toRadixString(16).padLeft(2, '0')}',
+    });
     if (status == ChameleonStatus.mfErrAuth) {
       // A foreign card — a user situation, not a fault. Callers must be able
       // to tell this apart, so it gets its own type.

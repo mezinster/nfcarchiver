@@ -2,6 +2,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/chameleon/ble_chameleon_device.dart';
+import '../../../core/log/logger.dart';
 
 /// A Chameleon seen while scanning.
 class DiscoveredReader {
@@ -47,6 +48,9 @@ class BleScanner {
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
     ].request();
+    log.info('scan', 'Permission results', {
+      for (final e in results.entries) e.key.toString(): e.value.toString(),
+    });
     final denied = results.values.any((s) => !s.isGranted);
     if (denied) {
       throw const BleUnavailableException(BleUnavailableReason.permissionDenied);
@@ -59,11 +63,18 @@ class BleScanner {
   /// still a Chameleon, and name matching would quietly hide it.
   Stream<DiscoveredReader> scan() => _ble
           .scanForDevices(withServices: [BleChameleonDevice.serviceUuid])
-          .map((d) => DiscoveredReader(
+          .map((d) {
+            log.debug('scan', 'Advertisement', {
+              'id': d.id,
+              'name': d.name,
+              'rssi': d.rssi,
+            });
+            return DiscoveredReader(
                 id: d.id,
                 name: d.name.isEmpty ? 'Chameleon' : d.name,
                 rssi: d.rssi,
-              ));
+            );
+          });
 
   /// Whether the radio is on and usable right now.
   Future<bool> isBluetoothReady() async =>

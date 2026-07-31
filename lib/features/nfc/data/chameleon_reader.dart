@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import '../../../core/chameleon/chameleon_device.dart';
 import '../../../core/constants/nfar_format.dart';
+import '../../../core/log/logger.dart';
 import '../../../core/mifare/card_layout.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
@@ -85,12 +86,21 @@ class ChameleonReader implements CardReader {
   }) async {
     _sessionActive = true;
     _currentUid = null;
+    log.info('reader', 'Read session started');
 
     unawaited(_pollLoop((tag) async {
       final info = _tagInfo(tag);
+      log.info('reader', 'Tag discovered', {
+        'uid': info.identifier,
+        'sak': '0x${tag.sak.toRadixString(16).padLeft(2, '0')}',
+      });
       onTagDiscovered?.call(info);
       final bytes = await _readChunkBytes(tag);
-      if (bytes == null) return; // blank card — normal during a restore
+      if (bytes == null) {
+        log.debug('reader', 'Card holds no NFAR chunk — skipped');
+        return; // blank card — normal during a restore
+      }
+      log.info('reader', 'Chunk read', {'bytes': bytes.length});
       onChunkRead(Chunk.fromBytes(bytes), info);
     }, onError));
 
@@ -113,6 +123,7 @@ class ChameleonReader implements CardReader {
     _sessionActive = true;
     _currentUid = null;
     final bytes = chunk.toBytes();
+    log.info('reader', 'Write session started', {'bytes': bytes.length});
 
     unawaited(_pollLoop((tag) async {
       final info = _tagInfo(tag);
@@ -131,6 +142,7 @@ class ChameleonReader implements CardReader {
         await _writeNtag(bytes);
       }
       _lastWriteAt = DateTime.now();
+      log.info('reader', 'Write complete and verified', {'uid': info.identifier});
       onSuccess(info);
       _sessionActive = false;
     }, onError));
@@ -226,11 +238,13 @@ class ChameleonReader implements CardReader {
           }
         }
       } on CardAuthException catch (e) {
+        log.warn('reader', 'Foreign card — session continues', {'why': e.message});
         // A foreign card — a hotel key or transit card on the reader. Report
         // it, but NEVER end the session: aborting a restore because one wrong
         // card was tapped would be a worse bug than the one being avoided.
         onError(e.message);
       } catch (e) {
+        log.error('reader', 'Poll iteration failed', {'error': e.toString()});
         onError(e.toString());
       }
       if (_pollInterval > Duration.zero) {
