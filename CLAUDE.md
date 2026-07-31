@@ -56,6 +56,7 @@ Flutter app for distributed file storage across NFC tags using the NFAR (NFC Arc
 Each feature follows: `data/` (repository) → `presentation/providers/` (Riverpod StateNotifier) → `presentation/screens/`
 
 - **`nfc/`** — NFC abstraction over `nfc_manager`. `NfcRepository` manages sessions with write cooldown to prevent re-read. `NdefFormatter` converts Chunk↔NDEF with MIME type `application/vnd.nfcarchiver.chunk`.
+- **Mifare Classic 1K (Android only):** `NfcRepository` selects a `TagCodec` per tapped tag — `MifareTagCodec` when `MifareClassic.from(tag)` is non-null, else `NdefTagCodec`. Block layout in `lib/core/mifare/card_layout.dart` is a deliberate port of `webapp/src/mifare/card-layout.ts`, proven byte-identical by `tool/generate_mifare_fixtures.dart` + the web app's `interop-dart.test.ts`. Factory keys only; **sector trailers are never written**. Hardware support is detected via the `com.nfcarchiver/nfc_capabilities` platform channel (`com.nxp.mifare`) and hides the tag-type option when absent. iOS cannot support this — Core NFC has no CRYPTO1.
 - **`archive/`** — `ArchiveNotifier` uses sealed class states (`ArchiveInitial` → `ArchiveFileSelected` → `ArchiveConfiguring` → `ArchivePreparing` → `ArchiveReady` → `ArchiveWriting` → `ArchiveComplete`). Supports `rechunkForDetectedCapacity()` when tag is smaller than expected.
 - **`restore/`** — `RestoreNotifier` with states for scanning, collecting chunks into `RestoreSession` by UUID, handling CRC errors with rescan capability.
 

@@ -867,5 +867,16 @@
   "sessionDeleted": "Session deleted",
   "@sessionDeleted": {
     "description": "Snackbar message after deleting a session"
+  },
+
+  "mifareNotSupportedOnDevice": "This looks like a Mifare Classic card. Your phone's NFC chip can't read them.",
+  "@mifareNotSupportedOnDevice": {
+    "description": "Shown when a Mifare Classic card is tapped on a phone whose NFC controller lacks CRYPTO1 support"
+  },
+
+  "tagTypeMismatch": "That's a {tapped} card, but this archive is configured for {configured} — change the tag type in Settings.",
+  "@tagTypeMismatch": {
+    "description": "Shown when the tapped card's medium differs from the configured tag type",
+    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
   }
 }

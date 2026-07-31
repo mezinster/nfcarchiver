@@ -47,6 +47,19 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
         // Tag is too small - offer to rechunk
         ref.read(archiveProvider.notifier).cancelWriting();
         _showRechunkDialog(context, next.detectedCapacity, next.requiredSize);
+      } else if (next is NfcSessionTagTypeMismatch) {
+        // Tapped tag's medium doesn't match the configured tag type. Stop
+        // the session (as _showRechunkDialog does for NfcSessionTagTooSmall)
+        // so the reader doesn't stay armed with the stale chunk closure after
+        // the error is shown.
+        ref.read(nfcSessionProvider.notifier).stopSession();
+        final l10n = AppLocalizations.of(context)!;
+        final message =
+            l10n.tagTypeMismatch(next.tappedMedium, next.configuredMedium);
+        ref.read(archiveProvider.notifier).writeError(message);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
       } else if (next is NfcSessionError) {
         // Error writing
         ref.read(archiveProvider.notifier).writeError(next.message);
@@ -500,6 +513,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
     ref.read(archiveProvider.notifier).startWriting();
     await ref.read(nfcSessionProvider.notifier).startWriteSession(
           chunk: state.currentChunk,
+          configuredTagType: ref.read(selectedTagTypeProvider),
           message: l10n.holdTagNearDeviceToWrite(
               state.currentChunkIndex + 1, state.totalChunks),
         );

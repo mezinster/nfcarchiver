@@ -151,5 +151,10 @@
     "placeholders": { "dateTime": { "type": "String" } }
   },
   "sessionsCleared": "ყველა სესია წაიშალა",
-  "sessionDeleted": "სესია წაიშალა"
+  "sessionDeleted": "სესია წაიშალა",
+  "mifareNotSupportedOnDevice": "როგორც ჩანს, ეს Mifare Classic ბარათია. თქვენი ტელეფონის NFC ჩიპს მათი წაკითხვა არ შეუძლია.",
+  "tagTypeMismatch": "ეს არის {tapped} ბარათი, მაგრამ ეს არქივი კონფიგურირებულია {configured}-სთვის — შეცვალეთ ტეგის ტიპი პარამეტრებში.",
+  "@tagTypeMismatch": {
+    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
+  }
 }

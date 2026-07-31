@@ -148,5 +148,10 @@
   "deleteSessionConfirm": "Usunąć tę niekompletną sesję?",
   "lastUpdated": "Ostatnia aktualizacja {dateTime}",
   "sessionsCleared": "Wszystkie sesje wyczyszczone",
-  "sessionDeleted": "Sesja usunięta"
+  "sessionDeleted": "Sesja usunięta",
+  "mifareNotSupportedOnDevice": "To wygląda na kartę Mifare Classic. Chip NFC Twojego telefonu nie potrafi ich odczytać.",
+  "tagTypeMismatch": "To karta {tapped}, ale to archiwum jest skonfigurowane dla {configured} — zmień typ tagu w Ustawieniach.",
+  "@tagTypeMismatch": {
+    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
+  }
 }

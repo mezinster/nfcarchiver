@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/nfar_format.dart';
 import '../../../../core/models/chunk.dart';
 import '../../../../core/models/nfc_tag_info.dart';
 import '../../data/nfc_repository.dart';
@@ -83,6 +84,22 @@ class NfcSessionTagTooSmall extends NfcSessionState {
       'Tag too small: needs $requiredSize bytes, has $detectedCapacity bytes';
 }
 
+/// The tapped tag's medium doesn't match the archive's configured tag type.
+/// [tappedMedium] and [configuredMedium] are display names (e.g. codec.name,
+/// NfcTagType.name), not the [TagMedium] enum, so the UI can drop them
+/// straight into a localized message.
+class NfcSessionTagTypeMismatch extends NfcSessionState {
+  const NfcSessionTagTypeMismatch({
+    required this.tappedMedium,
+    required this.configuredMedium,
+    this.tagInfo,
+  });
+
+  final String tappedMedium;
+  final String configuredMedium;
+  final NfcTagInfo? tagInfo;
+}
+
 /// Mode of NFC session.
 enum NfcSessionMode {
   read,
@@ -129,6 +146,7 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
   /// Start a write session.
   Future<void> startWriteSession({
     required Chunk chunk,
+    required NfcTagType configuredTagType,
     String? message,
   }) async {
     if (!await _repository.isAvailable()) {
@@ -144,6 +162,7 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
     try {
       _stopSession = await _repository.startWriteSession(
         chunk: chunk,
+        configuredTagType: configuredTagType,
         alertMessage: message ?? 'Hold your device near an NFC tag to write',
         onSuccess: (tagInfo) {
           state = NfcSessionWriteSuccess(
@@ -158,6 +177,13 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
           state = NfcSessionTagTooSmall(
             requiredSize: requiredSize,
             detectedCapacity: detectedCapacity,
+            tagInfo: tagInfo,
+          );
+        },
+        onTagTypeMismatch: (tappedMedium, configuredMedium, tagInfo) {
+          state = NfcSessionTagTypeMismatch(
+            tappedMedium: tappedMedium,
+            configuredMedium: configuredMedium,
             tagInfo: tagInfo,
           );
         },

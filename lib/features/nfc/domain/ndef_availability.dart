@@ -18,16 +18,26 @@ enum NdefUnavailableReason {
 
   /// No NFC-A technology at all: nothing we can write an NDEF message to.
   notNdefFormatted,
+
+  /// The tag exposes NFC-A but neither Ndef nor MifareClassic, on a phone whose
+  /// controller cannot do CRYPTO1 — the signature of a Mifare Classic card on
+  /// hardware that will never read it. Retrying cannot help.
+  mifareUnsupported,
 }
 
 /// Classify a tag that came back without the `Ndef` technology.
 NdefUnavailableReason classifyNdefUnavailable({
   required bool hasNfcA,
   required bool hasMifareUltralight,
+  required bool deviceSupportsMifare,
 }) {
-  return hasNfcA || hasMifareUltralight
-      ? NdefUnavailableReason.detectionFailed
-      : NdefUnavailableReason.notNdefFormatted;
+  if (hasMifareUltralight) return NdefUnavailableReason.detectionFailed;
+  if (hasNfcA) {
+    return deviceSupportsMifare
+        ? NdefUnavailableReason.detectionFailed
+        : NdefUnavailableReason.mifareUnsupported;
+  }
+  return NdefUnavailableReason.notNdefFormatted;
 }
 
 /// User-facing text for [reason].
@@ -41,5 +51,8 @@ String messageFor(NdefUnavailableReason reason) {
       return "Couldn't read the tag — hold it still against the phone and try again.";
     case NdefUnavailableReason.notNdefFormatted:
       return 'Tag does not support NDEF. Please use a pre-formatted NDEF tag.';
+    case NdefUnavailableReason.mifareUnsupported:
+      return "This looks like a Mifare Classic card. Your phone's NFC chip "
+          "can't read them.";
   }
 }
