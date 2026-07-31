@@ -9,6 +9,9 @@ Herhangi bir dosyayı parçalara bölün ve NFC etiketlerine yazın. Orijinal do
 * Sıkıştırma — gereken etiket sayısını azaltmak için isteğe bağlı GZIP sıkıştırma
 * Şifreleme — parola korumalı AES-256-GCM şifreleme (PBKDF2 anahtar türetme)
 * Çevrimdışı çalışma — ağ bağlantısı gerekmez
+* Chameleon Ultra — Chameleon'u Bluetooth ile bağlayın ve telefonun NFC'si yerine kullanın
+* MIFARE Classic 1K — kart başına 752 kullanılabilir bayt, Chameleon veya uygun NFC yongalı bir telefonla
+* Kart incelemesi — blok blok döküm, çözümlenmiş NFAR başlığı ve CRC kontrolü ile (Chameleon gerekir)
 
 Desteklenen NFC Etiketleri:
 * NTAG213 (144 bayt)

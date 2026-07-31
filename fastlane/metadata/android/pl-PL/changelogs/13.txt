@@ -1,0 +1,5 @@
+Obsługa Chameleon Ultra, MIFARE Classic, badanie karty
+- NOWOŚĆ: czytnik Chameleon Ultra przez Bluetooth — wybierz między NFC telefonu a Chameleonem w pasku aplikacji
+- NOWOŚĆ: karty MIFARE Classic 1K — 752 użyteczne bajty, około 1,5 raza więcej niż NTAG215
+- NOWOŚĆ: badanie karty — zrzut blok po bloku z odczytanym nagłówkiem NFAR i kontrolą CRC (wymaga Chameleona)
+- Poprawka: tagi NTAG zapisane przez aplikację webową można teraz nadpisać telefonem

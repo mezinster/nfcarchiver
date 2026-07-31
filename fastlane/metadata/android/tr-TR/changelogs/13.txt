@@ -1,0 +1,5 @@
+Chameleon Ultra desteği, MIFARE Classic, kart incelemesi
+- YENİ: Bluetooth üzerinden Chameleon Ultra okuyucu — telefonun NFC'si ile Chameleon arasında uygulama içinden seçim yapın
+- YENİ: MIFARE Classic 1K kartlar — kart başına 752 kullanılabilir bayt, NTAG215'in yaklaşık 1,5 katı
+- YENİ: Kart incelemesi — blok blok döküm, çözümlenmiş NFAR başlığı ve CRC kontrolü ile (Chameleon gerekir)
+- Düzeltildi: Web uygulamasıyla yazılan NTAG etiketleri artık telefonla yeniden yazılabiliyor

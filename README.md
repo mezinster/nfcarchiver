@@ -15,6 +15,22 @@ Distributed data archive on NFC tags. A mobile application for Android and iOS t
 - **Compression** — optional GZIP compression to reduce the number of tags needed
 - **Encryption** — AES-256-GCM encryption with password (PBKDF2 for key derivation)
 - **Offline operation** — no network connection required
+- **Chameleon Ultra reader** — drive a [Chameleon Ultra](https://github.com/RfidResearchGroup/ChameleonUltra) over Bluetooth instead of the phone's NFC radio ([guide](docs/CHAMELEON.md))
+- **MIFARE Classic 1K** — 752 usable bytes per card, on any phone when using a Chameleon
+- **Card inspector** — read-only block-by-block dump with a decoded NFAR header and CRC check (requires a Chameleon)
+
+### Readers
+
+The app can drive two different readers, chosen from the reader icon in the top bar:
+
+| | Phone NFC | Chameleon Ultra |
+|---|---|---|
+| NTAG213/215/216 | ✅ | ✅ |
+| MIFARE Classic 1K | Only on phones whose NFC chipset supports CRYPTO1 | ✅ always |
+| Card inspector | ❌ not possible on Android's NFC API | ✅ |
+| Extra hardware | None | A Chameleon Ultra |
+
+Only one reader is active at a time; switching disconnects the previous one. Cards written by either reader — or by the [web app](webapp/) — are byte-identical and interchangeable. See **[docs/CHAMELEON.md](docs/CHAMELEON.md)** for setup, the card inspector, and limits.
 
 ### Supported NFC Tags
 
@@ -28,7 +44,7 @@ Distributed data archive on NFC tags. A mobile application for Android and iOS t
 | MIFARE Classic 1K | 1 KB (752 usable) | ~720 bytes† |
 
 *After subtracting NFAR header (28 bytes) and NDEF overhead (~10 bytes)  
-†MIFARE Classic 1K support was added via the [web app](webapp/), which drives a [Chameleon Ultra](https://github.com/RfidResearchGroup/ChameleonUltra) reader/writer. Classic cards hold raw 16-byte blocks (47 usable = 752 bytes) with no NDEF layer, so only the 28-byte NFAR header and 4-byte CRC are deducted.
+†MIFARE Classic 1K holds raw 16-byte blocks (47 usable = 752 bytes) with no NDEF layer, so only the 28-byte NFAR header and 4-byte CRC are deducted. Available in the Android app on phones whose NFC chipset supports CRYPTO1, and on **any** phone when using a Chameleon Ultra. Block 0 and every sector trailer are never written, so keys and access bits are left untouched.
 
 > **Note:** This list is not exhaustive — more tag types are supported than shown here, and coverage continues to grow.
 
@@ -110,7 +126,8 @@ lib/
 
 - **Flutter** — cross-platform UI
 - **Riverpod** — state management
-- **nfc_manager** — NFC operations
+- **nfc_manager** — phone NFC operations
+- **flutter_reactive_ble** — Bluetooth LE, for the Chameleon Ultra reader (BSD-3-Clause)
 - **pointycastle** — cryptography (AES-256-GCM, PBKDF2)
 - **go_router** — navigation
 
@@ -205,6 +222,22 @@ coding assistant throughout.
 - **Сжатие** — опциональное GZIP сжатие для уменьшения количества меток
 - **Шифрование** — AES-256-GCM шифрование с паролем (PBKDF2 для ключа)
 - **Офлайн работа** — не требует подключения к сети
+- **Считыватель Chameleon Ultra** — работа через [Chameleon Ultra](https://github.com/RfidResearchGroup/ChameleonUltra) по Bluetooth вместо NFC телефона ([руководство](docs/CHAMELEON.md))
+- **MIFARE Classic 1K** — 752 полезных байта на карту, на любом телефоне при использовании Chameleon
+- **Осмотр карты** — побайтовый дамп только для чтения с разбором заголовка NFAR и проверкой CRC (нужен Chameleon)
+
+### Считыватели
+
+Приложение работает с двумя считывателями, выбор — по значку в верхней панели:
+
+| | NFC телефона | Chameleon Ultra |
+|---|---|---|
+| NTAG213/215/216 | ✅ | ✅ |
+| MIFARE Classic 1K | Только на телефонах с поддержкой CRYPTO1 | ✅ всегда |
+| Осмотр карты | ❌ невозможен через NFC API Android | ✅ |
+| Доп. оборудование | Не нужно | Chameleon Ultra |
+
+Одновременно активен только один считыватель; переключение отключает предыдущий. Карты, записанные любым считывателем — или [веб-приложением](webapp/) — побайтово совместимы. Подробности: **[docs/CHAMELEON.md](docs/CHAMELEON.md)**.
 
 ### Поддерживаемые NFC-метки
 
@@ -218,7 +251,7 @@ coding assistant throughout.
 | MIFARE Classic 1K | 1 КБ (752 доступно) | ~720 байт† |
 
 *После вычета заголовка NFAR (28 байт) и NDEF overhead (~10 байт)  
-†Поддержка MIFARE Classic 1K добавлена через [веб-приложение](webapp/), которое управляет ридером/райтером [Chameleon Ultra](https://github.com/RfidResearchGroup/ChameleonUltra). Карты Classic хранят необработанные 16-байтные блоки (47 доступных = 752 байта) без слоя NDEF, поэтому вычитаются только 28-байтный заголовок NFAR и 4-байтный CRC.
+†Карты MIFARE Classic 1K хранят необработанные 16-байтные блоки (47 доступных = 752 байта) без слоя NDEF, поэтому вычитаются только 28-байтный заголовок NFAR и 4-байтный CRC. Доступны в Android-приложении на телефонах с поддержкой CRYPTO1 в NFC-чипе и на **любом** телефоне при использовании Chameleon Ultra. Блок 0 и трейлеры секторов никогда не записываются, поэтому ключи и биты доступа остаются нетронутыми.
 
 > **Примечание:** список неполный — поддерживается больше типов меток, чем показано здесь, и охват продолжает расширяться.
 
@@ -300,7 +333,8 @@ lib/
 
 - **Flutter** — кроссплатформенный UI
 - **Riverpod** — управление состоянием
-- **nfc_manager** — NFC операции
+- **nfc_manager** — работа с NFC телефона
+- **flutter_reactive_ble** — Bluetooth LE для считывателя Chameleon Ultra (BSD-3-Clause)
 - **pointycastle** — криптография (AES-256-GCM, PBKDF2)
 - **go_router** — навигация
 

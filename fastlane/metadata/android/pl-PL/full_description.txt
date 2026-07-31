@@ -9,6 +9,9 @@ Funkcje:
 * Kompresja — opcjonalna kompresja GZIP w celu zmniejszenia liczby tagów
 * Szyfrowanie — szyfrowanie AES-256-GCM z hasłem (PBKDF2 do klucza)
 * Praca offline — nie wymaga połączenia z siecią
+* Chameleon Ultra — podłącz Chameleona przez Bluetooth i używaj go zamiast NFC telefonu
+* MIFARE Classic 1K — 752 użyteczne bajty na kartę, z Chameleonem lub telefonem z odpowiednim układem NFC
+* Badanie karty — zrzut blok po bloku z odczytanym nagłówkiem NFAR i kontrolą CRC (wymaga Chameleona)
 
 Obsługiwane tagi NFC:
 * NTAG213 (144 bajty)

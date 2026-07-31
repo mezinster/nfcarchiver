@@ -9,6 +9,9 @@ Features:
 * Compression — optional GZIP compression to reduce the number of tags needed
 * Encryption — AES-256-GCM encryption with password protection (PBKDF2 key derivation)
 * Offline operation — no network connection required
+* Chameleon Ultra — connect a Chameleon over Bluetooth and use it instead of the phone's NFC radio
+* MIFARE Classic 1K — 752 usable bytes per card, with a Chameleon or a phone whose NFC chipset supports it
+* Card inspector — dump a card block by block with a decoded NFAR header and CRC check (needs a Chameleon)
 
 Supported NFC Tags:
 * NTAG213 (144 bytes)
