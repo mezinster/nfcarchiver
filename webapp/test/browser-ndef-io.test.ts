@@ -15,10 +15,16 @@ class FakeReader implements NdefReaderLike {
   }) => void) | null = null;
   onreadingerror: ((e: unknown) => void) | null = null;
   failScan: Error | null = null;
+  /** Set to hold scan() open, so a test can act while arming is in flight. */
+  gate: Promise<void> | null = null;
+  /** The signal of the most recent scan, to assert it was aborted. */
+  lastSignal: AbortSignal | null = null;
 
   async scan(options: { signal: AbortSignal }): Promise<void> {
     if (this.failScan !== null) throw this.failScan;
     this.scanCount += 1;
+    this.lastSignal = options.signal;
+    if (this.gate !== null) await this.gate;
     if (options.signal.aborted) throw new DOMException('Aborted', 'AbortError');
   }
   async write(): Promise<void> {}
@@ -83,6 +89,27 @@ test('a second start() while one is in flight is rejected without arming a secon
   await assert.rejects(() => io.start(), /already in progress/i);
   await first;
   assert.equal(reader.scanCount, 1);
+});
+
+test('stop() during an in-flight start() does not leave an armed reader behind', async () => {
+  // stop() arriving while scan() is still pending sees `scanning`/`reader` both
+  // null, so it can abort nothing. Before the `stopped` flag, the scan then
+  // resolved and installed a live armed reader on an instance the caller had
+  // already stopped — a reader still listening after teardown.
+  const reader = new FakeReader();
+  let release!: () => void;
+  reader.gate = new Promise<void>((resolve) => { release = resolve; });
+  const io = new BrowserNdefIO(() => reader);
+
+  const starting = io.start();
+  io.stop();
+  release();
+  await starting;
+
+  assert.equal(reader.lastSignal?.aborted, true, 'the scan it armed was aborted');
+  assert.equal(reader.onreading, null, 'the reading handler was detached');
+  assert.equal(reader.onreadingerror, null, 'the error handler was detached');
+  await assert.rejects(() => io.awaitReading(), /not started/i, 'no reader was installed');
 });
 
 test('a buffered reading older than BUFFER_MS is discarded, not replayed', async () => {

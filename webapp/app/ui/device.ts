@@ -172,12 +172,27 @@ export function initDeviceBar(): void {
    *  a different chip. Always routed through teardownActiveReader() so the
    *  outgoing reader is closed and its epoch retired, and always notifies, so a
    *  write loop in flight adopts the new transport (see ArchiveOrchestrator's
-   *  transport-identity gate) instead of driving the retired one. */
+   *  transport-identity gate) instead of driving the retired one.
+   *
+   *  Epoch-guarded exactly like the Chameleon path below: connect() awaits
+   *  Chrome's NFC permission prompt, and while it pends the user can start
+   *  another hand-off (press Connect, or change #target-tag — that handler is
+   *  fire-and-forget `void activateWebNfc()`). Without the guard the stale
+   *  connect resolves afterwards and overwrites transport/reader/connected,
+   *  orphaning the reader that superseded it, and leaves an armed NDEFReader
+   *  nothing holds a reference to. If the epoch moved, this activation lost:
+   *  close the scan it armed and return without touching shared state. */
   const activateWebNfc = async (): Promise<void> => {
     await teardownActiveReader();
+    const myEpoch = readerEpoch;
     try {
       const t0 = new WebNfcTransport(new BrowserNdefIO(), selectedNtagType());
       await t0.connect();
+      if (myEpoch !== readerEpoch) {
+        await t0.disconnect();
+        log.info('device', 'Phone NFC activation superseded — discarding the stale scan');
+        return;
+      }
       transport = t0;
       reader = 'web-nfc';
       connected = true;

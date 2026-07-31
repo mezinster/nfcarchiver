@@ -59,6 +59,13 @@ export class BrowserNdefIO implements NdefIO {
   // first await, so a second call sees it synchronously and rejects on
   // the spot instead of racing.
   private starting = false;
+  // Set by stop(), never cleared: one scan per instance, and once stopped this
+  // instance is spent. Without it, a stop() issued while start() is still
+  // awaiting reader.scan() sees `scanning`/`reader` still null, aborts nothing,
+  // and the pending scan then installs a live armed reader on an instance the
+  // caller believes it stopped — a reader left armed after teardown, the exact
+  // lifecycle leak this file exists to prevent.
+  private stopped = false;
   private waiter: { resolve: (r: NdefReading) => void; reject: (e: unknown) => void } | null = null;
   private buffered: { reading: NdefReading; at: number } | null = null;
 
@@ -100,6 +107,16 @@ export class BrowserNdefIO implements NdefIO {
       // The one and only scan for this instance. Re-arming a reader is what froze
       // the browser: it rejects synchronously, and a retry loop then spins.
       await reader.scan({ signal: ac.signal });
+      // stop() may have landed while that was in flight. It could not abort a
+      // controller it had never seen, so undo the arming here instead of
+      // publishing it: abort the scan, detach the handlers, and leave `reader`
+      // null so awaitReading/write keep reporting "Scan not started".
+      if (this.stopped) {
+        ac.abort();
+        reader.onreading = null;
+        reader.onreadingerror = null;
+        return;
+      }
       this.reader = reader;
       this.scanning = ac;
     } finally {
@@ -156,6 +173,7 @@ export class BrowserNdefIO implements NdefIO {
   }
 
   stop(): void {
+    this.stopped = true;
     this.scanning?.abort();
     this.scanning = null;
     if (this.reader !== null) {
