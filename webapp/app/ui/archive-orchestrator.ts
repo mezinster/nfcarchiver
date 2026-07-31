@@ -24,6 +24,13 @@ export interface ArchiveIO {
   hideProgress(): void;
   confirmOverwrite(): Promise<OverwriteChoice>;
   isConnected(): boolean;
+  /** The transport the device bar currently owns, or null. Compared by identity
+   *  against the one the loop holds: a reader hand-off can install a new
+   *  transport without the app ever reporting a disconnect. */
+  activeTransport(): Transport | null;
+  /** Resolves with the transport to resume on — immediately if one is already
+   *  live (a hand-off completes before the loop notices, so no further
+   *  connection event is coming). */
   awaitReconnect(): Promise<Transport>;
   log: Logger;
 }
@@ -58,12 +65,22 @@ export class ArchiveOrchestrator {
     // NFAR card is overwritten without prompting (passed straight into
     // writeNextCard so it never even throws OverwriteRequiredError).
     let overwriteAll = false;
+    // The transport this loop is driving. A reader hand-off (Connect, Use phone
+    // NFC, or a target-tag change under phone NFC) tears this one down and
+    // installs another, and the app is CONNECTED again the moment it does — so
+    // the connected flag alone cannot tell us our transport went dead. Compare
+    // identity: writing on a torn-down transport rejects instantly, which
+    // without this check is an unthrottled retry spin that never reconnects.
+    let inUse = transport;
+    const usable = (): boolean => this.io.isConnected() && this.io.activeTransport() === inUse;
     while (!done) {
-      if (!this.io.isConnected()) {
-        this.io.setStatus(t.readerDisconnectedResume);
-        this.io.log.warn('archive', 'Reader disconnected — awaiting reconnect');
-        ctrl.setTransport(await this.io.awaitReconnect());
-        this.io.log.info('archive', 'Reconnected — resuming');
+      if (!usable()) {
+        const swapped = this.io.isConnected();
+        this.io.setStatus(swapped ? t.readerSwitchedResume : t.readerDisconnectedResume);
+        this.io.log.warn('archive', swapped ? 'Reader swapped — adopting the new transport' : 'Reader disconnected — awaiting reconnect');
+        inUse = await this.io.awaitReconnect();
+        ctrl.setTransport(inUse);
+        this.io.log.info('archive', 'Resuming on the live transport');
         continue;
       }
       try {
@@ -75,7 +92,7 @@ export class ArchiveOrchestrator {
           this.io.setStatus(t.rechunked(res.rechunkedTo.payloadSize, res.rechunkedTo.total));
         }
       } catch (e) {
-        if (!this.io.isConnected()) continue; // disconnect — handled at the loop top
+        if (!usable()) continue; // disconnect or reader swap — handled at the loop top
         if (e instanceof TagTimeoutError) { this.io.setStatus(t.noCardTapHold); continue; }
         if (e instanceof UnsupportedTagError) { this.io.setStatus(t.unsupportedTapOther); continue; }
         if (e instanceof OverwriteRequiredError) {
@@ -88,7 +105,7 @@ export class ArchiveOrchestrator {
             done = res.done;
             this.render(res.progress.written, total, done);
           } catch (e2) {
-            if (!this.io.isConnected()) continue;
+            if (!usable()) continue;
             this.io.setStatus(t.retryAfter(humanError(e2)));
             this.io.log.warn('archive', 'Overwrite write failed — will retry', { error: String(e2) });
           }

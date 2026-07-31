@@ -6,6 +6,9 @@ import { ArchiveOrchestrator, type ArchiveIO } from '../app/ui/archive-orchestra
 import { RestoreController } from '../app/controller.js';
 import { decodeChunk, encodeChunk } from '../src/chunk.js';
 import { Logger } from '../src/log/logger.js';
+import { WebNfcTransport } from '../src/transport/web-nfc-transport.js';
+import { FakeNdefIO } from './fake-ndef-io.js';
+import { NtagType } from '../src/nfc/type2.js';
 
 const uid = (n: number) => new Uint8Array([0xa0, 0, 0, n]);
 const multiCardData = crypto.getRandomValues(new Uint8Array(2000)); // incompressible -> many cards
@@ -27,7 +30,9 @@ class FlakyWriteTransport implements Transport {
   }
 }
 
-function makeIO(over?: Partial<ArchiveIO>) {
+/** `active` is the transport the device bar owns — the loop compares the one it
+ *  holds against it, so it must be the very object handed to run(). */
+function makeIO(active: Transport, over?: Partial<ArchiveIO>) {
   const statuses: string[] = [];
   let hidden = false;
   const io: ArchiveIO = {
@@ -36,6 +41,7 @@ function makeIO(over?: Partial<ArchiveIO>) {
     hideProgress: () => { hidden = true; },
     confirmOverwrite: async () => 'once',
     isConnected: () => true,
+    activeTransport: () => active,
     awaitReconnect: async () => { throw new Error('awaitReconnect should not be called in this test'); },
     log: new Logger(),
     ...over,
@@ -45,11 +51,10 @@ function makeIO(over?: Partial<ArchiveIO>) {
 
 test('a bad card retries instead of aborting the whole session', async () => {
   const inner = new MockTransport();
-  const { io, wasHidden } = makeIO();
-  const orch = new ArchiveOrchestrator(io);
-
   // The 2nd write fails (card yanked / verify mismatch), then the same card is re-tapped.
   const t = new FlakyWriteTransport(inner, 2);
+  const { io, wasHidden } = makeIO(t);
+  const orch = new ArchiveOrchestrator(io);
   const req = { data: multiCardData, fileName: 'blob.bin', compress: false, payloadSize: 720 };
 
   // Pre-tap enough cards: one extra tap of card index 1 covers the retry.
@@ -76,6 +81,7 @@ test('a disconnect pauses and resumes the same session on a fresh transport', as
 
   let connected = true;
   let reconnects = 0;
+  let active: Transport = tA;
   const io: ArchiveIO = {
     setStatus: () => {},
     // Drop the connection right after the 2nd card is verified.
@@ -83,7 +89,8 @@ test('a disconnect pauses and resumes the same session on a fresh transport', as
     hideProgress: () => { throw new Error('must not hide progress — session must not abort'); },
     confirmOverwrite: async () => 'once',
     isConnected: () => connected,
-    awaitReconnect: async () => { connected = true; reconnects += 1; return tB; },
+    activeTransport: () => (connected ? active : null),
+    awaitReconnect: async () => { connected = true; reconnects += 1; active = tB; return tB; },
     log: new Logger(),
   };
 
@@ -120,9 +127,56 @@ test('a disconnect pauses and resumes the same session on a fresh transport', as
   assert.deepEqual(data, original, 'resumed session restores byte-identically');
 });
 
+test('swapping readers mid-archive adopts the new transport instead of spinning on the dead one', async () => {
+  // The user switches the target tag type (or the reader) while a write is in
+  // progress. device.ts tears the old transport down and installs a new one, so
+  // the app never stops being "connected" — only the transport identity changes.
+  // Gating on isConnected() alone, the loop kept retrying the torn-down
+  // transport, which rejects instantly: an unthrottled spin, no reconnect.
+  const data = crypto.getRandomValues(new Uint8Array(1200)); // 3 cards at 420 B
+  const ioA = new FakeNdefIO();
+  const ioB = new FakeNdefIO();
+  const tA = new WebNfcTransport(ioA, NtagType.NTAG215);
+  const tB = new WebNfcTransport(ioB, NtagType.NTAG216);
+  ioA.tap('0a:00:00:01');
+  ioB.tap('0b:00:00:02');
+  ioB.tap('0b:00:00:03');
+
+  let active: Transport = tA;
+  let reconnects = 0;
+  let statusCalls = 0;
+  const io: ArchiveIO = {
+    setStatus: () => {
+      statusCalls += 1;
+      // A retry loop against a dead transport shows a status on every pass; the
+      // whole session legitimately needs only a handful.
+      if (statusCalls > 40) throw new Error('spin: the loop kept retrying a transport it no longer owns');
+    },
+    showProgress: (_label, value) => {
+      if (value === 1 && active === tA) { void tA.disconnect(); active = tB; }
+    },
+    hideProgress: () => { throw new Error('must not hide progress — session must not abort'); },
+    confirmOverwrite: async () => 'once',
+    isConnected: () => true, // never disconnected — only swapped
+    activeTransport: () => active,
+    awaitReconnect: async () => { reconnects += 1; return active; },
+    log: new Logger(),
+  };
+
+  await new ArchiveOrchestrator(io).run(tA, { data, fileName: 'blob.bin', compress: false, payloadSize: 420 });
+
+  assert.equal(reconnects, 1, 'adopted the new transport exactly once');
+  assert.equal(ioA.writes.length, 1, 'only the pre-swap card went to the outgoing reader');
+  assert.equal(ioB.writes.length, 2, 'the remaining cards went to the new reader');
+  const indices = [...ioA.writes, ...ioB.writes]
+    .map((recs) => decodeChunk(recs[0]!.data!).chunkIndex)
+    .sort((a, b) => a - b);
+  assert.deepEqual(indices, [0, 1, 2], 'every chunk was written exactly once across the swap');
+});
+
 test('a prepare failure aborts cleanly with a message (no unhandled rejection)', async () => {
-  const { io, statuses, wasHidden } = makeIO();
   const t = new MockTransport();
+  const { io, statuses, wasHidden } = makeIO(t);
   const orch = new ArchiveOrchestrator(io);
   // payloadSize 1 over 70000 bytes forces > MAX_CHUNKS (65535) -> createChunks throws in prepare().
   await orch.run(t, { data: new Uint8Array(70000), fileName: 'big.bin', compress: false, payloadSize: 1 });
@@ -133,7 +187,7 @@ test('a prepare failure aborts cleanly with a message (no unhandled rejection)',
 test('"overwrite all remaining" prompts once, then overwrites the rest silently', async () => {
   const inner = new MockTransport();
   let prompts = 0;
-  const { io } = makeIO({ confirmOverwrite: async () => { prompts += 1; return 'all'; } });
+  const { io } = makeIO(inner, { confirmOverwrite: async () => { prompts += 1; return 'all'; } });
   const orch = new ArchiveOrchestrator(io);
 
   // Every one of the 3 tapped cards already holds NFAR data, so each would
