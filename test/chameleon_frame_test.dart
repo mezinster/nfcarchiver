@@ -41,6 +41,33 @@ void main() {
     });
   });
 
+  group('status codes', () {
+    test('there is no single success value', () {
+      // The first hardware session failed on exactly this: a CHANGE_DEVICE_MODE
+      // that WORKED answered DEVICE_SUCCESS (0x68), and code that only accepted
+      // 0x00/0x01 treated it as an error. Different command classes report
+      // success differently.
+      expect(ChameleonStatus.okValues, contains(ChameleonStatus.hfTagOk));
+      expect(ChameleonStatus.okValues, contains(ChameleonStatus.lfTagOk));
+      expect(ChameleonStatus.okValues, contains(ChameleonStatus.deviceSuccess));
+    });
+
+    test('0x01 is HF_TAG_NOT_FOUND and is NOT a success', () {
+      // An earlier version had `success = 0x01`, which is flatly wrong: 0x01
+      // means no card in the field. Treating it as success would mask a real
+      // failure behind an empty payload.
+      expect(ChameleonStatus.hfTagNotFound, 0x01);
+      expect(ChameleonStatus.okValues, isNot(contains(0x01)));
+    });
+
+    test('every code has a name, so a failure log says what happened', () {
+      expect(ChameleonStatus.describe(0x68), 'DEVICE_SUCCESS');
+      expect(ChameleonStatus.describe(0x06), 'MF_ERR_AUTH');
+      expect(ChameleonStatus.describe(0x66), 'DEVICE_MODE_ERROR');
+      expect(ChameleonStatus.describe(0xAB), 'UNKNOWN');
+    });
+  });
+
   group('FrameParser', () {
     test('a frame round-trips', () {
       final frames = FrameParser().feed(encodeFrame(2000, _b([1, 2, 3])));

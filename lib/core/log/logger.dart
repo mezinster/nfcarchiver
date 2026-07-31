@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
-import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 
 /// Structured logging for the app.
 ///
@@ -114,9 +115,16 @@ class Logger {
     if (_entries.length > capacity) _entries.removeAt(0);
 
     if (mirrorToConsole) {
-      // name: is the logcat/`flutter run` tag, so a session can be filtered
-      // down to one subsystem while debugging.
-      developer.log(entry.format(), name: 'nfar.$scope');
+      final line = entry.format();
+      // BOTH destinations, because they are genuinely different streams and
+      // the first hardware session proved it: developer.log() reaches only the
+      // VM service (DevTools' Logging view) and appears in NEITHER `flutter
+      // run` stdout nor `adb logcat`. debugPrint is what actually reaches both.
+      //
+      // Prefixed rather than tagged, since debugPrint has no tag parameter —
+      // `grep nfar:` is the filter.
+      debugPrint('nfar: $line');
+      developer.log(line, name: 'nfar.$scope');
     }
   }
 }

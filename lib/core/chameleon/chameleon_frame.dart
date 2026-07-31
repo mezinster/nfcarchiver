@@ -40,14 +40,68 @@ abstract final class ChameleonCmd {
   static const int hf14aRaw = 2010;
 }
 
+/// Response status codes, transcribed from the reference in full.
+///
+/// **There is no single "success" value.** Different command classes report
+/// success differently: HF tag operations answer 0x00, LF operations 0x40, and
+/// device-level commands (mode change, version) 0x68. Assuming one success code
+/// is how the first hardware session failed — a perfectly good CHANGE_DEVICE_MODE
+/// answered DEVICE_SUCCESS and was treated as an error.
 abstract final class ChameleonStatus {
+  /// IC card operation succeeded.
   static const int hfTagOk = 0x00;
-  static const int success = 0x01;
+
+  /// No card in the field. NOT an error when polling — it is the normal answer
+  /// to a scan with nothing on the reader.
+  static const int hfTagNotFound = 0x01;
+
+  static const int hfErrStat = 0x02;
+  static const int hfErrCrc = 0x03;
+  static const int hfCollision = 0x04;
+  static const int hfErrBcc = 0x05;
 
   /// Wrong key for the sector — a foreign card. A user situation, never a
   /// transport fault, so it must reach the caller as itself.
   static const int mfErrAuth = 0x06;
+
+  static const int hfErrParity = 0x07;
+  static const int hfErrAts = 0x08;
+
+  /// LF tag operation succeeded.
+  static const int lfTagOk = 0x40;
+
   static const int parErr = 0x60;
+  static const int deviceModeError = 0x66;
+  static const int invalidCmd = 0x67;
+
+  /// Device-level operation succeeded.
+  static const int deviceSuccess = 0x68;
+
+  static const int notImplemented = 0x69;
+
+  /// Every value that means "the command worked".
+  static const Set<int> okValues = {hfTagOk, lfTagOk, deviceSuccess};
+
+  /// A human-readable name, so a failure log says what happened rather than
+  /// only which number came back.
+  static String describe(int status) => switch (status) {
+        hfTagOk => 'HF_TAG_OK',
+        hfTagNotFound => 'HF_TAG_NOT_FOUND',
+        hfErrStat => 'HF_ERR_STAT',
+        hfErrCrc => 'HF_ERR_CRC',
+        hfCollision => 'HF_COLLISION',
+        hfErrBcc => 'HF_ERR_BCC',
+        mfErrAuth => 'MF_ERR_AUTH',
+        hfErrParity => 'HF_ERR_PARITY',
+        hfErrAts => 'HF_ERR_ATS',
+        lfTagOk => 'LF_TAG_OK',
+        parErr => 'PAR_ERR',
+        deviceModeError => 'DEVICE_MODE_ERROR',
+        invalidCmd => 'INVALID_CMD',
+        deviceSuccess => 'DEVICE_SUCCESS',
+        notImplemented => 'NOT_IMPLEMENTED',
+        _ => 'UNKNOWN',
+      };
 }
 
 /// Device modes. The Chameleon boots into [emulator]; every HF command

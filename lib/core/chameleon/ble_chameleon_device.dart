@@ -131,9 +131,15 @@ class BleChameleonDevice implements ChameleonDevice {
   @override
   Future<ScannedTag?> scanTag() async {
     await _assureReaderMode();
-    final frame = await _sendCommand(ChameleonCmd.hf14aScan, Uint8List(0));
-    // An empty payload means no tag in the field — the normal state of a
-    // reader waiting for a tap, never an error.
+    // HF_TAG_NOT_FOUND is the device's normal answer when nothing is on the
+    // reader, so it is an allowed status rather than a failure — polling an
+    // empty field is what a reader waiting for a tap does.
+    final frame = await _sendCommand(
+      ChameleonCmd.hf14aScan,
+      Uint8List(0),
+      alsoAllow: const {ChameleonStatus.hfTagNotFound},
+    );
+    if (frame.status == ChameleonStatus.hfTagNotFound) return null;
     return parseScanResponse(frame.data);
   }
 
@@ -203,6 +209,7 @@ class BleChameleonDevice implements ChameleonDevice {
     int cmd,
     Uint8List data, {
     Duration timeout = const Duration(seconds: 5),
+    Set<int> alsoAllow = const {},
   }) async {
     if (!_connected && cmd != ChameleonCmd.changeDeviceMode &&
         cmd != ChameleonCmd.getAppVersion) {
@@ -234,7 +241,7 @@ class BleChameleonDevice implements ChameleonDevice {
           '${timeout.inMilliseconds}ms',
         ),
       );
-      _throwForStatus(cmd, frame.status);
+      _throwForStatus(cmd, frame.status, alsoAllow);
       return frame;
     } finally {
       _pending = null;
@@ -286,14 +293,18 @@ class BleChameleonDevice implements ChameleonDevice {
     if (pending != null && !pending.isCompleted) pending.completeError(error);
   }
 
-  void _throwForStatus(int cmd, int status) {
-    if (status == ChameleonStatus.hfTagOk ||
-        status == ChameleonStatus.success) {
+  void _throwForStatus(int cmd, int status, Set<int> alsoAllow) {
+    // There is no single success value: HF operations answer 0x00, LF 0x40,
+    // and device-level commands 0x68. Assuming one is what made the first
+    // hardware session fail on a mode change that had actually worked.
+    if (ChameleonStatus.okValues.contains(status) ||
+        alsoAllow.contains(status)) {
       return;
     }
     log.warn('frame', 'Command failed', {
       'cmd': cmd,
       'status': '0x${status.toRadixString(16).padLeft(2, '0')}',
+      'name': ChameleonStatus.describe(status),
     });
     if (status == ChameleonStatus.mfErrAuth) {
       // A foreign card — a user situation, not a fault. Callers must be able
@@ -303,8 +314,8 @@ class BleChameleonDevice implements ChameleonDevice {
       );
     }
     throw CardReadException(
-      'Chameleon command $cmd failed with status '
-      '0x${status.toRadixString(16).padLeft(2, '0')}',
+      'Chameleon command $cmd failed: ${ChameleonStatus.describe(status)} '
+      '(0x${status.toRadixString(16).padLeft(2, '0')})',
     );
   }
 }
