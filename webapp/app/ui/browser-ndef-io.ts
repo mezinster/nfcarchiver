@@ -15,10 +15,17 @@ interface NdefReadingEventLike {
   message: { records: Array<{ recordType: string; mediaType?: string; data?: DataView }> };
 }
 
-/** The three NDEFReader members this file touches — not the full DOM lib.dom surface. */
-interface NdefReaderLike {
+/** The three NDEFReader members this file touches — not the full DOM lib.dom surface.
+ *
+ * `onreading` is written via the method-shorthand-in-object-type trick (extract
+ * the member type instead of declaring the field with a function-type literal)
+ * so the parameter is checked bivariantly rather than contravariantly. Without
+ * it, `strictFunctionTypes` would reject any test double whose synthetic event
+ * type is narrower than `NdefReadingEventLike` — exactly the kind of fake this
+ * interface exists to make possible under node --test. */
+export interface NdefReaderLike {
   scan(options: { signal: AbortSignal }): Promise<void>;
-  onreading: ((event: NdefReadingEventLike) => void) | null;
+  onreading: { bivarianceHack(event: NdefReadingEventLike): void }['bivarianceHack'] | null;
   onreadingerror: ((event: unknown) => void) | null;
   write(message: { records: NdefRecordInit[] }): Promise<void>;
 }
@@ -27,108 +34,105 @@ export function webNfcAvailable(): boolean {
   return typeof (globalThis as { NDEFReader?: unknown }).NDEFReader === 'function';
 }
 
+/** How long a reading with no waiter stays usable. Covers the few-millisecond
+ *  gap between one card completing and the loop asking for the next; anything
+ *  older would be a tap from a different moment replayed into this operation. */
+const BUFFER_MS = 2000;
+
 export class BrowserNdefIO implements NdefIO {
+  /** Injectable so this file is testable under node --test, where NDEFReader
+   *  does not exist. Production passes nothing. */
+  constructor(
+    private readonly makeReader: () => NdefReaderLike = () => {
+      const Ctor = (globalThis as { NDEFReader?: new () => NdefReaderLike }).NDEFReader;
+      if (Ctor === undefined) throw new Error('Web NFC is not available in this browser');
+      return new Ctor();
+    },
+  ) {}
+
   private reader: NdefReaderLike | null = null;
   private scanning: AbortController | null = null;
-  private started = false;
+  private waiter: { resolve: (r: NdefReading) => void; reject: (e: unknown) => void } | null = null;
+  private buffered: { reading: NdefReading; at: number } | null = null;
 
-  // Minimal stub to satisfy the NdefIO interface added in the scan-model fix
-  // (Task 2). This class still re-arms scan() on every awaitReading() call —
-  // the exact bug this whole fix targets — and is replaced wholesale by
-  // Task 3's rewrite, which is where start() actually arms the one scan.
   async start(): Promise<void> {
-    if (this.started) throw new Error('A scan is already in progress');
-    this.started = true;
+    if (this.reader !== null) throw new Error('A scan is already in progress');
+    const reader = this.makeReader();
+    const ac = new AbortController();
+
+    reader.onreading = (event) => {
+      const reading: NdefReading = {
+        serialNumber: event.serialNumber ?? '',
+        records: event.message.records.map((rec) => ({
+          recordType: rec.recordType,
+          mediaType: rec.mediaType,
+          data: rec.data === undefined
+            ? undefined
+            : new Uint8Array(rec.data.buffer, rec.data.byteOffset, rec.data.byteLength),
+        })),
+      };
+      const w = this.waiter;
+      if (w !== null) {
+        this.waiter = null;
+        w.resolve(reading);
+        return;
+      }
+      this.buffered = { reading, at: Date.now() };
+    };
+
+    reader.onreadingerror = () => {
+      const w = this.waiter;
+      if (w !== null) {
+        this.waiter = null;
+        w.reject(new Error('Could not read the tag — hold it still and try again'));
+      }
+    };
+
+    // The one and only scan for this instance. Re-arming a reader is what froze
+    // the browser: it rejects synchronously, and a retry loop then spins.
+    await reader.scan({ signal: ac.signal });
+    this.reader = reader;
+    this.scanning = ac;
   }
 
   async awaitReading(opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<NdefReading> {
+    if (this.reader === null) throw new Error('Scan not started');
+    if (this.waiter !== null) throw new Error('Already waiting for a reading');
     if (opts?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
-    const Ctor = (globalThis as { NDEFReader?: new () => NdefReaderLike }).NDEFReader;
-    if (Ctor === undefined) throw new Error('Web NFC is not available in this browser');
-    this.reader ??= new Ctor();
-    const reader = this.reader;
-
-    this.scanning?.abort();
-    const ac = new AbortController();
-    this.scanning = ac;
-    // Named so cleanup() can detach it. The caller's signal outlives one call —
-    // restore uses a single AbortController for a whole scan session — so a
-    // 50-card scan would otherwise leave 50 dead listeners on it.
-    const forwardAbort = (): void => ac.abort();
-    opts?.signal?.addEventListener('abort', forwardAbort, { once: true });
+    const buffered = this.buffered;
+    this.buffered = null;
+    if (buffered !== null && Date.now() - buffered.at <= BUFFER_MS) return buffered.reading;
 
     return new Promise<NdefReading>((resolve, reject) => {
       let timer: ReturnType<typeof setTimeout> | null = null;
-
-      // Every settlement path — resolve, reject, whichever fires first — runs
-      // through here once, so "clear the timer / detach the handlers / free
-      // this.scanning" holds by construction instead of by remembering to
-      // repeat it at each call site. Safe to invoke more than once: a second
-      // call is a no-op (timer already cleared, handlers already null-or-not-
-      // ours, and resolve/reject on an already-settled promise is a no-op).
-      //
-      // A settling wait may only tear down state it still owns: the handlers
-      // live on the *shared* reader, so this guard is not optional the way it
-      // would be for a private field. Overlapping calls abort the previous
-      // AbortController synchronously (this.scanning?.abort() below) but the
-      // previous call's own scan().catch(cleanup) doesn't run until a later
-      // microtask — by then a newer call may already have installed its own
-      // onreading/onreadingerror on this same reader. Nulling them here
-      // unconditionally would wipe a newer call's handlers out from under it.
-      const cleanup = (): void => {
+      const settle = (): void => {
         if (timer !== null) clearTimeout(timer);
-        // Unconditional: the timer and this listener are private to this call
-        // (both close over `ac`), unlike the handlers on the shared reader.
-        opts?.signal?.removeEventListener('abort', forwardAbort);
-        if (this.scanning === ac) {
-          reader.onreading = null;
-          reader.onreadingerror = null;
-          this.scanning = null;
-        }
+        opts?.signal?.removeEventListener('abort', onAbort);
+        this.waiter = null;
       };
+      const onAbort = (): void => { settle(); reject(new DOMException('Aborted', 'AbortError')); };
 
+      this.waiter = {
+        resolve: (r) => { settle(); resolve(r); },
+        reject: (e) => { settle(); reject(e); },
+      };
+      opts?.signal?.addEventListener('abort', onAbort, { once: true });
       if (opts?.timeoutMs !== undefined) {
         timer = setTimeout(() => {
-          ac.abort();
-          cleanup();
+          settle();
           reject(new TagTimeoutError(`No tag presented within ${opts.timeoutMs}ms`));
         }, opts.timeoutMs);
       }
-
-      reader.onreading = (event) => {
-        cleanup();
-        resolve({
-          serialNumber: event.serialNumber ?? '',
-          records: event.message.records.map((rec) => ({
-            recordType: rec.recordType,
-            mediaType: rec.mediaType,
-            data: rec.data === undefined
-              ? undefined
-              : new Uint8Array(rec.data.buffer, rec.data.byteOffset, rec.data.byteLength),
-          })),
-        });
-      };
-      reader.onreadingerror = () => {
-        cleanup();
-        reject(new Error('Could not read the tag — hold it still and try again'));
-      };
-      reader.scan({ signal: ac.signal }).catch((e: unknown) => {
-        cleanup();
-        reject(e);
-      });
     });
   }
 
   async write(records: NdefRecordInit[]): Promise<void> {
     const reader = this.reader;
-    if (reader === null) throw new Error('Start a scan before writing');
+    if (reader === null) throw new Error('Scan not started');
     try {
       await reader.write({ records });
     } catch (e) {
-      // Chrome reports "does not fit" and several hardware refusals as
-      // DOMExceptions. Capacity is the one the user can act on, and Web NFC
-      // gives us no way to check it in advance.
       if (e instanceof DOMException &&
           (e.name === 'NotSupportedError' || e.name === 'NetworkError')) {
         throw new CardCapacityError(
@@ -142,5 +146,13 @@ export class BrowserNdefIO implements NdefIO {
   stop(): void {
     this.scanning?.abort();
     this.scanning = null;
+    if (this.reader !== null) {
+      this.reader.onreading = null;
+      this.reader.onreadingerror = null;
+      this.reader = null;
+    }
+    this.waiter?.reject(new DOMException('Aborted', 'AbortError'));
+    this.waiter = null;
+    this.buffered = null;
   }
 }
