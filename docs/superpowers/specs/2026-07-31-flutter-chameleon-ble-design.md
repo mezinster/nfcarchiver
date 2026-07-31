@@ -60,32 +60,47 @@ The cost of this choice, stated plainly: the two codebases keep different archit
 
 ### `CardReader`
 
-A new abstraction mirroring the surface `nfc_provider.dart` already consumes, so the notifiers see no change:
+`CardReader` is **extracted from `NfcRepository`'s existing public API, not invented.** Every member below is copied from `lib/features/nfc/data/nfc_repository.dart` with its current signature, so `nfc_provider.dart` and both notifiers compile against the seam with no call-site edits — the only evidence that the extraction was safe.
+
+Note especially that the two session starters are asynchronous and **return a stop closure**, *and* that a separate `stopSession` exists. Both are load-bearing and both must survive:
 
 ```dart
 abstract class CardReader {
-  String get name;                       // 'phone-nfc' | 'chameleon-ble'
-  bool get supportsRawAccess;            // true only for Chameleon — gates the inspector
-  bool get isAvailable;
+  String get name;              // 'phone-nfc' | 'chameleon-ble'
+  bool get supportsRawAccess;   // true only for Chameleon — gates sub-project C
+  bool get isInWriteCooldown;
 
-  Future<void> connect();
-  Future<void> disconnect();
+  Future<void> initCapabilities();
+  Future<bool> isAvailable();
 
-  Future<void> startSession({
+  Future<void Function()> startReadSession({
+    required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
+    required void Function(String message) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
     String alertMessage,
   });
+
+  Future<void Function()> startWriteSession({
+    required Chunk chunk,
+    required NfcTagType configuredTagType,
+    required void Function(NfcTagInfo tagInfo) onSuccess,
+    required void Function(String message) onError,
+    void Function(int requiredSize, int detectedCapacity, NfcTagInfo? tagInfo)? onTagTooSmall,
+    void Function(String tappedMedium, String configuredMedium, NfcTagInfo? tagInfo)? onTagTypeMismatch,
+    String alertMessage,
+  });
+
+  Future<NfcReadResult> readTag({Duration timeout});
+  Future<NfcWriteResult> writeTag({required Chunk chunk, required NfcTagType configuredTagType, Duration timeout});
+
   void stopSession({String? message});
-
-  // Signature copied verbatim from NfcRepository.writeToTag, including its
-  // capacity-mismatch and medium-mismatch callbacks, so nfc_provider.dart and
-  // both notifiers compile against CardReader with no call-site edits.
-  Future<void> write({ /* NfcRepository.writeToTag parameters, unchanged */ });
-
-  bool get isInWriteCooldown;
   void clearWriteCooldown();
 }
 ```
+
+Two members are **added** by this design rather than extracted: `name` and `supportsRawAccess`. Two are added to the *lifecycle* — `connect()` and `disconnect()` — because a BLE reader has a connection phase the phone radio does not. `PhoneNfcReader` implements both as no-ops, keeping the contract honest rather than special-casing callers.
+
+`alertMessage` exists because iOS shows a system NFC sheet. It is meaningless for a Chameleon and for Android generally; `ChameleonReader` accepts and ignores it rather than the interface growing a platform conditional.
 
 `PhoneNfcReader` is a thin delegation to the existing `NfcRepository` — no logic moves, so the phone path cannot regress. `ChameleonReader` implements the same contract over a poll loop.
 
