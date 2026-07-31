@@ -31,6 +31,15 @@ let readerBusy = false;
  *  access (Inspect); Web NFC does not — panels use this to adjust accordingly. */
 let reader: 'chameleon' | 'web-nfc' | null = null;
 
+/** Bumped by teardownActiveReader() on every reader hand-off. The Chameleon's
+ *  `disconnected` listener captures the epoch current when it was attached and
+ *  compares it at fire time — if a hand-off has since bumped the epoch, the
+ *  event belongs to a superseded session and the handler no-ops instead of
+ *  stomping the state of whatever reader replaced it. Mirrors the
+ *  currentAbort guard in inspect-panel.ts: a superseded session may only tear
+ *  down state it still owns. */
+let readerEpoch = 0;
+
 export function activeReaderName(): 'chameleon' | 'web-nfc' | null {
   return reader;
 }
@@ -86,6 +95,39 @@ export function onConnectionChange(cb: (connected: boolean) => void): () => void
   };
 }
 
+/** The one teardown path for a reader hand-off. Connect, Use phone NFC, and
+ *  Disconnect all call this FIRST, so no site can forget to close the
+ *  outgoing reader or leave its listeners live behind a new session.
+ *
+ *  Bumping the epoch before awaiting anything neutralises the Chameleon's
+ *  `disconnected` listener immediately — including the case where the
+ *  `disconnect()` call below is itself what triggers that event. Clearing
+ *  `transport`/`ultra`/`reader`/`connected` synchronously (before the await)
+ *  means nothing can observe or use the dying reader while its disconnect is
+ *  in flight.
+ *
+ *  For the Chameleon, `transport.disconnect()` (AutoTransport ->
+ *  SdkChameleonDevice -> `ultra.disconnect()`) closes the actual BLE/GATT
+ *  session rather than just dropping the reference. For Web NFC it clears the
+ *  cached reading and stops any in-flight scan. Either way, a throw from an
+ *  already-dead link (device powered off, scan already stopped) must not
+ *  block the switch to the next reader. */
+async function teardownActiveReader(): Promise<void> {
+  readerEpoch += 1;
+  const dying = transport;
+  transport = null;
+  ultra = null;
+  reader = null;
+  connected = false;
+  if (dying) {
+    try {
+      await dying.disconnect();
+    } catch (e) {
+      log.warn('device', 'Teardown disconnect failed — link likely already dead', { error: String(e) });
+    }
+  }
+}
+
 export function initDeviceBar(): void {
   const deviceStatus = $('device-status');
 
@@ -96,12 +138,19 @@ export function initDeviceBar(): void {
 
   $('connect').addEventListener('click', async () => {
     log.info('device', 'Connecting');
+    await teardownActiveReader();
+    const myEpoch = readerEpoch;
     try {
       ultra = new ChameleonUltra();
       // Fires when the BLE link drops (device powered off, out of range, GATT
-      // lost). Flip connection state, drop the dead transport, and notify
-      // listeners so the archive loop can pause and later resume.
+      // lost) — including as a side effect of this module's own teardown
+      // calling disconnect(). Guarded by epoch: if a later hand-off has since
+      // superseded this session, this event is stale and must not stomp the
+      // state of whatever reader replaced it. Otherwise, flip connection
+      // state, drop the dead transport, and notify listeners so the archive
+      // loop can pause and later resume.
       ultra.emitter.on('disconnected', () => {
+        if (myEpoch !== readerEpoch) return;
         connected = false;
         transport = null;
         ultra = null;
@@ -130,8 +179,9 @@ export function initDeviceBar(): void {
     }
   });
 
-  $('use-web-nfc').addEventListener('click', () => {
+  $('use-web-nfc').addEventListener('click', async () => {
     log.info('device', 'Using phone NFC');
+    await teardownActiveReader();
     transport = new WebNfcTransport(new BrowserNdefIO(), selectedNtagType());
     reader = 'web-nfc';
     connected = true;
@@ -143,11 +193,7 @@ export function initDeviceBar(): void {
 
   $('disconnect').addEventListener('click', async () => {
     log.info('device', 'Disconnecting');
-    await transport?.disconnect();
-    transport = null;
-    ultra = null;
-    reader = null;
-    connected = false;
+    await teardownActiveReader();
     renderConn();
     updateDeviceButtons();
     for (const cb of listeners) cb(false);
