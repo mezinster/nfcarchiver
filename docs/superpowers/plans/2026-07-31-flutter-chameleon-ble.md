@@ -58,7 +58,7 @@ Future<void> pumpUntil(bool Function() cond, {Duration timeout = const Duration(
 - Create: `lib/core/chameleon/chameleon_device.dart`
 - Create: `lib/core/chameleon/cancellation_token.dart`
 - Create: `test/support/fake_chameleon_device.dart`
-- Create: `test/support/helpers.dart` (shared across Tasks 2–9 — see Shared test helpers)
+- Create: `test/support/helpers.dart` (shared across Tasks 2–11 — see Shared test helpers)
 - Test: `test/fake_chameleon_device_test.dart`
 
 **Interfaces:**
@@ -425,7 +425,98 @@ On a non-auth exception: set `cardLost`, fill every remaining unit with `UnitFai
 
 ---
 
-### Task 4: `hex_view` formatters + cross-language fixture
+### Task 4: Raw Type-2 / NDEF codec and `nfarBytesSoFar`
+
+**Files:**
+- Create: `lib/core/nfc/type2.dart`
+- Create: `lib/core/nfc/ndef_bytes.dart`
+- Create: `lib/core/inspect/nfar_source.dart`
+- Test: `test/type2_ndef_bytes_test.dart`, `test/inspect_nfar_source_test.dart`
+
+**Interfaces:**
+- Produces: `wrapType2Tlv`, `readType2Ndef`, `encodeNdefMime`, `decodeNdefMime`, `detectNtagType`, `ndefStartPage`; and `NfarSource` (`SourceBytes` | `SourceNoEnvelope` | `SourceForeign` | `SourceUnreadable`) with `nfarBytesSoFar(List<DumpUnit>, {required bool isClassic})`
+
+**Why this task exists.** The app's `NdefFormatter` operates exclusively on `nfc_manager`'s `NdefMessage`/`NdefRecord` objects — it never touches raw bytes. A Chameleon reads and writes NTAG as **raw pages**, so both Task 10's NTAG path and the inspector need byte-level Type-2 TLV and NDEF handling that does not exist anywhere in `lib/`. Ports `webapp/src/nfc/type2.ts` and `webapp/src/nfc/ndef.ts`.
+
+- [ ] **Step 1: Write the failing codec tests**
+
+```dart
+test('a chunk round-trips through NDEF and the Type-2 TLV', () {
+  final chunk = validChunkBytes();
+  final memory = wrapType2Tlv(encodeNdefMime(chunk));
+  expect(decodeNdefMime(readType2Ndef(memory)), equals(chunk));
+});
+
+test('the 3-byte TLV length form is used above 254 bytes', () {
+  // 0x03 0xFF <len16> — getting this boundary wrong corrupts every card
+  // larger than an NTAG213, and it is invisible on small test payloads.
+  final big = wrapType2Tlv(encodeNdefMime(Uint8List(300)));
+  expect(big[1], 0xFF);
+  expect(decodeNdefMime(readType2Ndef(big)).length, 300);
+});
+
+test('readType2Ndef throws while the TLV is still incomplete', () {
+  final full = wrapType2Tlv(encodeNdefMime(validChunkBytes()));
+  expect(() => readType2Ndef(Uint8List.sublistView(full, 0, 8)), throwsA(anything));
+});
+
+test('decodeNdefMime rejects a record whose MIME type is not ours', () {
+  expect(() => decodeNdefMime(foreignNdefRecord()), throwsA(anything));
+});
+```
+
+- [ ] **Step 2: Run to verify failure**
+
+- [ ] **Step 3: Implement the codecs**
+
+Port faithfully, keeping the MIME type `application/vnd.nfcarchiver.chunk` and the NDEF start page (4) identical — these bytes must stay compatible with cards the phone path already wrote.
+
+- [ ] **Step 4: Write the failing `nfarBytesSoFar` tests**
+
+This function is the reason an NTAG card would otherwise always be reported "not NFAR": concatenating raw pages yields the TLV header, not NFAR magic. It has four outcomes, and collapsing any two of them into one message would be misinformation.
+
+```dart
+test('Classic: usable blocks are concatenated, trailers and block 0 skipped', () {
+  final src = nfarBytesSoFar(classicUnitsWith(validChunkBytes()), isClassic: true);
+  expect(src, isA<SourceBytes>());
+  expect((src as SourceBytes).bytes.take(4), equals('NFAR'.codeUnits));
+});
+
+test('Classic: a gap truncates the stream — later bytes are meaningless', () {
+  final units = classicUnitsWith(validChunkBytes())
+    ..[2] = const DumpUnit(index: 4, kind: UnitKind.data, failure: UnitFailure.authFailed);
+  final src = nfarBytesSoFar(units, isClassic: true) as SourceBytes;
+  expect(src.bytes.length, lessThan(validChunkBytes().length));
+});
+
+test('Classic: every usable block auth-failing reports unreadable, NOT "0 bytes read"', () {
+  // The dump DID read those blocks; they came back auth-failed. Reporting
+  // "0 bytes" would state something false about a card that was read.
+  final src = nfarBytesSoFar(allAuthFailedClassicUnits(), isClassic: true);
+  expect(src, isA<SourceUnreadable>());
+});
+
+test('NTAG: an incomplete TLV reports no-envelope, not "not NFAR"', () {
+  final src = nfarBytesSoFar(partialNtagUnits(), isClassic: false);
+  expect(src, isA<SourceNoEnvelope>());
+});
+
+test('NTAG: a complete NDEF record with a foreign MIME type reports foreign', () {
+  // A permanent fact about a fully-read tag — structurally different from
+  // "the TLV has not arrived yet", and the two must not share a message.
+  final src = nfarBytesSoFar(foreignNdefNtagUnits(), isClassic: false);
+  expect(src, isA<SourceForeign>());
+});
+```
+
+- [ ] **Step 5: Run to verify failure**
+- [ ] **Step 6: Implement `nfarBytesSoFar`** — port `inspect-orchestrator.ts:55-99`. Classic filters to `usableBlockIndexes`; NTAG filters to `index >= ndefStartPage` then unwraps TLV and NDEF. **Break at the first gap** in both.
+- [ ] **Step 7: Run to verify pass**
+- [ ] **Step 8: Commit** — `git commit -m "feat(nfc): raw Type-2/NDEF codec and NFAR source resolution"`
+
+---
+
+### Task 5: `hex_view` formatters + cross-language fixture
 
 **Files:**
 - Create: `lib/core/inspect/hex_view.dart`
@@ -454,15 +545,20 @@ test('formatReport matches the TypeScript byte for byte', () async {
   // real NFAR chunk. FakeChameleonDevice.classic1k(seed:) builds exactly this.
   final dev = FakeChameleonDevice.classic1k(seed: 0x42);
   final result = await dumpCard(dev, collectUnits());
-  // The NFAR description is built from the dumped data blocks, not re-read
-  // from the device — the report must describe what the dump actually saw.
-  final assembled = assembleUsableBytes(result);
-  final actual = formatReport(result, describeNfar(assembled), await diagnoseCard(dev));
+  // The description is built from what the dump actually SAW (Task 4), never
+  // re-read from the device — the report must describe the dump, not the card.
+  final src = nfarBytesSoFar(result.units, isClassic: true);
+  final nfar = src is SourceBytes
+      ? describeNfar(src.bytes, capacityBytes: cardCapacityBytes)
+      : NfarAbsent(src.reason);
+  final diag = await diagnoseCard(dev);
+  // Signature matches inspect-orchestrator.ts: (meta, diag, nfar, units).
+  final actual = formatReport(result.meta, diag, nfar, result.units);
   expect(actual, equals(expected));
 });
 ```
 
-`assembleUsableBytes(DumpResult)` is a small helper in `hex_view.dart` that concatenates the bytes of successfully-read usable blocks in order, skipping failures — the inspector describes what it managed to read, never what it assumes is there.
+Note the argument order — `formatReport(meta, diag, nfar, units)` — and that `capacityBytes` is passed **only for Classic**, which has a fixed known capacity. On NTAG the chunk arrives inside an NDEF envelope whose own TLV length already bounds it, so no capacity is guessed.
 
 Plus unit tests for `formatUnitRow` (a data block, an auth-failed block, a trailer) and `formatNfar` (present, absent, CRC invalid).
 
@@ -478,7 +574,7 @@ Port `hex-view.ts`. Hex is uppercase, ASCII column renders bytes `0x20–0x7e` l
 
 ---
 
-### Task 5: `diagnoseCard` — the identity probe
+### Task 6: `diagnoseCard` — the identity probe
 
 **Files:**
 - Create: `lib/core/inspect/diagnose_card.dart`
@@ -520,7 +616,7 @@ test('an inconsistent BCC is reported, not thrown — that is the finding', () a
 
 ## Phase 2 — The BLE transport
 
-### Task 6: The frame codec
+### Task 7: The frame codec
 
 **Files:**
 - Create: `lib/core/chameleon/chameleon_frame.dart`
@@ -636,7 +732,7 @@ abstract final class ChameleonStatus {
 
 ---
 
-### Task 7: `BleChameleonDevice`
+### Task 8: `BleChameleonDevice`
 
 **Files:**
 - Modify: `pubspec.yaml` (add `flutter_reactive_ble`)
@@ -732,7 +828,7 @@ The DFU service `8ec90001-…` is never touched.
 
 ## Phase 3 — The reader seam and UI
 
-### Task 8: `CardReader` + `PhoneNfcReader`
+### Task 9: `CardReader` + `PhoneNfcReader`
 
 **Files:**
 - Create: `lib/features/nfc/domain/card_reader.dart`
@@ -810,7 +906,7 @@ test('PhoneNfcReader forwards every call to NfcRepository unchanged', () async {
 
 ---
 
-### Task 9: `ChameleonReader`
+### Task 10: `ChameleonReader`
 
 **Files:**
 - Create: `lib/features/nfc/data/chameleon_reader.dart`
@@ -876,14 +972,14 @@ Port `readBlockStrict`: a response shorter than 16 bytes is a **marginal RF read
 
 Writes read back and compare, as `chameleon-ble.ts` does.
 
-NTAG over Chameleon routes by SAK `0x00` and reuses `NdefFormatter.instance` (a private-constructor singleton — `.instance`, never `NdefFormatter()`).
+NTAG over Chameleon routes by SAK `0x00` and uses the **raw byte codec from Task 4** — `wrapType2Tlv` / `readType2Ndef` / `encodeNdefMime` / `decodeNdefMime`. It must **not** use `NdefFormatter`: that class operates on `nfc_manager`'s `NdefMessage` objects and cannot see raw pages, which is all a Chameleon provides. Pages are read via `transceive14a([0x30, page], autoSelect: true, appendCrc: true, checkResponseCrc: true)` and written with `0xA2`.
 
 - [ ] **Step 4: Run to verify pass**
 - [ ] **Step 5: Commit** — `git commit -m "feat(nfc): Chameleon reader over the CardReader seam"`
 
 ---
 
-### Task 10: Reader selection — state, permissions, device discovery
+### Task 11: Reader selection — state, permissions, device discovery
 
 **Files:**
 - Create: `lib/features/nfc/presentation/providers/reader_provider.dart`
@@ -918,7 +1014,7 @@ The second test encodes the `failHandOff` lesson from the web app's `device.ts`:
 
 ---
 
-### Task 11: Reader selection UI + localisation
+### Task 12: Reader selection UI + localisation
 
 **Files:**
 - Create: `lib/features/nfc/presentation/screens/reader_picker_screen.dart`
