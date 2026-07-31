@@ -94,11 +94,14 @@ NFC specification, not from an observed Chrome session:
 - the `DOMException` → `CardCapacityError` mapping (`NotSupportedError` /
   `NetworkError` on a write that doesn't fit) may not match what Chrome
   actually raises for an undersized card;
-- `stop()` assumes `scan({ signal })` rejects with `AbortError` once the
-  passed `AbortSignal` fires. If Chrome instead just stops firing
-  `onreading`/`onreadingerror` without ever settling that promise, aborting
-  mid-scan has no timeout backing it — `stop()` would hang rather than
-  return. Treat both as open questions until validated on an Android phone
+- `awaitReading()` assumes `scan({ signal })` rejects with `AbortError` once
+  the passed `AbortSignal` fires. If Chrome instead just stops firing
+  `onreading`/`onreadingerror` without ever settling that promise, the pending
+  `awaitReading()` call never resolves or rejects — so whatever is awaiting a
+  tag (`awaitTag()` in `WebNfcTransport`, called from `writeNextCard()` /
+  `scanNextCard()` in `app/controller.ts`) is left waiting indefinitely. Those
+  call sites pass only `{ signal }`, no `timeoutMs`, so nothing rescues it.
+  Treat both as open questions until validated on an Android phone
   running Chrome; [`HARDWARE_TESTING.md`](HARDWARE_TESTING.md) does not yet
   have a phone-NFC checklist (it's Chameleon-only today).
 
