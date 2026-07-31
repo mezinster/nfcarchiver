@@ -434,7 +434,9 @@ On a non-auth exception: set `cardLost`, fill every remaining unit with `UnitFai
 - Test: `test/type2_ndef_bytes_test.dart`, `test/inspect_nfar_source_test.dart`
 
 **Interfaces:**
-- Produces: `wrapType2Tlv`, `readType2Ndef`, `encodeNdefMime`, `decodeNdefMime`, `detectNtagType`, `ndefStartPage`; and `NfarSource` (`SourceBytes` | `SourceNoEnvelope` | `SourceForeign` | `SourceUnreadable`) with `nfarBytesSoFar(List<DumpUnit>, {required bool isClassic})`
+- Produces: `wrapType2Tlv`, `readType2Ndef`, `encodeNdefMime`, `decodeNdefMime`, `detectNtagType`, `ndefStartPage`; and `NfarSource` with `nfarBytesSoFar(List<DumpUnit>, {required bool isClassic})`
+
+`NfarSource` is a sealed type with four variants: `SourceBytes(bytes)` carries the chunk stream, while `SourceNoEnvelope(reason)`, `SourceForeign(reason)` and `SourceUnreadable(reason)` each carry a **distinct** human-readable `reason`. Callers switch on the type and pass `reason` straight through to `NfarAbsent` — so the three failures must never share a message, since they are three different facts about the card.
 
 **Why this task exists.** The app's `NdefFormatter` operates exclusively on `nfc_manager`'s `NdefMessage`/`NdefRecord` objects — it never touches raw bytes. A Chameleon reads and writes NTAG as **raw pages**, so both Task 10's NTAG path and the inspector need byte-level Type-2 TLV and NDEF handling that does not exist anywhere in `lib/`. Ports `webapp/src/nfc/type2.ts` and `webapp/src/nfc/ndef.ts`.
 
