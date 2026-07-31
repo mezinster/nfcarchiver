@@ -138,6 +138,9 @@ test('swapping readers mid-archive adopts the new transport instead of spinning 
   const ioB = new FakeNdefIO();
   const tA = new WebNfcTransport(ioA, NtagType.NTAG215);
   const tB = new WebNfcTransport(ioB, NtagType.NTAG216);
+  // connect() isn't wired to start() until Task 3/4 — arm both scans directly.
+  await ioA.start();
+  await ioB.start();
   ioA.tap('0a:00:00:01');
   ioB.tap('0b:00:00:02');
   ioB.tap('0b:00:00:03');

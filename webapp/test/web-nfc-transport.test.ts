@@ -59,6 +59,7 @@ test('awaitTag reports the UID and the selected type capacity', async () => {
   io.tap('04:01:02:03');
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   const tag = await t.awaitTag();
   assert.deepEqual(Array.from(tag.uid), [4, 1, 2, 3]);
   assert.equal(tag.maxChunkPayload, webNfcChunkPayload(NtagType.NTAG215));
@@ -71,6 +72,7 @@ test('peekIsNfar uses the cached reading — no second tap', async () => {
   io.tap('04:01:02:03', records);
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   await t.awaitTag();
   assert.equal(await t.peekIsNfar(), true);
   // A second tap was never queued; if peek had consumed one this would throw.
@@ -82,6 +84,7 @@ test('a blank tag peeks false rather than throwing', async () => {
   io.tap('04:09:09:09', []);
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   await t.awaitTag();
   assert.equal(await t.peekIsNfar(), false);
   // A real card WAS presented and read — it simply holds no NFAR data. That is
@@ -94,6 +97,7 @@ test('a foreign NDEF record peeks false', async () => {
   io.tap('04:09:09:09', [{ recordType: 'text', data: new Uint8Array([1, 2, 3]) }]);
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   await t.awaitTag();
   assert.equal(await t.peekIsNfar(), false);
 });
@@ -103,6 +107,7 @@ test('writeChunk emits one MIME record with the NFAR media type', async () => {
   io.tap('04:01:02:03');
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   await t.awaitTag();
   const { bytes } = nfarRecords(50);
   await t.writeChunk(bytes);
@@ -113,9 +118,15 @@ test('writeChunk emits one MIME record with the NFAR media type', async () => {
 });
 
 test('awaitTag rejects TagTimeoutError when no tag is presented', async () => {
-  const t = new WebNfcTransport(new FakeNdefIO(), NtagType.NTAG215);
+  const io = new FakeNdefIO();
+  const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
-  await assert.rejects(() => t.awaitTag(), TagTimeoutError);
+  await io.start(); // connect() isn't wired to start() until Task 3/4
+  // The tightened fake only fails fast when timeoutMs is set — with none, it
+  // waits for a tap that will never come (real Web NFC has no built-in
+  // timeout either). A bare awaitTag() would hang the suite, so this asserts
+  // through an explicit timeout, same as the transport contract does.
+  await assert.rejects(() => t.awaitTag({ timeoutMs: 20 }), TagTimeoutError);
 });
 
 test('writeChunk accepts a chunk exactly at the payload boundary and rejects one byte more', async () => {
@@ -125,6 +136,7 @@ test('writeChunk accepts a chunk exactly at the payload boundary and rejects one
   io1.tap('04:01:02:03');
   const t1 = new WebNfcTransport(io1, NtagType.NTAG215);
   await t1.connect();
+  await io1.start(); // connect() isn't wired to start() until Task 3/4
   await t1.awaitTag();
   const { bytes: atMax } = nfarRecords(max);
   await t1.writeChunk(atMax); // must not throw — exactly fills the CC-declared NDEF area
@@ -133,6 +145,7 @@ test('writeChunk accepts a chunk exactly at the payload boundary and rejects one
   io2.tap('04:01:02:03');
   const t2 = new WebNfcTransport(io2, NtagType.NTAG215);
   await t2.connect();
+  await io2.start(); // connect() isn't wired to start() until Task 3/4
   await t2.awaitTag();
   const { bytes: overMax } = nfarRecords(max + 1);
   await assert.rejects(() => t2.writeChunk(overMax), CardCapacityError);
@@ -144,11 +157,14 @@ test('a failed awaitTag() clears the stale cache from the previous tag', async (
   io.tap('04:01:02:03', records);
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   await t.awaitTag();
   assert.equal(await t.peekIsNfar(), true);
 
   // Nothing queued: this awaitTag() rejects. Card A's reading must not linger.
-  await assert.rejects(() => t.awaitTag(), TagTimeoutError);
+  // timeoutMs is required for the tightened fake to fail fast rather than wait
+  // forever for a tap that never comes.
+  await assert.rejects(() => t.awaitTag({ timeoutMs: 20 }), TagTimeoutError);
   assert.equal(await t.peekIsNfar(), false);
   await assert.rejects(() => t.readChunk(), UnidentifiedTagError);
 });
@@ -162,6 +178,7 @@ test('writeChunk invalidates the cache — a stale peek/read cannot serve pre-wr
   io.tap('04:01:02:03', oldRecords);
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   await t.awaitTag();
   assert.equal(await t.peekIsNfar(), true); // sanity: old content visible pre-write
 
@@ -188,6 +205,7 @@ test('awaitTag rejects a blank serial instead of minting a colliding identity', 
   io.tap('', nfarRecords(50).records);
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   await assert.rejects(() => t.awaitTag(), UnidentifiedTagError);
   // The unusable reading must not be cached either: peek/read on a card whose
   // identity we could not establish would speak for an unknown card.
@@ -204,6 +222,7 @@ test('blank-serial cards cannot collide into one archive identity', async () => 
   io.tap('');
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   const ctrl = new ArchiveController(t);
   const total = await ctrl.prepare({
     data: crypto.getRandomValues(new Uint8Array(1200)),
@@ -220,6 +239,7 @@ test('a blank-serial card fails a restore scan loudly instead of being dropped',
   io.tap('', nfarRecords(50).records);
   const t = new WebNfcTransport(io, NtagType.NTAG215);
   await t.connect();
+  await io.start(); // connect() isn't wired to start() until Task 3/4
   const ctrl = new RestoreController(t);
   await assert.rejects(() => ctrl.scanNextCard(), UnidentifiedTagError);
   assert.deepEqual(ctrl.detectedArchives(), [], 'no archive may be attributed to an unidentified card');
@@ -227,6 +247,12 @@ test('a blank-serial card fails a restore scan loudly instead of being dropped',
 
 runTransportContract('WebNfcTransport+FakeNdefIO', () => {
   const io = new FakeNdefIO();
+  // runTransportContract's factory is synchronous and calls only
+  // transport.connect() (a no-op until Task 3/4 wires it to start()), so arm
+  // the scan here instead. FakeNdefIO.start() has no internal await, so this
+  // runs to completion synchronously before the factory returns — the scan is
+  // armed before any test body runs.
+  void io.start();
   const transport = new WebNfcTransport(io, NtagType.NTAG215);
   return {
     transport,
@@ -237,4 +263,29 @@ runTransportContract('WebNfcTransport+FakeNdefIO', () => {
 }, {
   capacityBytes: ntagFactoryNdefCapacity(NtagType.NTAG215),
   maxChunkPayload: webNfcChunkPayload(NtagType.NTAG215),
+});
+
+test('a multi-card scan arms the reader exactly once', async () => {
+  const io = new FakeNdefIO();
+  const t = new WebNfcTransport(io, NtagType.NTAG215);
+  await t.connect();
+  await io.start(); // connect() doesn't wire to start() until Task 3/4
+  for (let i = 1; i <= 3; i++) {
+    io.tap(`04:0${i}:02:03`);
+    const tag = await t.awaitTag();
+    assert.equal(tag.uid[1], i);
+  }
+  assert.equal(io.scanArmCount, 1, 'each card must reuse the one scan');
+});
+
+test('reading before the scan is started is a programming error', async () => {
+  const io = new FakeNdefIO();
+  io.tap('04:01:02:03');
+  await assert.rejects(() => io.awaitReading(), /not started/i);
+});
+
+test('starting twice is rejected, as the real API does', async () => {
+  const io = new FakeNdefIO();
+  await io.start();
+  await assert.rejects(() => io.start(), /already/i);
 });

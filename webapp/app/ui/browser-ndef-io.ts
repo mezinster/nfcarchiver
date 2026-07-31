@@ -30,6 +30,16 @@ export function webNfcAvailable(): boolean {
 export class BrowserNdefIO implements NdefIO {
   private reader: NdefReaderLike | null = null;
   private scanning: AbortController | null = null;
+  private started = false;
+
+  // Minimal stub to satisfy the NdefIO interface added in the scan-model fix
+  // (Task 2). This class still re-arms scan() on every awaitReading() call —
+  // the exact bug this whole fix targets — and is replaced wholesale by
+  // Task 3's rewrite, which is where start() actually arms the one scan.
+  async start(): Promise<void> {
+    if (this.started) throw new Error('A scan is already in progress');
+    this.started = true;
+  }
 
   async awaitReading(opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<NdefReading> {
     if (opts?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
