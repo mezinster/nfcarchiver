@@ -22,6 +22,16 @@ export const tr: Messages = {
   readerDisconnectedClickConnect: "Okuyucu bağlantısı kesildi — devam etmek için Bağlan'a tıklayın.",
   inspectNeedsChameleon: "Kart incelemesi için Chameleon gerekir — telefonun NFC'sinin ham karta erişimi yoktur.",
   readerBusyElsewhere: 'Okuyucu başka bir işlemle meşgul — önce onu bitirin veya durdurun.',
+  sectionSource: 'Kaynak',
+  sectionSettings: 'Ayarlar',
+  sectionArchives: 'Bulunan arşivler',
+  sectionRestoredFiles: 'Geri yüklenen dosyalar',
+  sectionLogOptions: 'Günlük seçenekleri',
+  subChooseFile: 'Kartlara bölünecek herhangi bir dosya',
+  subTypeText: 'text_note.txt olarak kaydedilir',
+  subTargetTag: 'Kart türü ve kapasitesi',
+  subCompress: 'Yazmadan önce GZIP',
+  subPassword: 'AES-256-GCM, isteğe bağlı',
   autoDetectNeedsChameleon: "Bir etiket türü seçin: telefonun NFC'si kart kapasitesini algılayamaz.",
 
   // — tabs —

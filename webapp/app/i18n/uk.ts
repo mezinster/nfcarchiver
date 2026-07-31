@@ -25,6 +25,16 @@ export const uk: Messages = {
   readerDisconnectedClickConnect: 'Зчитувач відключено — натисніть «Підключити», щоб продовжити.',
   inspectNeedsChameleon: 'Для огляду картки потрібен Chameleon — NFC телефону не має прямого доступу до картки.',
   readerBusyElsewhere: 'Зчитувач зайнятий іншою операцією — спершу завершіть або зупиніть її.',
+  sectionSource: 'Джерело',
+  sectionSettings: 'Налаштування',
+  sectionArchives: 'Знайдені архіви',
+  sectionRestoredFiles: 'Відновлені файли',
+  sectionLogOptions: 'Параметри журналу',
+  subChooseFile: 'Будь-який файл, розділений по картках',
+  subTypeText: 'Зберігається як text_note.txt',
+  subTargetTag: 'Тип картки та ємність',
+  subCompress: 'GZIP перед записом',
+  subPassword: 'AES-256-GCM, необовʼязково',
   autoDetectNeedsChameleon: 'Виберіть тип мітки: NFC телефону не може визначити ємність картки.',
 
   // — tabs —

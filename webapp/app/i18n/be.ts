@@ -25,6 +25,16 @@ export const be: Messages = {
   readerDisconnectedClickConnect: 'Счытвальнік адключаны — націсніце «Падключыць», каб працягнуць.',
   inspectNeedsChameleon: 'Для агляду карты патрэбны Chameleon — NFC тэлефона не мае прамога доступу да карты.',
   readerBusyElsewhere: 'Счытвальнік заняты іншай аперацыяй — спачатку завяршыце або спыніце яе.',
+  sectionSource: 'Крыніца',
+  sectionSettings: 'Налады',
+  sectionArchives: 'Знойдзеныя архівы',
+  sectionRestoredFiles: 'Адноўленыя файлы',
+  sectionLogOptions: 'Параметры журнала',
+  subChooseFile: 'Любы файл, падзелены па картах',
+  subTypeText: 'Захоўваецца як text_note.txt',
+  subTargetTag: 'Тып карты і ёмістасць',
+  subCompress: 'GZIP перад запісам',
+  subPassword: 'AES-256-GCM, неабавязкова',
   autoDetectNeedsChameleon: 'Абярыце тып меткі: NFC тэлефона не можа вызначыць ёмістасць карты.',
 
   // — tabs —

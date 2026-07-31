@@ -25,6 +25,16 @@ export const pl: Messages = {
   readerDisconnectedClickConnect: 'Czytnik rozłączony — kliknij „Połącz”, aby kontynuować.',
   inspectNeedsChameleon: 'Zbadanie karty wymaga Chameleona — NFC telefonu nie ma bezpośredniego dostępu do karty.',
   readerBusyElsewhere: 'Czytnik jest zajęty inną operacją — najpierw ją zakończ lub zatrzymaj.',
+  sectionSource: 'Źródło',
+  sectionSettings: 'Ustawienia',
+  sectionArchives: 'Wykryte archiwa',
+  sectionRestoredFiles: 'Odtworzone pliki',
+  sectionLogOptions: 'Opcje dziennika',
+  subChooseFile: 'Dowolny plik, podzielony na karty',
+  subTypeText: 'Zapisywane jako text_note.txt',
+  subTargetTag: 'Typ karty i pojemność',
+  subCompress: 'GZIP przed zapisem',
+  subPassword: 'AES-256-GCM, opcjonalnie',
   autoDetectNeedsChameleon: 'Wybierz typ znacznika: NFC telefonu nie potrafi wykryć pojemności karty.',
 
   // — tabs —

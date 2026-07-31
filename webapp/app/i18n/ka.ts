@@ -22,6 +22,16 @@ export const ka: Messages = {
   readerDisconnectedClickConnect: 'წამკითხველი გაითიშა — გასაგრძელებლად დააჭირეთ „დაკავშირებას“.',
   inspectNeedsChameleon: 'ბარათის დათვალიერებას სჭირდება Chameleon — ტელეფონის NFC-ს არ აქვს პირდაპირი წვდომა ბარათთან.',
   readerBusyElsewhere: 'წამკითხველი სხვა ოპერაციითაა დაკავებული — ჯერ დაასრულეთ ან შეაჩერეთ იგი.',
+  sectionSource: 'წყარო',
+  sectionSettings: 'პარამეტრები',
+  sectionArchives: 'ნაპოვნი არქივები',
+  sectionRestoredFiles: 'აღდგენილი ფაილები',
+  sectionLogOptions: 'ჟურნალის პარამეტრები',
+  subChooseFile: 'ნებისმიერი ფაილი, დაყოფილი ბარათებზე',
+  subTypeText: 'ინახება როგორც text_note.txt',
+  subTargetTag: 'ბარათის ტიპი და ტევადობა',
+  subCompress: 'GZIP ჩაწერამდე',
+  subPassword: 'AES-256-GCM, არასავალდებულო',
   autoDetectNeedsChameleon: 'აირჩიეთ ბარათის ტიპი: ტელეფონის NFC ვერ ამოიცნობს ბარათის ტევადობას.',
 
   // — tabs —

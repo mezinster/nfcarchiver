@@ -25,6 +25,16 @@ export const ru: Messages = {
   readerDisconnectedClickConnect: 'Считыватель отключён — нажмите «Подключить», чтобы продолжить.',
   inspectNeedsChameleon: 'Для осмотра карты нужен Chameleon — у NFC телефона нет прямого доступа к карте.',
   readerBusyElsewhere: 'Считыватель занят другой операцией — сначала завершите или остановите её.',
+  sectionSource: 'Источник',
+  sectionSettings: 'Настройки',
+  sectionArchives: 'Найденные архивы',
+  sectionRestoredFiles: 'Восстановленные файлы',
+  sectionLogOptions: 'Параметры журнала',
+  subChooseFile: 'Любой файл, разбитый по картам',
+  subTypeText: 'Сохраняется как text_note.txt',
+  subTargetTag: 'Тип карты и ёмкость',
+  subCompress: 'GZIP перед записью',
+  subPassword: 'AES-256-GCM, необязательно',
   autoDetectNeedsChameleon: 'Выберите тип метки: NFC телефона не может определить ёмкость карты.',
 
   // — tabs —

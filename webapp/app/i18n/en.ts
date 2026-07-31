@@ -24,6 +24,16 @@ export const en = {
   readerDisconnectedClickConnect: 'Reader disconnected — click Connect to resume.',
   inspectNeedsChameleon: 'Card inspection needs a Chameleon — phone NFC has no raw card access.',
   readerBusyElsewhere: 'The reader is busy with another operation — finish or stop it first.',
+  sectionSource: 'Source',
+  sectionSettings: 'Settings',
+  sectionArchives: 'Detected archives',
+  sectionRestoredFiles: 'Restored files',
+  sectionLogOptions: 'Log options',
+  subChooseFile: 'Any file, split across cards',
+  subTypeText: 'Saved as text_note.txt',
+  subTargetTag: 'Card type and capacity',
+  subCompress: 'GZIP before writing',
+  subPassword: 'AES-256-GCM, optional',
   autoDetectNeedsChameleon: 'Pick a tag type: phone NFC cannot detect card capacity.',
 
   // — tabs —
