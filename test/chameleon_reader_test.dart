@@ -286,6 +286,18 @@ void main() {
         reason: 'the newer session owns the loop');
   });
 
+  test('rawDevice is the SAME instance every card operation uses', () async {
+    // Constructing a second BleChameleonDevice for one physical reader gives
+    // it its own pending-command slot and its own notification subscription,
+    // so it writes commands nobody listens for while the first instance drops
+    // the replies. Every inspection timed out on hardware because of exactly
+    // that. The flag and the thing it gates must come from one object.
+    final dev = FakeChameleonDevice.classic1k();
+    final reader = ChameleonReader(dev, pollInterval: Duration.zero);
+    expect(reader.supportsRawAccess, isTrue);
+    expect(identical(reader.rawDevice, dev), isTrue);
+  });
+
   test('connect and disconnect drive the underlying device', () async {
     final dev = FakeChameleonDevice.classic1k();
     final reader = ChameleonReader(dev, pollInterval: Duration.zero);

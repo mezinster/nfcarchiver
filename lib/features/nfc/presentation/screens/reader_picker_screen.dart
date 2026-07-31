@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/chameleon/ble_chameleon_device.dart';
 import '../../../inspect/presentation/screens/inspect_dialog.dart';
 import '../../data/ble_scanner.dart';
 import '../providers/reader_provider.dart';
@@ -194,17 +193,23 @@ class _ReaderPickerScreenState extends ConsumerState<ReaderPickerScreen> {
                 ? ''
                 : l10n.inspectNeedsChameleon,
             child: OutlinedButton.icon(
-              onPressed: reader.reader.supportsRawAccess && reader.deviceId != null
-                  ? () => Navigator.of(context).push(
+              onPressed: reader.reader.rawDevice == null
+                  ? null
+                  : () {
+                      // The reader's OWN device, never a fresh one: a second
+                      // instance is not subscribed to notifications and every
+                      // command it sends times out.
+                      final dev = reader.reader.rawDevice!;
+                      reader.reader.stopSession();
+                      Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => InspectDialog(
-                            device:
-                                BleChameleonDevice(deviceId: reader.deviceId!),
-                            uid: reader.deviceId!.replaceAll(':', ''),
+                            device: dev,
+                            uid: (reader.deviceId ?? 'card').replaceAll(':', ''),
                           ),
                         ),
-                      )
-                  : null,
+                      );
+                    },
               icon: const Icon(Icons.travel_explore),
               label: Text(l10n.inspectTitle),
             ),

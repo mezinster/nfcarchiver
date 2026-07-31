@@ -1,6 +1,7 @@
 import 'package:nfc_archiver/core/constants/nfar_format.dart';
 import 'package:nfc_archiver/core/models/chunk.dart';
 import 'package:nfc_archiver/core/models/nfc_tag_info.dart';
+import 'package:nfc_archiver/core/chameleon/chameleon_device.dart';
 import 'package:nfc_archiver/features/nfc/domain/card_reader.dart';
 
 /// A [CardReader] that records lifecycle calls, for testing reader selection.
@@ -20,6 +21,13 @@ class FakeCardReader implements CardReader {
 
   @override
   final bool supportsRawAccess;
+
+  /// Mirrors the real contract: non-null exactly when raw access is offered.
+  @override
+  ChameleonDevice? get rawDevice => supportsRawAccess ? rawDeviceStub : null;
+
+  /// Set by tests that need the device identity to be checkable.
+  ChameleonDevice? rawDeviceStub;
 
   final bool failConnect;
 

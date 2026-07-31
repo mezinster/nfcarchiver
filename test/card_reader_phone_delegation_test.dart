@@ -22,6 +22,13 @@ void main() {
     expect(PhoneNfcReader().supportsRawAccess, isFalse);
   });
 
+  test('the phone reader offers no raw device, matching its flag', () async {
+    final r = PhoneNfcReader();
+    expect(r.supportsRawAccess, isFalse);
+    expect(r.rawDevice, isNull,
+        reason: 'the flag and the thing it gates must agree');
+  });
+
   test('connect and disconnect are no-ops, not errors', () async {
     // The phone's radio has no connection phase. Implementing them as no-ops
     // rather than throwing keeps callers free of platform conditionals.
