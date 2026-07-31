@@ -250,10 +250,18 @@
       dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
       dialog p { margin: 0; }
       .dialog-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-      dialog.inspect { max-width: min(96vw, 62rem); max-height: 88vh; overflow: auto; }
+      /* overflow-x MUST stay hidden. The hex dump grows wider as pages are
+         read, and if the dialog itself scrolls sideways its rounded right
+         corner scrolls out of view — the visible right edge then goes square
+         part-way through a read. Each <pre> scrolls internally instead, which
+         is also what keeps the dump readable. */
+      dialog.inspect { max-width: min(96vw, 62rem); max-height: 88vh; overflow-y: auto; overflow-x: hidden; }
       .inspect-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
       .inspect-actions { margin-left: auto; display: flex; gap: 0.4rem; }
-      dialog.inspect pre { overflow-x: auto; margin: 0.2rem 0 0.8rem; font: 12px/1.35 ui-monospace, monospace; }
+      dialog.inspect pre {
+        max-width: 100%; overflow-x: auto; margin: 0.2rem 0 0.8rem;
+        font: 12px/1.35 ui-monospace, monospace;
+      }
       dialog.inspect h4 { margin: 0.6rem 0 0.1rem; font-size: 13px; }
     </style>
   </head>
@@ -392,7 +400,10 @@
         <div class="card">
           <div class="row">
             <span class="icon-tile"><svg class="ico"><use href="#i-save"/></svg></span>
-            <div class="row-text"><div class="row-name" data-i18n="saveAs">save as</div></div>
+            <div class="row-text">
+              <div class="row-name" data-i18n="saveAs">save as</div>
+              <div class="row-sub" data-i18n="subSaveAs">Only used if the archive carries no filename</div>
+            </div>
             <div class="row-control"><input type="text" id="fname" value="restored.bin" /></div>
           </div>
         </div>

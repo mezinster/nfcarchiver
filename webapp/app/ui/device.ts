@@ -208,7 +208,7 @@ export function initDeviceBar(): void {
       renderConn();
       updateDeviceButtons();
       notify(true);
-      deviceStatus.textContent = t.connectedPhoneNfc;
+      deviceStatus.textContent = t.readerPhoneNfc;
     } catch (e) {
       await failHandOff(humanError(e));
       log.error('device', 'Phone NFC activation failed', { error: String(e) });
@@ -250,7 +250,7 @@ export function initDeviceBar(): void {
       renderConn();
       updateDeviceButtons();
       notify(true);
-      deviceStatus.textContent = t.connectedDot;
+      deviceStatus.textContent = t.readerChameleon;
       log.info('device', 'Connected');
     } catch (e) {
       // The teardown above already dropped whatever reader was live, so this is
