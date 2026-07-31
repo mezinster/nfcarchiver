@@ -106,6 +106,11 @@ class FakeChameleonDevice implements ChameleonDevice {
   /// tested without inventing a whole new fake.
   void overrideStorageByte(int value) => _storageByte = value;
 
+  /// Place block contents directly, bypassing authentication — for arranging
+  /// a card's starting state without going through the write path under test.
+  void setBlock(int block, Uint8List data) =>
+      _blocks[block] = Uint8List.fromList(data);
+
   /// Slows each block read so cancellation and superseded-run tests have a run
   /// long enough to interrupt.
   void delayPerBlock(Duration d) => _perBlockDelay = d;
@@ -180,6 +185,16 @@ class FakeChameleonDevice implements ChameleonDevice {
       return Uint8List.fromList(
         [0x00, 0x04, 0x04, 0x02, 0x01, 0x00, _storageByte, 0x03],
       );
+    }
+
+    // NTAG WRITE: 0xA2 <page> <4 bytes>.
+    if (data.length == 6 && data[0] == 0xA2) {
+      final page = data[1];
+      if (page >= totalPages) {
+        throw const CardReadException('Page out of range');
+      }
+      _pages[page] = Uint8List.fromList(data.sublist(2, 6));
+      return Uint8List(0);
     }
 
     // NTAG READ: 0x30 <page> -> 4 pages (16 bytes).
