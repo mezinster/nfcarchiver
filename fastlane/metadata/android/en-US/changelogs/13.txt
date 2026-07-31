@@ -1,0 +1,5 @@
+Chameleon Ultra support, MIFARE Classic, card inspector
+- NEW: Chameleon Ultra reader over Bluetooth — pick between your phone's NFC and a Chameleon in the app bar
+- NEW: MIFARE Classic 1K cards — 752 usable bytes per card, roughly 1.5x an NTAG215
+- NEW: Card inspector — dump any card block by block, with a decoded NFAR header and CRC check (needs a Chameleon)
+- Fixed: NTAG cards written by the web app can now be rewritten by the phone
