@@ -1,6 +1,6 @@
 /** Maps a caught error to a plain-language, user-facing message. The single
  *  translation seam for everything src/ throws — src/ itself stays English. */
-import { CardAuthError, CardReadError, WriteVerifyError, TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
+import { CardAuthError, CardReadError, WriteVerifyError, TagTimeoutError, UnsupportedTagError, UnidentifiedTagError } from '../../src/transport/transport.js';
 import { CardCapacityError } from '../../src/mifare/card-layout.js';
 import { DecryptionError } from '../../src/crypto.js';
 import { OverwriteRequiredError, PasswordRequiredError, NfarFormatError } from '../controller.js';
@@ -18,6 +18,7 @@ export function humanError(e: unknown): string {
   if (e instanceof PasswordRequiredError) return t.errPasswordRequired;
   if (e instanceof DecryptionError) return t.errWrongPassword;
   if (e instanceof UnsupportedTagError) return t.errUnsupportedTag;
+  if (e instanceof UnidentifiedTagError) return t.errUnidentifiedTag;
   if (e instanceof NdefFormatError) return t.errNdefFormat;
   if (e instanceof DOMException && e.name === 'AbortError') return t.cancelled;
   return e instanceof Error ? e.message : String(e);

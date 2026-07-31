@@ -10,13 +10,18 @@ const FILE = { one: 'ფაილი', other: 'ფაილი' };
 export const ka: Messages = {
   // — shell / device bar —
   connect: 'Chameleon-თან დაკავშირება',
+  usePhoneNfc: 'ტელეფონის NFC-ის გამოყენება',
+  disconnect: 'გათიშვა',
   inspectCard: 'ბარათის დათვალიერება',
   themeToggle: 'ღია/მუქი თემა',
   language: 'ენა',
   statusConnected: 'დაკავშირებულია',
   statusDisconnected: 'გათიშულია',
   connectedDot: 'დაკავშირებულია.',
+  connectedPhoneNfc: 'გამოიყენება ტელეფონის NFC.',
   readerDisconnectedClickConnect: 'წამკითხველი გაითიშა — გასაგრძელებლად დააჭირეთ „დაკავშირებას“.',
+  inspectNeedsChameleon: 'ბარათის დათვალიერებას სჭირდება Chameleon — ტელეფონის NFC-ს არ აქვს პირდაპირი წვდომა ბარათთან.',
+  autoDetectNeedsChameleon: 'აირჩიეთ ბარათის ტიპი: ტელეფონის NFC ვერ ამოიცნობს ბარათის ტევადობას.',
 
   // — tabs —
   tabArchive: 'არქივაცია',
@@ -47,6 +52,7 @@ export const ka: Messages = {
   archiveDone: (n) => `დასრულდა — ჩაწერილი და შემოწმებულია ${n} ${pr(n, CARD)}.`,
   tapCardOf: (i, total) => `მიადეთ ბარათი ${i} / ${total} წამკითხველს…`,
   readerDisconnectedResume: 'წამკითხველი გაითიშა — გასაგრძელებლად ხელახლა დააკავშირეთ.',
+  readerSwitchedResume: 'წამკითხველი შეიცვალა — გრძელდება ახალ წამკითხველზე.',
   rechunked: (payloadSize, total) =>
     `ბარათზე ეტევა ${payloadSize} B/chunk — ამის ნაცვლად ჩაიწერება ${total} ${pr(total, CARD)}.`,
   noCardTapHold: 'ბარათი ვერ მოიძებნა — მიადეთ ბარათი (დაიჭირეთ რამდენიმე მმ-ით მოშორებით)…',
@@ -134,5 +140,6 @@ export const ka: Messages = {
   errPasswordRequired: 'ეს არქივი დაშიფრულია — შეიყვანეთ პაროლი.',
   errWrongPassword: 'არასწორი პაროლი.',
   errUnsupportedTag: 'ტეგი მხარდაუჭერელია — გამოიყენეთ Mifare Classic 1K ან NTAG213/215/216.',
+  errUnidentifiedTag: 'ბარათმა იდენტიფიკატორი არ გადმოსცა — მოაშორეთ და ხელახლა მიადეთ.',
   errNdefFormat: 'ამ ტეგზე NFAR NDEF მონაცემები არ არის.',
 };

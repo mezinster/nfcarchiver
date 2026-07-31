@@ -13,13 +13,18 @@ const BYTE = { one: 'bajt', few: 'bajty', many: 'bajtów', other: 'bajtów' };
 export const pl: Messages = {
   // — shell / device bar —
   connect: 'Połącz z Chameleonem',
+  usePhoneNfc: 'Użyj NFC telefonu',
+  disconnect: 'Rozłącz',
   inspectCard: 'Zbadaj kartę',
   themeToggle: 'Przełącz jasny/ciemny motyw',
   language: 'Język',
   statusConnected: 'połączono',
   statusDisconnected: 'rozłączono',
   connectedDot: 'Połączono.',
+  connectedPhoneNfc: 'Używane NFC telefonu.',
   readerDisconnectedClickConnect: 'Czytnik rozłączony — kliknij „Połącz”, aby kontynuować.',
+  inspectNeedsChameleon: 'Zbadanie karty wymaga Chameleona — NFC telefonu nie ma bezpośredniego dostępu do karty.',
+  autoDetectNeedsChameleon: 'Wybierz typ znacznika: NFC telefonu nie potrafi wykryć pojemności karty.',
 
   // — tabs —
   tabArchive: 'Archiwizuj',
@@ -50,6 +55,7 @@ export const pl: Messages = {
   archiveDone: (n) => `Gotowe — zapisano i zweryfikowano ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Przyłóż kartę ${i} z ${total} do czytnika…`,
   readerDisconnectedResume: 'Czytnik rozłączony — połącz ponownie, aby kontynuować.',
+  readerSwitchedResume: 'Zmieniono czytnik — wznawianie na nowym czytniku.',
   rechunked: (payloadSize, total) =>
     `Na karcie mieści się ${payloadSize} B/chunk — zamiast tego ${total} ${pr(total, CARD)}.`,
   noCardTapHold: 'Nie wykryto karty — przyłóż kartę (trzymaj kilka mm od czytnika)…',
@@ -137,5 +143,6 @@ export const pl: Messages = {
   errPasswordRequired: 'To archiwum jest zaszyfrowane — wprowadź hasło.',
   errWrongPassword: 'Nieprawidłowe hasło.',
   errUnsupportedTag: 'Nieobsługiwany tag — użyj Mifare Classic 1K lub NTAG213/215/216.',
+  errUnidentifiedTag: 'Karta nie podała swojego identyfikatora — odsuń ją i przyłóż ponownie.',
   errNdefFormat: 'Ten tag nie zawiera danych NFAR NDEF.',
 };

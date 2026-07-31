@@ -10,13 +10,18 @@ const FILE = { one: 'dosya', other: 'dosya' };
 export const tr: Messages = {
   // — shell / device bar —
   connect: "Chameleon'a bağlan",
+  usePhoneNfc: "Telefonun NFC'sini kullan",
+  disconnect: 'Bağlantıyı kes',
   inspectCard: 'Kartı incele',
   themeToggle: 'Açık/koyu tema',
   language: 'Dil',
   statusConnected: 'bağlı',
   statusDisconnected: 'bağlı değil',
   connectedDot: 'Bağlandı.',
+  connectedPhoneNfc: "Telefonun NFC'si kullanılıyor.",
   readerDisconnectedClickConnect: "Okuyucu bağlantısı kesildi — devam etmek için Bağlan'a tıklayın.",
+  inspectNeedsChameleon: "Kart incelemesi için Chameleon gerekir — telefonun NFC'sinin ham karta erişimi yoktur.",
+  autoDetectNeedsChameleon: "Bir etiket türü seçin: telefonun NFC'si kart kapasitesini algılayamaz.",
 
   // — tabs —
   tabArchive: 'Arşivle',
@@ -47,6 +52,7 @@ export const tr: Messages = {
   archiveDone: (n) => `Bitti — ${n} ${pr(n, CARD)} yazıldı ve doğrulandı.`,
   tapCardOf: (i, total) => `Kart ${i}/${total} — okuyucuya okutun…`,
   readerDisconnectedResume: 'Okuyucu bağlantısı kesildi — devam etmek için yeniden bağlanın.',
+  readerSwitchedResume: 'Okuyucu değişti — yeni okuyucuda devam ediliyor.',
   rechunked: (payloadSize, total) =>
     `Kart ${payloadSize} B/chunk alıyor — bunun yerine ${total} ${pr(total, CARD)} yazılıyor.`,
   noCardTapHold: 'Kart algılanmadı — bir kart okutun (birkaç mm uzakta tutun)…',
@@ -134,5 +140,6 @@ export const tr: Messages = {
   errPasswordRequired: 'Bu arşiv şifrelenmiş — bir şifre girin.',
   errWrongPassword: 'Yanlış şifre.',
   errUnsupportedTag: 'Desteklenmeyen etiket — Mifare Classic 1K veya NTAG213/215/216 kullanın.',
+  errUnidentifiedTag: 'Kart kimliğini bildirmedi — kartı uzaklaştırıp yeniden okutun.',
   errNdefFormat: 'Bu etikette NFAR NDEF verisi yok.',
 };

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { humanError } from '../app/ui/errors.js';
-import { CardAuthError, WriteVerifyError, TagTimeoutError, UnsupportedTagError } from '../src/transport/transport.js';
+import { CardAuthError, WriteVerifyError, TagTimeoutError, UnsupportedTagError, UnidentifiedTagError } from '../src/transport/transport.js';
 import { CardCapacityError } from '../src/mifare/card-layout.js';
 import { DecryptionError } from '../src/crypto.js';
 import { OverwriteRequiredError, PasswordRequiredError, NfarFormatError } from '../app/controller.js';
@@ -17,6 +17,7 @@ test('humanError maps each typed error to a plain-language message', () => {
   assert.match(humanError(new PasswordRequiredError('x')), /encrypted/i);
   assert.match(humanError(new DecryptionError('x')), /wrong password/i);
   assert.match(humanError(new UnsupportedTagError('x')), /unsupported tag/i);
+  assert.match(humanError(new UnidentifiedTagError('x')), /did not identify itself/i);
   assert.match(humanError(new NdefFormatError('x')), /no nfar ndef/i);
   assert.equal(humanError(new DOMException('Aborted', 'AbortError')), 'Cancelled.');
 });

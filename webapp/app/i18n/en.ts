@@ -12,13 +12,18 @@ import { pr } from './plural.js';
 export const en = {
   // — shell / device bar —
   connect: 'Connect Chameleon',
+  usePhoneNfc: 'Use phone NFC',
+  disconnect: 'Disconnect',
   inspectCard: 'Inspect card',
   themeToggle: 'Toggle light/dark',
   language: 'Language',
   statusConnected: 'connected',
   statusDisconnected: 'disconnected',
   connectedDot: 'Connected.',
+  connectedPhoneNfc: 'Using phone NFC.',
   readerDisconnectedClickConnect: 'Reader disconnected — click Connect to resume.',
+  inspectNeedsChameleon: 'Card inspection needs a Chameleon — phone NFC has no raw card access.',
+  autoDetectNeedsChameleon: 'Pick a tag type: phone NFC cannot detect card capacity.',
 
   // — tabs —
   tabArchive: 'Archive',
@@ -48,6 +53,7 @@ export const en = {
   archiveDone: (n: number) => `Done — wrote and verified ${n} ${pr(n, { one: 'card', other: 'cards' })}.`,
   tapCardOf: (i: number, total: number) => `Tap card ${i} of ${total} on the reader…`,
   readerDisconnectedResume: 'Reader disconnected — reconnect to resume.',
+  readerSwitchedResume: 'Reader switched — resuming on the new reader.',
   rechunked: (payloadSize: number, total: number) =>
     `Card holds ${payloadSize} B/chunk — writing ${total} ${pr(total, { one: 'card', other: 'cards' })} instead.`,
   noCardTapHold: 'No card detected — tap a card (hold it a few mm off)…',
@@ -136,6 +142,7 @@ export const en = {
   errPasswordRequired: 'This archive is encrypted — enter a password.',
   errWrongPassword: 'Wrong password.',
   errUnsupportedTag: 'Unsupported tag — use a Mifare Classic 1K or NTAG213/215/216.',
+  errUnidentifiedTag: 'The card did not identify itself — lift it away and tap it again.',
   errNdefFormat: 'This tag holds no NFAR NDEF data.',
 };
 

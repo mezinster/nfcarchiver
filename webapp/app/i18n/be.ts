@@ -13,13 +13,18 @@ const BYTE = { one: 'байт', few: 'байты', many: 'байтаў', other: 
 export const be: Messages = {
   // — shell / device bar —
   connect: 'Падключыць Chameleon',
+  usePhoneNfc: 'Выкарыстаць NFC тэлефона',
+  disconnect: 'Адключыць',
   inspectCard: 'Агледзець карту',
   themeToggle: 'Светлая/цёмная тэма',
   language: 'Мова',
   statusConnected: 'падключана',
   statusDisconnected: 'адключана',
   connectedDot: 'Падключана.',
+  connectedPhoneNfc: 'Выкарыстоўваецца NFC тэлефона.',
   readerDisconnectedClickConnect: 'Счытвальнік адключаны — націсніце «Падключыць», каб працягнуць.',
+  inspectNeedsChameleon: 'Для агляду карты патрэбны Chameleon — NFC тэлефона не мае прамога доступу да карты.',
+  autoDetectNeedsChameleon: 'Абярыце тып меткі: NFC тэлефона не можа вызначыць ёмістасць карты.',
 
   // — tabs —
   tabArchive: 'Архіваваць',
@@ -50,6 +55,7 @@ export const be: Messages = {
   archiveDone: (n) => `Гатова — запісана і праверана ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Прыкладзіце карту ${i} з ${total} да счытвальніка…`,
   readerDisconnectedResume: 'Счытвальнік адключаны — падключыцеся зноў, каб працягнуць.',
+  readerSwitchedResume: 'Счытвальнік зменены — працягваем на новым счытвальніку.',
   rechunked: (payloadSize, total) =>
     `На карту змяшчаецца ${payloadSize} B/chunk — замест гэтага ${total} ${pr(total, CARD)}.`,
   noCardTapHold: 'Карта не выяўлена — прыкладзіце карту (трымайце за некалькі мм ад счытвальніка)…',
@@ -137,5 +143,6 @@ export const be: Messages = {
   errPasswordRequired: 'Гэты архіў зашыфраваны — увядзіце пароль.',
   errWrongPassword: 'Няправільны пароль.',
   errUnsupportedTag: 'Метка не падтрымліваецца — выкарыстоўвайце Mifare Classic 1K або NTAG213/215/216.',
+  errUnidentifiedTag: 'Карта не паведаміла свой ідэнтыфікатар — прыбярыце яе і прыкладзіце зноў.',
   errNdefFormat: 'На гэтай метцы няма даных NFAR NDEF.',
 };

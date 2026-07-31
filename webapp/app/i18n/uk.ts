@@ -13,13 +13,18 @@ const BYTE = { one: 'байт', few: 'байти', many: 'байтів', other: 
 export const uk: Messages = {
   // — shell / device bar —
   connect: 'Підключити Chameleon',
+  usePhoneNfc: 'Використати NFC телефону',
+  disconnect: 'Відключити',
   inspectCard: 'Оглянути картку',
   themeToggle: 'Світла/темна тема',
   language: 'Мова',
   statusConnected: 'підключено',
   statusDisconnected: 'відключено',
   connectedDot: 'Підключено.',
+  connectedPhoneNfc: 'Використовується NFC телефону.',
   readerDisconnectedClickConnect: 'Зчитувач відключено — натисніть «Підключити», щоб продовжити.',
+  inspectNeedsChameleon: 'Для огляду картки потрібен Chameleon — NFC телефону не має прямого доступу до картки.',
+  autoDetectNeedsChameleon: 'Виберіть тип мітки: NFC телефону не може визначити ємність картки.',
 
   // — tabs —
   tabArchive: 'Архівувати',
@@ -50,6 +55,7 @@ export const uk: Messages = {
   archiveDone: (n) => `Готово — записано та перевірено ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Прикладіть картку ${i} з ${total} до зчитувача…`,
   readerDisconnectedResume: 'Зчитувач відключено — підключіться знову, щоб продовжити.',
+  readerSwitchedResume: 'Зчитувач змінено — продовжуємо на новому зчитувачі.',
   rechunked: (payloadSize, total) =>
     `На картку вміщується ${payloadSize} B/chunk — натомість ${total} ${pr(total, CARD)}.`,
   noCardTapHold: 'Картку не виявлено — прикладіть картку (тримайте за кілька мм від зчитувача)…',
@@ -137,5 +143,6 @@ export const uk: Messages = {
   errPasswordRequired: 'Цей архів зашифровано — введіть пароль.',
   errWrongPassword: 'Неправильний пароль.',
   errUnsupportedTag: 'Мітка не підтримується — використовуйте Mifare Classic 1K або NTAG213/215/216.',
+  errUnidentifiedTag: 'Картка не повідомила свій ідентифікатор — приберіть її та прикладіть знову.',
   errNdefFormat: 'На цій мітці немає даних NFAR NDEF.',
 };
