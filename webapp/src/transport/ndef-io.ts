@@ -34,5 +34,13 @@ export interface NdefIO {
 /** Chrome reports the UID as colon-separated hex; the rest of the app uses bytes. */
 export function uidFromSerialNumber(serial: string): Uint8Array {
   if (serial === '') return new Uint8Array(0);
-  return Uint8Array.from(serial.split(':').map((h) => parseInt(h, 16)));
+  const segments = serial.split(':');
+  const bytes: number[] = [];
+  for (const seg of segments) {
+    if (!/^[0-9a-fA-F]{1,2}$/.test(seg)) {
+      throw new Error(`Invalid segment in serial "${serial}": "${seg}"`);
+    }
+    bytes.push(parseInt(seg, 16));
+  }
+  return Uint8Array.from(bytes);
 }

@@ -13,3 +13,15 @@ test('uidFromSerialNumber tolerates upper case and an empty serial', () => {
   assert.deepEqual(Array.from(uidFromSerialNumber('AB:CD')), [0xab, 0xcd]);
   assert.deepEqual(Array.from(uidFromSerialNumber('')), []);
 });
+
+test('uidFromSerialNumber throws on trailing colon', () => {
+  assert.throws(() => uidFromSerialNumber('04:7b:'), Error);
+});
+
+test('uidFromSerialNumber throws on non-hex segment', () => {
+  assert.throws(() => uidFromSerialNumber('04:zz:81'), Error);
+});
+
+test('uidFromSerialNumber throws on over-long segment', () => {
+  assert.throws(() => uidFromSerialNumber('04:7bc'), Error);
+});

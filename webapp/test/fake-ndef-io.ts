@@ -31,17 +31,21 @@ export class FakeNdefIO implements NdefIO {
     }
     this.writes.push(records);
     if (this.current !== null) {
-      this.current.records = records.map((r) => ({
-        recordType: r.recordType,
-        mediaType: r.mediaType,
-        data: r.data,
-      }));
+      const updatedReading: NdefReading = {
+        serialNumber: this.current.serialNumber,
+        records: records.map((r) => ({
+          recordType: r.recordType,
+          mediaType: r.mediaType,
+          data: r.data,
+        })),
+      };
       // Re-present the same tag so a read-back or contract re-tap sees it.
-      this.queue.unshift(this.current);
+      this.queue.unshift(updatedReading);
     }
   }
 
   stop(): void {
     this.queue = [];
+    this.current = null;
   }
 }
