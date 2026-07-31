@@ -24,6 +24,7 @@ export const be: Messages = {
   connectedPhoneNfc: 'Выкарыстоўваецца NFC тэлефона.',
   readerDisconnectedClickConnect: 'Счытвальнік адключаны — націсніце «Падключыць», каб працягнуць.',
   inspectNeedsChameleon: 'Для агляду карты патрэбны Chameleon — NFC тэлефона не мае прамога доступу да карты.',
+  readerBusyElsewhere: 'Счытвальнік заняты іншай аперацыяй — спачатку завяршыце або спыніце яе.',
   autoDetectNeedsChameleon: 'Абярыце тып меткі: NFC тэлефона не можа вызначыць ёмістасць карты.',
 
   // — tabs —

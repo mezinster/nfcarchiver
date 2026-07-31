@@ -4,9 +4,10 @@ import type { Transport } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize, webNfcChunkPayload } from '../../src/nfc/type2.js';
 import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
-import { activeReaderName, currentTransport, isConnected, onConnectionChange, setReaderBusy } from './device.js';
+import { activeReaderName, currentTransport, isConnected, onConnectionChange } from './device.js';
+import { readerLock } from './reader-lock.js';
 import { humanError } from './errors.js';
-import { t } from '../i18n/index.js';
+import { t, onLocaleChange } from '../i18n/index.js';
 import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -77,7 +78,11 @@ export function initArchivePanel(): void {
     overwriteDialog.showModal();
   });
 
-  let archiving = false;
+  // Whether THIS panel is driving the reader. Previously a private `archiving`
+  // boolean; it is now derived from the shared lock so that a running scan
+  // blocks a write and vice versa — two loops calling awaitTag() on one reader
+  // is what made every card of a 16-card archive fail on 2026-07-31.
+  const archivingNow = (): boolean => readerLock.current() === 'archive';
 
   let fileBytes: Uint8Array | null = null;
   let fileName = '';
@@ -110,8 +115,19 @@ export function initArchivePanel(): void {
   for (const id of ['text', 'compress', 'apass']) $(id).addEventListener('input', scheduleCounter);
   $('target-tag').addEventListener('change', scheduleCounter);
 
+  const syncArchiveButton = (): void => {
+    const owner = readerLock.current();
+    const btn = $('archive') as HTMLButtonElement;
+    btn.disabled = !isConnected() || owner !== null;
+    btn.title = owner !== null && owner !== 'archive' ? t.readerBusyElsewhere : '';
+  };
+  readerLock.onChange(syncArchiveButton);
+  // Same reason as restore-panel's: a `t`-derived title is invisible to
+  // applyStaticText(), so it must be re-derived on a locale change.
+  onLocaleChange(syncArchiveButton);
+
   onConnectionChange((connected) => {
-    ($('archive') as HTMLButtonElement).disabled = !connected || archiving;
+    syncArchiveButton();
     // The fallback changes the basis of the card-count estimate (720 B/chunk ->
     // NTAG215's), and a programmatic `sel.value = …` fires no change event, so
     // the counter would otherwise keep showing the old figure until the first tap.
@@ -120,16 +136,17 @@ export function initArchivePanel(): void {
     // write is in progress, this element carries live progress/error text
     // (see ArchiveOrchestrator's io.setStatus calls) that a reader hand-off
     // must not stomp.
-    if (connected && !archiving) {
+    if (connected && !archivingNow()) {
       setStatus(activeReaderName() === 'web-nfc' ? t.autoDetectNeedsChameleon : t.archiveReady);
     }
   });
 
   $('archive').addEventListener('click', async () => {
-    if (archiving) return;
     const transport = currentTransport();
     if (!transport) return;
     const src = currentSource();
+    // Acquire only after the cheap rejections, or an early return would leak
+    // the lock and wedge the reader for every other panel.
     if (!src) { setStatus(t.archivePickFirst); return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const pass = ($('apass') as HTMLInputElement).value;
@@ -157,9 +174,7 @@ export function initArchivePanel(): void {
       log,
     };
 
-    archiving = true;
-    setReaderBusy(true);
-    ($('archive') as HTMLButtonElement).disabled = true;
+    if (!readerLock.acquire('archive')) { setStatus(t.readerBusyElsewhere); return; }
     try {
       await new ArchiveOrchestrator(io).run(transport, {
         data: src.data, fileName: src.fileName, compress,
@@ -169,9 +184,7 @@ export function initArchivePanel(): void {
       hideProgress();
       setStatus(humanError(e));
     } finally {
-      setReaderBusy(false);
-      archiving = false;
-      ($('archive') as HTMLButtonElement).disabled = !isConnected();
+      readerLock.release('archive');
     }
   });
 }

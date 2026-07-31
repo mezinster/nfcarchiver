@@ -14,6 +14,7 @@ import { NtagType } from '../../src/nfc/type2.js';
 import type { Transport } from '../../src/transport/transport.js';
 import { type RawAntiColl } from '../diagnostics.js';
 import { openInspector } from './inspect-panel.js';
+import { readerLock } from './reader-lock.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
 import { t, onLocaleChange } from '../i18n/index.js';
@@ -25,7 +26,6 @@ let transport: Transport | null = null;
 let connected = false;
 const listeners: Array<(connected: boolean) => void> = [];
 
-let readerBusy = false;
 
 /** Which reader is behind `transport`, if any. Chameleon exposes raw page
  *  access (Inspect); Web NFC does not — panels use this to adjust accordingly. */
@@ -44,13 +44,10 @@ export function activeReaderName(): 'chameleon' | 'web-nfc' | null {
   return reader;
 }
 
-/** Panels report when they own the reader. Two callers interleaving BLE
- *  commands on one reader can corrupt an in-flight write, which is why the
- *  Archive button already guards on its own `archiving` flag. */
-export function setReaderBusy(busy: boolean): void {
-  readerBusy = busy;
-  updateDeviceButtons();
-}
+// Ownership now lives in readerLock, which the panels acquire directly. This
+// module only reacts: any change to who holds the reader re-derives the
+// device-bar buttons.
+readerLock.onChange(() => { updateDeviceButtons(); });
 
 /** `#target-tag`'s selection, mapped to the NtagType Web NFC needs up front —
  *  it has no capability container, so capacity can't be discovered from the
@@ -65,9 +62,18 @@ function selectedNtagType(): NtagType {
 }
 
 function updateDeviceButtons(): void {
+  // Inspect needs exclusive raw access and has no reason to preempt a running
+  // operation, so it stays gated on the lock.
   ($('inspect') as HTMLButtonElement).disabled =
-    !connected || readerBusy || reader !== 'chameleon';
-  ($('disconnect') as HTMLButtonElement).disabled = !connected || readerBusy;
+    !connected || readerLock.current() !== null || reader !== 'chameleon';
+  // Disconnect deliberately is NOT gated on the lock. It is the app's only
+  // universal escape hatch: the archive loop has no Stop control at all, so
+  // gating this would leave a wedged write with no way out — the exact trap
+  // that stranded a user on 2026-07-31. Both loops handle a mid-flight
+  // teardown cleanly (the archive loop's `usable()` check, and BrowserNdefIO's
+  // stop() rejecting the pending waiter with AbortError), so abandoning an
+  // operation this way is safe rather than merely tolerated.
+  ($('disconnect') as HTMLButtonElement).disabled = !connected;
   ($('inspect') as HTMLButtonElement).title =
     reader === 'web-nfc' ? t.inspectNeedsChameleon : '';
 }
@@ -294,6 +300,10 @@ export function initDeviceBar(): void {
         return new Uint8Array(resp);
       },
     };
-    openInspector(new SdkChameleonDevice(dev), raw, setReaderBusy);
+    // The Inspect button is disabled whenever the lock is held, so this can
+    // only run from a free lock; acquire's return needs no check.
+    openInspector(new SdkChameleonDevice(dev), raw, (busy) => {
+      if (busy) readerLock.acquire('inspect'); else readerLock.release('inspect');
+    });
   });
 }

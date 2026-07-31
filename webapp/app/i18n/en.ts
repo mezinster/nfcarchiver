@@ -23,6 +23,7 @@ export const en = {
   connectedPhoneNfc: 'Using phone NFC.',
   readerDisconnectedClickConnect: 'Reader disconnected — click Connect to resume.',
   inspectNeedsChameleon: 'Card inspection needs a Chameleon — phone NFC has no raw card access.',
+  readerBusyElsewhere: 'The reader is busy with another operation — finish or stop it first.',
   autoDetectNeedsChameleon: 'Pick a tag type: phone NFC cannot detect card capacity.',
 
   // — tabs —

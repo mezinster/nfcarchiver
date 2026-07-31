@@ -1,11 +1,13 @@
 /** Restore tab: thin adapter — builds the DOM/browser IO for RestoreOrchestrator and runs the scan-step loop. */
 import { RestoreOrchestrator, type RestoreIO } from './restore-orchestrator.js';
 import { CardAuthError, TagTimeoutError, UnsupportedTagError } from '../../src/transport/transport.js';
-import { currentTransport, onConnectionChange, setReaderBusy } from './device.js';
+import { currentTransport, isConnected, onConnectionChange } from './device.js';
+import { readerLock } from './reader-lock.js';
 import { filesController } from './files-panel.js';
 import { humanError } from './errors.js';
+import { mimeForFilename } from '../download-mime.js';
 import { log } from '../../src/log/logger.js';
-import { t } from '../i18n/index.js';
+import { t, onLocaleChange } from '../i18n/index.js';
 import { ensureMinInterval, FailureBreaker } from '../../src/loop-guards.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -20,7 +22,9 @@ export function initRestorePanel(): void {
     promptPassword: (message) => window.prompt(message),
     download: (data, name) => {
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([data as BlobPart]));
+      // Typed, not bare: an untyped Blob downloads as application/octet-stream,
+      // and Android's viewer then has no charset for restored UTF-8 text.
+      a.href = URL.createObjectURL(new Blob([data as BlobPart], { type: mimeForFilename(name) }));
       a.download = name;
       a.click();
       URL.revokeObjectURL(a.href);
@@ -32,20 +36,37 @@ export function initRestorePanel(): void {
   };
   const orch = new RestoreOrchestrator(io);
 
+  // Both buttons derive from connection state AND who holds the reader, so an
+  // archive write in progress greys out Scan instead of letting a second loop
+  // contend for taps. Driven by the lock's change notification, which fires
+  // synchronously on acquire and release.
+  const syncButtons = (): void => {
+    const owner = readerLock.current();
+    const scan = $('scan') as HTMLButtonElement;
+    scan.disabled = !isConnected() || owner !== null;
+    scan.title = owner !== null && owner !== 'scan' ? t.readerBusyElsewhere : '';
+    ($('stop-scan') as HTMLButtonElement).disabled = owner !== 'scan';
+  };
   onConnectionChange((connected) => {
-    ($('scan') as HTMLButtonElement).disabled = !connected;
+    syncButtons();
     if (connected) setStatus(t.restoreReady);
   });
+  readerLock.onChange(syncButtons);
+  // The title is set from `t`, not from data-i18n markup, so applyStaticText()
+  // never rewrites it — re-derive it here or a language switch mid-scan leaves
+  // the tooltip in the old language. device.ts:onLocaleChange does the same for
+  // its own inspectNeedsChameleon title.
+  onLocaleChange(syncButtons);
 
   $('scan').addEventListener('click', async () => {
     const transport = currentTransport();
     if (!transport) return;
+    // Refused if an archive (or an inspection) already owns the reader. The
+    // button is disabled in that case, so this is the belt to that braces.
+    if (!readerLock.acquire('scan')) return;
     orch.startSession(transport);
     scanAbort = new AbortController();
-    ($('scan') as HTMLButtonElement).disabled = true;
-    ($('stop-scan') as HTMLButtonElement).disabled = false;
     setStatus(t.scanning);
-    setReaderBusy(true);
     log.info('scan', 'Scan started');
     const breaker = new FailureBreaker();
     try {
@@ -89,9 +110,7 @@ export function initRestorePanel(): void {
         }
       }
     } finally {
-      setReaderBusy(false);
-      ($('stop-scan') as HTMLButtonElement).disabled = true;
-      ($('scan') as HTMLButtonElement).disabled = false;
+      readerLock.release('scan');
       log.info('scan', 'Scan stopped');
     }
   });

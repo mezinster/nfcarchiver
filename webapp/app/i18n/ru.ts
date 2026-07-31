@@ -24,6 +24,7 @@ export const ru: Messages = {
   connectedPhoneNfc: 'Используется NFC телефона.',
   readerDisconnectedClickConnect: 'Считыватель отключён — нажмите «Подключить», чтобы продолжить.',
   inspectNeedsChameleon: 'Для осмотра карты нужен Chameleon — у NFC телефона нет прямого доступа к карте.',
+  readerBusyElsewhere: 'Считыватель занят другой операцией — сначала завершите или остановите её.',
   autoDetectNeedsChameleon: 'Выберите тип метки: NFC телефона не может определить ёмкость карты.',
 
   // — tabs —

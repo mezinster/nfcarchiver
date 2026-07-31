@@ -21,6 +21,7 @@ export const ka: Messages = {
   connectedPhoneNfc: 'გამოიყენება ტელეფონის NFC.',
   readerDisconnectedClickConnect: 'წამკითხველი გაითიშა — გასაგრძელებლად დააჭირეთ „დაკავშირებას“.',
   inspectNeedsChameleon: 'ბარათის დათვალიერებას სჭირდება Chameleon — ტელეფონის NFC-ს არ აქვს პირდაპირი წვდომა ბარათთან.',
+  readerBusyElsewhere: 'წამკითხველი სხვა ოპერაციითაა დაკავებული — ჯერ დაასრულეთ ან შეაჩერეთ იგი.',
   autoDetectNeedsChameleon: 'აირჩიეთ ბარათის ტიპი: ტელეფონის NFC ვერ ამოიცნობს ბარათის ტევადობას.',
 
   // — tabs —
