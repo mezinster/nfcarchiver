@@ -7,7 +7,7 @@ import { filesController } from './files-panel.js';
 import { humanError } from './errors.js';
 import { mimeForFilename } from '../download-mime.js';
 import { log } from '../../src/log/logger.js';
-import { t } from '../i18n/index.js';
+import { t, onLocaleChange } from '../i18n/index.js';
 import { ensureMinInterval, FailureBreaker } from '../../src/loop-guards.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -52,6 +52,11 @@ export function initRestorePanel(): void {
     if (connected) setStatus(t.restoreReady);
   });
   readerLock.onChange(syncButtons);
+  // The title is set from `t`, not from data-i18n markup, so applyStaticText()
+  // never rewrites it — re-derive it here or a language switch mid-scan leaves
+  // the tooltip in the old language. device.ts:onLocaleChange does the same for
+  // its own inspectNeedsChameleon title.
+  onLocaleChange(syncButtons);
 
   $('scan').addEventListener('click', async () => {
     const transport = currentTransport();

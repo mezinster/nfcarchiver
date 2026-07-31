@@ -7,7 +7,7 @@ import { CARD_PAYLOAD_SIZE } from '../../src/mifare/card-layout.js';
 import { activeReaderName, currentTransport, isConnected, onConnectionChange } from './device.js';
 import { readerLock } from './reader-lock.js';
 import { humanError } from './errors.js';
-import { t } from '../i18n/index.js';
+import { t, onLocaleChange } from '../i18n/index.js';
 import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -122,6 +122,9 @@ export function initArchivePanel(): void {
     btn.title = owner !== null && owner !== 'archive' ? t.readerBusyElsewhere : '';
   };
   readerLock.onChange(syncArchiveButton);
+  // Same reason as restore-panel's: a `t`-derived title is invisible to
+  // applyStaticText(), so it must be re-derived on a locale change.
+  onLocaleChange(syncArchiveButton);
 
   onConnectionChange((connected) => {
     syncArchiveButton();
