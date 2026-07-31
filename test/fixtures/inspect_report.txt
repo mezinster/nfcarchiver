@@ -1,0 +1,32 @@
+NFC Archiver — card inspection
+
+IDENTITY
+Medium    Mifare Classic 1K (SAK 0x08)
+UID       DE AD BE EF
+ATQA      00 04
+UID (CL1) DE AD BE EF
+BCC       returned 0x22 · computed 0x22 · OK
+Verdict   BCC OK
+
+NFAR CHUNK
+magic     NFAR  v1  flags 0x03 (GZIP, AES-256-GCM)
+archive   a0a1a2a3-a4a5-a6a7-a8a9-aaabacadaeaf
+chunk     3 of 8
+payload   720 B    chunk total 752 B
+CRC32     stored 1234abcd · computed 1234abcd · OK
+warning   declared length 752 B exceeds the tag’s 700 B capacity
+
+RAW (13 of 64 units)
+s 0 b 0  42 43 44 45 46 47 48 49 4A 4B 4C 4D 4E 4F 50 51  BCDEFGHIJKLMNOPQ  ← manufacturer block
+s 0 b 1  43 44 45 46 47 48 49 4A 4B 4C 4D 4E 4F 50 51 52  CDEFGHIJKLMNOPQR
+s 0 b 2  44 45 46 47 48 49 4A 4B 4C 4D 4E 4F 50 51 52 53  DEFGHIJKLMNOPQRS
+s 0 b 3  45 46 47 48 49 4A 4B 4C 4D 4E 4F 50 51 52 53 54  EFGHIJKLMNOPQRST  ← sector trailer
+s 1 b 4  46 47 48 49 4A 4B 4C 4D 4E 4F 50 51 52 53 54 55  FGHIJKLMNOPQRSTU
+s 1 b 5  ── auth failed (non-factory key) ──            
+s 1 b 6  ── short read (marginal coupling) ──           
+s 1 b 7  49 4A 4B 4C 4D 4E 4F 50 51 52 53 54 55 56 57 58  IJKLMNOPQRSTUVWX  ← sector trailer
+s 2 b 8  4A 4B 4C 4D 4E 4F 50 51 52 53 54 55 56 57 58 59  JKLMNOPQRSTUVWXY
+s 2 b 9  4B 4C 4D 4E 4F 50 51 52 53 54 55 56 57 58 59 5A  KLMNOPQRSTUVWXYZ
+s 2 b10  4C 4D 4E 4F 50 51 52 53 54 55 56 57 58 59 5A 5B  LMNOPQRSTUVWXYZ[
+s 2 b11  ── not read (card left the field) ──           
+pg   0  A5 A6 A7 A8 A9 AA AB AC AD AE AF B0 B1 B2 B3 B4  ................  ← UID / lock / capability container
