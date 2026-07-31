@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/nfar_format.dart';
 import '../../../../core/models/chunk.dart';
 import '../../../../core/models/nfc_tag_info.dart';
-import '../../data/nfc_repository.dart';
+import '../../data/phone_nfc_reader.dart';
+import '../../domain/card_reader.dart';
+import 'reader_provider.dart';
 
 /// Provider for NFC availability.
 final nfcAvailableProvider = FutureProvider<bool>((ref) async {
-  return NfcRepository.instance.isAvailable();
+  return ref.watch(activeReaderProvider).isAvailable();
 });
 
 /// State for NFC session.
@@ -108,9 +110,11 @@ enum NfcSessionMode {
 
 /// Notifier for managing NFC session state.
 class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
-  NfcSessionNotifier() : super(const NfcSessionIdle());
+  NfcSessionNotifier([CardReader? reader])
+      : _repository = reader ?? PhoneNfcReader(),
+        super(const NfcSessionIdle());
 
-  final _repository = NfcRepository.instance;
+  final CardReader _repository;
   void Function()? _stopSession;
 
   /// Start a read session.
@@ -228,7 +232,10 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
 /// Provider for NFC session state.
 final nfcSessionProvider =
     StateNotifierProvider<NfcSessionNotifier, NfcSessionState>((ref) {
-  return NfcSessionNotifier();
+  // Watched, not read: selecting a different reader must rebuild the notifier,
+  // or sessions would keep running against the reader that was active when the
+  // app started.
+  return NfcSessionNotifier(ref.watch(activeReaderProvider));
 });
 
 /// Provider for the last read chunk (persists across session resets).

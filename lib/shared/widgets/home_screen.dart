@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../features/nfc/presentation/providers/reader_provider.dart';
+import '../../features/nfc/presentation/screens/reader_picker_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -22,6 +25,28 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.appTitle),
         actions: [
+          // The active reader, and the way to change it. Shown in the app bar
+          // because it applies to every operation, not to one screen.
+          Consumer(
+            builder: (context, ref, _) {
+              final reader = ref.watch(readerControllerProvider);
+              return IconButton(
+                tooltip: reader.kind == ReaderKind.chameleon
+                    ? l10n.readerChameleon
+                    : l10n.readerPhoneNfc,
+                icon: Icon(
+                  reader.kind == ReaderKind.chameleon
+                      ? Icons.bluetooth_connected
+                      : Icons.nfc,
+                ),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ReaderPickerScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
           const LanguageSelector(),
           IconButton(
             icon: const Icon(Icons.info_outline),

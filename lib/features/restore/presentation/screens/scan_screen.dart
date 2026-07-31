@@ -27,6 +27,28 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     _startNfcSession();
   }
 
+  /// Consecutive failures with no successful read in between.
+  int _consecutiveErrors = 0;
+
+  /// Never retry faster than this, whatever the reader does.
+  static const Duration _retryFloor = Duration(milliseconds: 400);
+
+  /// Give up after this many consecutive failures rather than spinning
+  /// forever on a reader that cannot make progress.
+  static const int _errorLimit = 5;
+
+  Future<void> _restartAfterError() async {
+    _consecutiveErrors++;
+    if (_consecutiveErrors >= _errorLimit) {
+      // Stopping and saying so beats spinning and showing nothing.
+      ref.read(nfcSessionProvider.notifier).stopSession();
+      return;
+    }
+    await Future<void>.delayed(_retryFloor);
+    if (!mounted) return;
+    await _startNfcSession();
+  }
+
   Future<void> _startNfcSession() async {
     final nfcAvailable = await ref.read(nfcAvailableProvider.future);
     if (!nfcAvailable) {
@@ -49,6 +71,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     // Listen to NFC session changes
     ref.listen(nfcSessionProvider, (previous, next) {
       if (next is NfcSessionReadSuccess) {
+        // Progress resets the failure budget: a pile of cards with one bad
+        // read in the middle is normal use, not a stuck reader.
+        _consecutiveErrors = 0;
         // Parse chunk and process
         try {
           final chunk = next.chunk;
@@ -61,8 +86,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         _startNfcSession();
       } else if (next is NfcSessionError) {
         ref.read(restoreProvider.notifier).scanError(next.message);
-        // Continue scanning despite error
-        _startNfcSession();
+        // Continue scanning despite error — but PACED and BOUNDED.
+        //
+        // Restarting immediately is safe with the phone's radio, where a
+        // session error needs a real tap or a timeout to occur. A Chameleon
+        // fails in microseconds, so an unpaced restart becomes a runaway loop
+        // that starves the UI — which is exactly how the first hardware scan
+        // hung the app, and the same failure the web app's Web NFC scan hit.
+        _restartAfterError();
       }
     });
 

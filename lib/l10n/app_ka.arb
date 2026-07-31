@@ -1,6 +1,5 @@
 {
   "@@locale": "ka",
-
   "appTitle": "NFC არქივატორი",
   "nfcChecking": "NFC-ს შემოწმება...",
   "nfcAvailable": "NFC ხელმისაწვდომია",
@@ -10,19 +9,17 @@
   "createArchiveDesc": "ფაილის დაყოფა რამდენიმე NFC ტეგზე",
   "restoreArchive": "არქივის აღდგენა",
   "restoreArchiveDesc": "ტეგების სკანირება ფაილის აღსადგენად",
-  "copyright": "NFC არქივატორი \u00a9 2026",
-  "versionFooter": "NFC არქივატორი v{version} (ბილდი {build}) \u00a9 2026",
+  "copyright": "NFC არქივატორი © 2026",
+  "versionFooter": "NFC არქივატორი v{version} (ბილდი {build}) © 2026",
   "buildLabel": "ბილდი",
   "aboutAppDescription": "განაწილებული მონაცემთა არქივაციის სისტემა NFC ტეგების გამოყენებით. შეინახეთ ფაილები რამდენიმე NFC ტეგზე და აღადგინეთ ისინი მოგვიანებით.",
   "aboutSupportedTags": "მხარდაჭერილი ტეგები: NTAG213/215/216, MIFARE Ultralight",
-
   "selectFile": "ფაილის არჩევა",
   "tapToSelectFile": "შეეხეთ ფაილის ასარჩევად",
   "chooseFileToArchive": "აირჩიეთ ნებისმიერი ფაილი NFC ტეგებზე არქივაციისთვის",
   "configureArchive": "არქივის კონფიგურაცია",
   "couldNotAccessFile": "ფაილზე წვდომა ვერ მოხერხდა",
   "errorSelectingFile": "ფაილის არჩევის შეცდომა: {error}",
-
   "settings": "პარამეტრები",
   "noFileSelected": "ფაილი არ არის არჩეული",
   "archiveSettings": "არქივის პარამეტრები",
@@ -42,7 +39,6 @@
   "payloadPerTag": "მონაცემები ტეგზე",
   "bytesUnit": "{bytes} ბაიტი",
   "startArchiving": "არქივაციის დაწყება",
-
   "writingToTags": "ტეგებზე ჩაწერა",
   "tagTooSmall": "ტეგი ძალიან პატარაა",
   "tagTooSmallMessage": "ამ ტეგზე ხელმისაწვდომია {available} ბაიტი, მაგრამ ნაწილისთვის საჭიროა {required} ბაიტი.",
@@ -54,7 +50,6 @@
   "reconfigure": "ხელახლა კონფიგურაცია",
   "reconfiguredNowUsingTags": "ხელახლა კონფიგურირებულია: ახლა გამოიყენება {count} ტეგი",
   "failedToReconfigure": "არქივის ხელახლა კონფიგურაცია ვერ მოხერხდა",
-
   "holdTagNearDevice": "მიაახლოვეთ ტეგი მოწყობილობას",
   "readyToWriteTag": "მზადაა ტეგის {index} ჩასაწერად",
   "chunkOfTotal": "ნაწილი {current} / {total}",
@@ -77,7 +72,6 @@
   "progress": "პროგრესი",
   "tagsProgress": "{current} / {total} ტეგი",
   "holdTagNearDeviceToWrite": "მიაახლოვეთ ტეგი მოწყობილობას ნაწილის {current} / {total} ჩასაწერად",
-
   "scanTags": "ტეგების სკანირება",
   "scanningForTags": "ტეგების ძიება...",
   "preparingScanner": "სკანერის მომზადება...",
@@ -104,7 +98,6 @@
   "rescanTags": "{count} ტეგის ხელახლა სკანირება",
   "tryDifferentPassword": "სხვა პაროლის ცდა",
   "pleaseEnterThePassword": "გთხოვთ შეიყვანოთ პაროლი",
-
   "english": "ინგლისური",
   "russian": "რუსული",
   "turkish": "თურქული",
@@ -113,7 +106,6 @@
   "polish": "პოლონური",
   "belarusian": "ბელარუსული",
   "language": "ენა",
-
   "file": "ფაილი",
   "text": "ტექსტი",
   "enterTextToArchive": "შეიყვანეთ ტექსტი არქივაციისთვის",
@@ -122,7 +114,6 @@
   "textCopied": "ტექსტი კოპირებულია ბუფერში",
   "copyText": "ტექსტის კოპირება",
   "couldNotDecodeText": "[ტექსტის გაშიფვრა ვერ მოხერხდა]",
-
   "archivedFiles": "არქივირებული ფაილები",
   "archivedFilesDesc": "აღდგენილი ფაილების მართვა",
   "storageUsage": "{count} ფაილი ({size})",
@@ -137,24 +128,48 @@
   "deleteAllConfirmation": "ეს სამუდამოდ წაშლის ყველა {count} არქივირებულ ფაილს. ეს მოქმედება შეუქცევადია.",
   "allFilesDeleted": "ყველა ფაილი წაშლილია",
   "modifiedDate": "შეცვლილია: {date}",
-
   "privacyPolicy": "კონფიდენციალურობის პოლიტიკა",
   "privacyPolicyTitle": "კონფიდენციალურობის პოლიტიკა",
   "privacyPolicyContent": "NFC არქივატორი შექმნილია კონფიდენციალურობის, როგორც ძირითადი პრინციპის, დაცვით. აპლიკაცია მუშაობს სრულიად ოფლაინ რეჟიმში და არ აგროვებს, არ გადასცემს და არ ინახავს არანაირ პერსონალურ მონაცემებს.\n\nმონაცემთა შეგროვება\nჩვენ არ ვაგროვებთ არანაირ მონაცემებს. არანაირი პერსონალური ინფორმაცია, გამოყენების ანალიტიკა, თვალყურის დევნება, ავარიის ანგარიშები, ქუქიები, იდენტიფიკატორები ან სარეკლამო მონაცემები.\n\nNFC წვდომა\nNFC ფუნქცია გამოიყენება მხოლოდ თქვენს მოწყობილობასთან მიახლოებული ფიზიკური NFC ტეგებზე მონაცემების წასაკითხად და ჩასაწერად. ყველა NFC ოპერაცია ლოკალურია — მონაცემები არ გადაიცემა ქსელის საშუალებით.\n\nფაილების დამუშავება\nარქივაციისთვის არჩეული ფაილები მუშავდება სრულიად თქვენს მოწყობილობაზე. ფაილის მონაცემები იკითხება ლოკალური საცავიდან, საჭიროების შემთხვევაში იკუმშება და იშიფრება მოწყობილობაზე, იყოფა ნაწილებად და იწერება NFC ტეგებზე. ფაილის მონაცემები არასოდეს იტვირთება ან გადაიცემა რომელიმე სერვერზე.\n\nდაშიფვრა\nდაშიფვრის ჩართვისას თქვენი პაროლი გამოიყენება ლოკალურად დაშიფვრის გასაღების შესაქმნელად (PBKDF2). თქვენი პაროლი არასოდეს ინახება, არ ფიქსირდება და არ გადაიცემა. დაშიფვრა და გაშიფვრა ხდება სრულიად თქვენს მოწყობილობაზე.\n\nმესამე მხარის სერვისები\nNFC არქივატორი არ იყენებს მესამე მხარის სერვისებს — არანაირი ანალიტიკა, ღრუბლოვანი საცავი, დისტანციური სერვერები ან სოციალური მედიის ინტეგრაციები.\n\nნებართვები\nაპლიკაცია ითხოვს მხოლოდ ძირითადი ფუნქციონალისთვის საჭირო ნებართვებს: NFC წვდომა ტეგების წასაკითხად და ჩასაწერად, და საცავის წვდომა ფაილებისთვის, რომლებსაც ირჩევთ არქივაციისთვის ან აღდგენისთვის.",
-
   "clearAllSessions": "ყველა სესიის გასუფთავება",
   "clearAllSessionsConfirm": "წაიშალოს ყველა დაუსრულებელი აღდგენის სესია?",
   "deleteSession": "სესიის წაშლა",
   "deleteSessionConfirm": "წაიშალოს ეს დაუსრულებელი სესია?",
   "lastUpdated": "განახლდა {dateTime}",
   "@lastUpdated": {
-    "placeholders": { "dateTime": { "type": "String" } }
+    "placeholders": {
+      "dateTime": {
+        "type": "String"
+      }
+    }
   },
   "sessionsCleared": "ყველა სესია წაიშალა",
   "sessionDeleted": "სესია წაიშალა",
   "mifareNotSupportedOnDevice": "როგორც ჩანს, ეს Mifare Classic ბარათია. თქვენი ტელეფონის NFC ჩიპს მათი წაკითხვა არ შეუძლია.",
   "tagTypeMismatch": "ეს არის {tapped} ბარათი, მაგრამ ეს არქივი კონფიგურირებულია {configured}-სთვის — შეცვალეთ ტეგის ტიპი პარამეტრებში.",
   "@tagTypeMismatch": {
-    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
-  }
+    "placeholders": {
+      "tapped": {
+        "type": "String"
+      },
+      "configured": {
+        "type": "String"
+      }
+    }
+  },
+  "readerTitle": "წამკითხველი",
+  "readerPhoneNfc": "ტელეფონის NFC",
+  "readerChameleon": "Chameleon Ultra",
+  "readerSelect": "აირჩიეთ წამკითხველი",
+  "readerScanning": "Chameleon-ის ძებნა…",
+  "readerNoDevices": "Chameleon ვერ მოიძებნა. შეამოწმეთ, ჩართულია და ახლოსაა თუ არა.",
+  "readerConnecting": "დაკავშირება…",
+  "readerConnected": "დაკავშირებულია",
+  "readerDisconnect": "გათიშვა",
+  "readerBluetoothOff": "Bluetooth გამორთულია. ჩართეთ Chameleon-ის გამოსაყენებლად.",
+  "readerPermissionDenied": "Chameleon-ის მოსაძებნად საჭიროა Bluetooth-ის ნებართვა.",
+  "readerConnectFailed": "Chameleon-თან დაკავშირება ვერ მოხერხდა.",
+  "readerPhoneSubtitle": "იყენებს ტელეფონის საკუთარ NFC-ს",
+  "readerChameleonSubtitle": "ამატებს Mifare Classic-ს და ბარათის დათვალიერებას Bluetooth-ით",
+  "readerSearch": "ძებნა"
 }

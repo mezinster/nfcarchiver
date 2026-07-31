@@ -1,6 +1,5 @@
 {
   "@@locale": "pl",
-
   "appTitle": "NFC Archiver",
   "nfcChecking": "Sprawdzanie NFC...",
   "nfcAvailable": "NFC jest dostępne",
@@ -10,19 +9,17 @@
   "createArchiveDesc": "Podziel plik na wiele tagów NFC",
   "restoreArchive": "Przywróć archiwum",
   "restoreArchiveDesc": "Skanuj tagi, aby przywrócić plik",
-  "copyright": "NFC Archiver \u00a9 2026",
-  "versionFooter": "NFC Archiver v{version} (Kompilacja {build}) \u00a9 2026",
+  "copyright": "NFC Archiver © 2026",
+  "versionFooter": "NFC Archiver v{version} (Kompilacja {build}) © 2026",
   "buildLabel": "Kompilacja",
   "aboutAppDescription": "Rozproszony system archiwizacji danych wykorzystujący tagi NFC. Przechowuj pliki na wielu tagach NFC i przywracaj je później.",
   "aboutSupportedTags": "Obsługiwane tagi: NTAG213/215/216, MIFARE Ultralight",
-
   "selectFile": "Wybierz plik",
   "tapToSelectFile": "Dotknij, aby wybrać plik",
   "chooseFileToArchive": "Wybierz dowolny plik do archiwizacji na tagach NFC",
   "configureArchive": "Konfiguruj archiwum",
   "couldNotAccessFile": "Nie można uzyskać dostępu do pliku",
   "errorSelectingFile": "Błąd wyboru pliku: {error}",
-
   "settings": "Ustawienia",
   "noFileSelected": "Nie wybrano pliku",
   "archiveSettings": "Ustawienia archiwum",
@@ -42,7 +39,6 @@
   "payloadPerTag": "Dane na tag",
   "bytesUnit": "{bytes} bajtów",
   "startArchiving": "Rozpocznij archiwizację",
-
   "writingToTags": "Zapis na tagi",
   "tagTooSmall": "Tag za mały",
   "tagTooSmallMessage": "Ten tag ma {available} bajtów dostępnych, ale fragment wymaga {required} bajtów.",
@@ -54,7 +50,6 @@
   "reconfigure": "Przekonfiguruj",
   "reconfiguredNowUsingTags": "Przekonfigurowano: teraz używa {count} tagów",
   "failedToReconfigure": "Nie udało się przekonfigurować archiwum",
-
   "holdTagNearDevice": "Przytrzymaj tag przy urządzeniu",
   "readyToWriteTag": "Gotowy do zapisu tagu {index}",
   "chunkOfTotal": "Fragment {current} z {total}",
@@ -77,7 +72,6 @@
   "progress": "Postęp",
   "tagsProgress": "{current} / {total} tagów",
   "holdTagNearDeviceToWrite": "Przytrzymaj tag przy urządzeniu, aby zapisać fragment {current} z {total}",
-
   "scanTags": "Skanuj tagi",
   "scanningForTags": "Szukanie tagów...",
   "preparingScanner": "Przygotowywanie skanera...",
@@ -104,7 +98,6 @@
   "rescanTags": "Przeskanuj ponownie {count} tag(ów)",
   "tryDifferentPassword": "Spróbuj innego hasła",
   "pleaseEnterThePassword": "Proszę wprowadzić hasło",
-
   "english": "Angielski",
   "russian": "Rosyjski",
   "turkish": "Turecki",
@@ -113,7 +106,6 @@
   "polish": "Polski",
   "belarusian": "Białoruski",
   "language": "Język",
-
   "file": "Plik",
   "text": "Tekst",
   "enterTextToArchive": "Wprowadź tekst do archiwizacji",
@@ -122,7 +114,6 @@
   "textCopied": "Tekst skopiowany do schowka",
   "copyText": "Kopiuj tekst",
   "couldNotDecodeText": "[Nie udało się zdekodować tekstu]",
-
   "archivedFiles": "Zarchiwizowane pliki",
   "archivedFilesDesc": "Zarządzaj przywróconymi plikami",
   "storageUsage": "{count} plików ({size})",
@@ -137,11 +128,9 @@
   "deleteAllConfirmation": "Spowoduje to trwałe usunięcie wszystkich {count} zarchiwizowanych plików. Tego nie można cofnąć.",
   "allFilesDeleted": "Wszystkie pliki usunięte",
   "modifiedDate": "Zmodyfikowano: {date}",
-
   "privacyPolicy": "Polityka prywatności",
   "privacyPolicyTitle": "Polityka prywatności",
   "privacyPolicyContent": "NFC Archiver został zaprojektowany z prywatnością jako podstawową zasadą. Aplikacja działa całkowicie offline i nie zbiera, nie przesyła ani nie przechowuje żadnych danych osobowych.\n\nZbieranie danych\nNie zbieramy żadnych danych. Żadnych informacji osobistych, analityki użytkowania, śledzenia, raportów o błędach, plików cookie, identyfikatorów ani danych reklamowych.\n\nDostęp NFC\nFunkcja NFC jest używana wyłącznie do odczytu i zapisu danych na fizyczne tagi NFC przyłożone do urządzenia. Wszystkie operacje NFC są lokalne — żadne dane nie są przesyłane przez sieć.\n\nPrzetwarzanie plików\nPliki wybrane do archiwizacji są przetwarzane całkowicie na urządzeniu. Dane plików są odczytywane z pamięci lokalnej, opcjonalnie kompresowane i szyfrowane na urządzeniu, dzielone na fragmenty i zapisywane na tagach NFC. Dane plików nigdy nie są przesyłane na żaden serwer.\n\nSzyfrowanie\nPo włączeniu szyfrowania hasło jest używane lokalnie do wygenerowania klucza szyfrowania (PBKDF2). Hasło nigdy nie jest zapisywane, rejestrowane ani przesyłane. Szyfrowanie i deszyfrowanie odbywają się całkowicie na urządzeniu.\n\nUsługi zewnętrzne\nNFC Archiver nie korzysta z żadnych usług zewnętrznych — żadnej analityki, pamięci w chmurze, zdalnych serwerów ani integracji z mediami społecznościowymi.\n\nUprawnienia\nAplikacja żąda tylko uprawnień niezbędnych do podstawowych funkcji: dostępu NFC do odczytu i zapisu tagów oraz dostępu do pamięci dla plików wybranych do archiwizacji lub przywracania.",
-
   "clearAllSessions": "Wyczyść wszystkie sesje",
   "clearAllSessionsConfirm": "Usunąć wszystkie niekompletne sesje przywracania?",
   "deleteSession": "Usuń sesję",
@@ -152,6 +141,28 @@
   "mifareNotSupportedOnDevice": "To wygląda na kartę Mifare Classic. Chip NFC Twojego telefonu nie potrafi ich odczytać.",
   "tagTypeMismatch": "To karta {tapped}, ale to archiwum jest skonfigurowane dla {configured} — zmień typ tagu w Ustawieniach.",
   "@tagTypeMismatch": {
-    "placeholders": { "tapped": { "type": "String" }, "configured": { "type": "String" } }
-  }
+    "placeholders": {
+      "tapped": {
+        "type": "String"
+      },
+      "configured": {
+        "type": "String"
+      }
+    }
+  },
+  "readerTitle": "Czytnik",
+  "readerPhoneNfc": "NFC telefonu",
+  "readerChameleon": "Chameleon Ultra",
+  "readerSelect": "Wybierz czytnik",
+  "readerScanning": "Szukanie urządzeń Chameleon…",
+  "readerNoDevices": "Nie znaleziono Chameleona. Sprawdź, czy jest włączony i w pobliżu.",
+  "readerConnecting": "Łączenie…",
+  "readerConnected": "Połączono",
+  "readerDisconnect": "Rozłącz",
+  "readerBluetoothOff": "Bluetooth jest wyłączony. Włącz go, aby użyć Chameleona.",
+  "readerPermissionDenied": "Do znalezienia Chameleona wymagane jest uprawnienie Bluetooth.",
+  "readerConnectFailed": "Nie udało się połączyć z Chameleonem.",
+  "readerPhoneSubtitle": "Używa własnego NFC telefonu",
+  "readerChameleonSubtitle": "Dodaje Mifare Classic i zbadanie karty przez Bluetooth",
+  "readerSearch": "Szukaj"
 }
