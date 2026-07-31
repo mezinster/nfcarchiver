@@ -201,6 +201,47 @@ void main() {
     });
   });
 
+  test('starting a session twice supersedes — it does not stack loops', () async {
+    // The first hardware scan hung on exactly this: scan_screen restarts the
+    // session on every error, each start spawned another poll loop, and they
+    // all raced for a device that permits one command in flight. Only the
+    // newest generation may keep polling.
+    final dev = FakeChameleonDevice.classic1k();
+    _writeChunkToCard(dev, validChunkBytes());
+    await dev.connect();
+
+    final reader = _reader(dev);
+    var reads = 0;
+    await reader.startReadSession(
+        onChunkRead: (_, __) => reads++, onError: (_) {});
+    final stop2 = await reader.startReadSession(
+        onChunkRead: (_, __) => reads++, onError: (_) {});
+    await pumpUntil(() => reads > 0);
+    stop2();
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+
+    expect(reader.isSessionActive, isFalse,
+        reason: 'stopping the NEWEST session must stop all polling');
+    final settled = reads;
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    expect(reads, settled, reason: 'no orphaned loop is still running');
+  });
+
+  test('a stale stop closure cannot cancel the session that replaced it',
+      () async {
+    final dev = FakeChameleonDevice.classic1k();
+    await dev.connect();
+    final reader = _reader(dev);
+
+    final stale = await reader.startReadSession(
+        onChunkRead: (_, __) {}, onError: (_) {});
+    await reader.startReadSession(onChunkRead: (_, __) {}, onError: (_) {});
+    stale();
+
+    expect(reader.isSessionActive, isTrue,
+        reason: 'the newer session owns the loop');
+  });
+
   test('connect and disconnect drive the underlying device', () async {
     final dev = FakeChameleonDevice.classic1k();
     final reader = ChameleonReader(dev, pollInterval: Duration.zero);

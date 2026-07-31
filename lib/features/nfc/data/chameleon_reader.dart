@@ -30,6 +30,16 @@ class ChameleonReader implements CardReader {
   bool _sessionActive = false;
   DateTime? _lastWriteAt;
 
+  /// Bumped by every session start. A poll loop exits as soon as its own
+  /// generation is stale, so starting a session while one runs SUPERSEDES it
+  /// instead of adding a second loop.
+  ///
+  /// Without this, a caller that restarts on error (scan_screen does exactly
+  /// that) spawns loop after loop, all racing for a device that permits one
+  /// command in flight — which is how the first hardware scan hung the app.
+  /// The same ownership rule as readerEpoch in the web app's device.ts.
+  int _generation = 0;
+
   /// The UID resting on the reader right now.
   ///
   /// A card left in the field would otherwise be re-read every poll and flood
@@ -84,11 +94,12 @@ class ChameleonReader implements CardReader {
     // platform's UI would be worse than one unused parameter.
     String alertMessage = '',
   }) async {
+    final gen = ++_generation;
     _sessionActive = true;
     _currentUid = null;
-    log.info('reader', 'Read session started');
+    log.info('reader', 'Read session started', {'gen': gen});
 
-    unawaited(_pollLoop((tag) async {
+    unawaited(_pollLoop(gen, (tag) async {
       final info = _tagInfo(tag);
       log.info('reader', 'Tag discovered', {
         'uid': info.identifier,
@@ -104,7 +115,11 @@ class ChameleonReader implements CardReader {
       onChunkRead(Chunk.fromBytes(bytes), info);
     }, onError));
 
-    return () => _sessionActive = false;
+    return () {
+      // Only the session that owns this closure may stop the loop; a stale
+      // closure must not cancel the run that replaced it.
+      if (gen == _generation) _sessionActive = false;
+    };
   }
 
   @override
@@ -120,12 +135,13 @@ class ChameleonReader implements CardReader {
         onTagTypeMismatch,
     String alertMessage = '',
   }) async {
+    final gen = ++_generation;
     _sessionActive = true;
     _currentUid = null;
     final bytes = chunk.toBytes();
-    log.info('reader', 'Write session started', {'bytes': bytes.length});
+    log.info('reader', 'Write session started', {'bytes': bytes.length, 'gen': gen});
 
-    unawaited(_pollLoop((tag) async {
+    unawaited(_pollLoop(gen, (tag) async {
       final info = _tagInfo(tag);
       if (tag.sak == 0x08) {
         if (bytes.length > cardCapacityBytes) {
@@ -147,7 +163,9 @@ class ChameleonReader implements CardReader {
       _sessionActive = false;
     }, onError));
 
-    return () => _sessionActive = false;
+    return () {
+      if (gen == _generation) _sessionActive = false;
+    };
   }
 
   @override
@@ -220,10 +238,12 @@ class ChameleonReader implements CardReader {
   // ---- internals ------------------------------------------------------------
 
   Future<void> _pollLoop(
+    int gen,
     Future<void> Function(ScannedTag tag) onTag,
     void Function(String message) onError,
   ) async {
-    while (_sessionActive) {
+    while (_sessionActive && gen == _generation) {
+      final iterationStart = DateTime.now();
       try {
         final tag = await _device.scanTag();
         if (tag == null) {
@@ -247,12 +267,20 @@ class ChameleonReader implements CardReader {
         log.error('reader', 'Poll iteration failed', {'error': e.toString()});
         onError(e.toString());
       }
-      if (_pollInterval > Duration.zero) {
-        await Future<void>.delayed(_pollInterval);
-      } else {
-        await Future<void>.delayed(Duration.zero);
-      }
+      // Paced on EVERY path, including errors. A reader that fails instantly
+      // would otherwise spin the loop as fast as the event loop allows, which
+      // is precisely how the web app's Web NFC scan froze the browser.
+      await _paceFrom(iterationStart);
     }
+    log.debug('reader', 'Poll loop ended', {'gen': gen});
+  }
+
+  Future<void> _paceFrom(DateTime start) async {
+    final elapsed = DateTime.now().difference(start);
+    final remaining = _pollInterval - elapsed;
+    await Future<void>.delayed(
+      remaining > Duration.zero ? remaining : Duration.zero,
+    );
   }
 
   /// The chunk on the presented card, or null if it holds none.
