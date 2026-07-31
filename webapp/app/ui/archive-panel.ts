@@ -26,19 +26,25 @@ function selectedPayloadSize(): number {
 }
 
 /** Keeps `#target-tag` sane for the active reader. Web NFC exposes no capability
- *  container, so "Auto-detect" (which relies on tapping a real card to discover
- *  it) is meaningless there — disable the option and, if it was selected, fall
- *  back to a concrete chip. Does NOT touch archive-status itself: that element
- *  also carries archive progress/error text (see the onConnectionChange
- *  handler below), and writing here unconditionally would clobber a message
- *  mid-archive if the user swaps readers while a write is in progress (the
- *  Connect/Use-phone-NFC buttons stay enabled during archiving). */
+ *  container, so neither "Auto-detect" (which relies on tapping a real card to
+ *  discover capacity) nor Mifare Classic 1K (`selectedNtagType()` in device.ts
+ *  has no NTAG mapping for it and falls back to NTAG215 for the transport) is
+ *  usable there — disable both options and, if either was selected, fall back
+ *  to a concrete NTAG chip. Recomputed on every reader hand-off so both
+ *  re-enable when switching back to the Chameleon. Does NOT touch
+ *  archive-status itself: that element also carries archive progress/error
+ *  text (see the onConnectionChange handler below), and writing here
+ *  unconditionally would clobber a message mid-archive if the user swaps
+ *  readers while a write is in progress (the Connect/Use-phone-NFC buttons
+ *  stay enabled during archiving). */
 function syncTargetTagForReader(): void {
   const sel = $('target-tag') as HTMLSelectElement;
   const auto = sel.querySelector<HTMLOptionElement>('option[value="auto"]')!;
+  const mifare = sel.querySelector<HTMLOptionElement>('option[value="720"]')!;
   const webNfc = activeReaderName() === 'web-nfc';
   auto.disabled = webNfc;
-  if (webNfc && sel.value === 'auto') sel.value = 'NTAG215';
+  mifare.disabled = webNfc;
+  if (webNfc && (sel.value === 'auto' || sel.value === '720')) sel.value = 'NTAG215';
 }
 
 export function initArchivePanel(): void {
