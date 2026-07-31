@@ -46,7 +46,9 @@ export const be: Messages = {
   tabAbout: 'Пра праграму',
 
   // — archive tab —
-  orText: 'або тэкст:',
+  sourceFile: 'Файл',
+  sourceText: 'Тэкст',
+  orSeparator: 'або',
   textPlaceholder: 'Увядзіце тэкст для архівацыі ў text_note.txt',
   targetTag: 'тып меткі',
   targetAuto: 'Аўтавызначэнне (падладзіцца пад карту)',

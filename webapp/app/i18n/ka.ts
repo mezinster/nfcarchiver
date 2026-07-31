@@ -43,7 +43,9 @@ export const ka: Messages = {
   tabAbout: 'შესახებ',
 
   // — archive tab —
-  orText: 'ან ტექსტი:',
+  sourceFile: 'ფაილი',
+  sourceText: 'ტექსტი',
+  orSeparator: 'ან',
   textPlaceholder: 'აკრიფეთ ტექსტი text_note.txt-ად დასაარქივებლად',
   targetTag: 'სამიზნე ტეგი',
   targetAuto: 'ავტომატური ამოცნობა (მოერგება ბარათს)',

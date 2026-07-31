@@ -43,7 +43,9 @@ export const tr: Messages = {
   tabAbout: 'Hakkında',
 
   // — archive tab —
-  orText: 'veya metin:',
+  sourceFile: 'Dosya',
+  sourceText: 'Metin',
+  orSeparator: 'veya',
   textPlaceholder: 'text_note.txt olarak arşivlenecek metni yazın',
   targetTag: 'hedef etiket',
   targetAuto: 'Otomatik algıla (karta uyarlanır)',

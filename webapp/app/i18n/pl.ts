@@ -46,7 +46,9 @@ export const pl: Messages = {
   tabAbout: 'O aplikacji',
 
   // — archive tab —
-  orText: 'lub tekst:',
+  sourceFile: 'Plik',
+  sourceText: 'Tekst',
+  orSeparator: 'lub',
   textPlaceholder: 'Wpisz tekst do zarchiwizowania jako text_note.txt',
   targetTag: 'typ tagu',
   targetAuto: 'Wykryj automatycznie (dopasuje się do karty)',

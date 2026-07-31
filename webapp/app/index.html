@@ -98,6 +98,17 @@
         padding: 15px 18px; border-bottom: 1px solid var(--border);
       }
       .row:last-child { border-bottom: none; }
+      /* The row above an .or-divider drops its own rule — the divider draws
+         its own, and two hairlines a few pixels apart read as a mistake. */
+      .row-flush { border-bottom: none; }
+      .or-divider {
+        display: flex; align-items: center; gap: 10px; padding: 2px 18px 6px;
+        font-size: 12px; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.09em; color: var(--text-secondary);
+      }
+      .or-divider::before, .or-divider::after {
+        content: ""; flex: 1; height: 1px; background: var(--border);
+      }
       /* Deliberate exception for full-width controls (the textarea): label
          above, control stretched beneath, not the fixed-height row shape. */
       .row-col { flex-direction: column; align-items: stretch; gap: 8px; }
@@ -313,19 +324,22 @@
       <section id="panel-archive" role="tabpanel">
         <span class="section-label" data-i18n="sectionSource">Source</span>
         <div class="card">
-          <div class="row">
+          <div class="row row-flush">
             <span class="icon-tile"><svg class="ico"><use href="#i-file"/></svg></span>
             <div class="row-text">
-              <div class="row-name" data-i18n="tabArchive">Archive</div>
+              <div class="row-name" data-i18n="sourceFile">File</div>
               <div class="row-sub" data-i18n="subChooseFile">Any file, split across cards</div>
             </div>
             <div class="row-control"><input type="file" id="file" /></div>
           </div>
+          <!-- The two sources are alternatives, not a sequence: an "or" rule
+               reading between them says so far better than a plain divider. -->
+          <div class="or-divider"><span data-i18n="orSeparator">or</span></div>
           <div class="row row-col">
             <div class="row-col-head">
               <span class="icon-tile"><svg class="ico"><use href="#i-pencil"/></svg></span>
               <div class="row-text">
-                <div class="row-name" data-i18n="orText">or text:</div>
+                <div class="row-name" data-i18n="sourceText">Text</div>
                 <div class="row-sub" data-i18n="subTypeText">Saved as text_note.txt</div>
               </div>
             </div>

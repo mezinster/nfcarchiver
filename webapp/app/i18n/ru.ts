@@ -46,7 +46,9 @@ export const ru: Messages = {
   tabAbout: 'О программе',
 
   // — archive tab —
-  orText: 'или текст:',
+  sourceFile: 'Файл',
+  sourceText: 'Текст',
+  orSeparator: 'или',
   textPlaceholder: 'Введите текст для архивации в text_note.txt',
   targetTag: 'тип метки',
   targetAuto: 'Автоопределение (подстроится под карту)',

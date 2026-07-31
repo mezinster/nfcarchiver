@@ -45,7 +45,9 @@ export const en = {
   tabAbout: 'About',
 
   // — archive tab —
-  orText: 'or text:',
+  sourceFile: 'File',
+  sourceText: 'Text',
+  orSeparator: 'or',
   textPlaceholder: 'Type text to archive as text_note.txt',
   targetTag: 'target tag',
   targetAuto: 'Auto-detect (adapts to the card)',
