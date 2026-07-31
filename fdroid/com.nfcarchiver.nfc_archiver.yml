@@ -42,7 +42,7 @@ Builds:
 
   - versionName: 1.1.0
     versionCode: 13
-    commit: REPLACE_WITH_RELEASE_COMMIT_SHA
+    commit: 4567440489984e253b7da1c63b184a7ef96dabb9
     sudo:
       - echo 'deb http://deb.debian.org/debian bookworm main' > /etc/apt/sources.list.d/bookworm.list
       - apt-get update
