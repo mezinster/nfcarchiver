@@ -183,7 +183,9 @@ OUTPUT
 
 ### Files panel
 
-`files-view.ts` renders each entry as a `.row`: icon tile, name plus a `.row-sub` carrying size and date, and Download/Delete controls in `.row-control`. `#files-empty`, `#files-info`, `#files-status` and `#files-clear` keep their IDs; Clear all becomes `.btn-text`.
+`files-view.ts` renders each entry as a `.row`: icon tile, its existing composed label, and Download/Delete controls in `.row-control`. `#files-empty`, `#files-info`, `#files-status` and `#files-clear` keep their IDs; Clear all becomes `.btn-text`.
+
+**List rows carry no sub-label.** `t.fileRow` and `t.archiveRow` each compose name, size, date, encryption state and a pluralised chunk count into one string. Splitting them into a name and a meta line would mean replacing two keys and reworking their plural logic across seven locales, for a marginal visual gain — so both list rows keep their single composed label in `.row-name`. Sub-labels remain a feature of the fixed settings rows, where the strings are new anyway.
 
 ### Log panel
 
