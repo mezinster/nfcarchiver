@@ -65,6 +65,11 @@ class ChameleonReader implements CardReader {
   @override
   bool get supportsRawAccess => true;
 
+  /// The SAME instance every card operation uses — see CardReader.rawDevice
+  /// for why constructing a second one silently breaks.
+  @override
+  ChameleonDevice? get rawDevice => _device;
+
   @override
   bool get isInWriteCooldown {
     final at = _lastWriteAt;

@@ -171,5 +171,20 @@
   "readerConnectFailed": "Chameleon’a bağlanılamadı.",
   "readerPhoneSubtitle": "Telefonun kendi NFC’sini kullanır",
   "readerChameleonSubtitle": "Bluetooth üzerinden Mifare Classic ve kart incelemesi ekler",
-  "readerSearch": "Ara"
+  "readerSearch": "Ara",
+  "inspectTitle": "Kartı incele",
+  "inspectIdentity": "Kimlik",
+  "inspectNfar": "NFAR parçası",
+  "inspectRaw": "Ham veri",
+  "inspectHoldStill": "Kartı okuyucunun üzerinde sabit tutun…",
+  "inspectDone": "İnceleme tamamlandı.",
+  "inspectStopped": "Durduruldu.",
+  "inspectCardLost": "Kart alandan çıktı — kısmi döküm.",
+  "inspectCopy": "Kopyala",
+  "inspectCopied": "Rapor kopyalandı.",
+  "inspectShare": "Paylaş",
+  "inspectClose": "Kapat",
+  "inspectNeedsChameleon": "Kart incelemesi için Chameleon gerekir — telefonun NFC'sinin ham karta erişimi yoktur.",
+  "inspectReading": "{total} biriminden {done} okunuyor…",
+  "inspectRead": "{total} biriminden {done} okundu"
 }

@@ -1,6 +1,7 @@
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
+import '../../../core/chameleon/chameleon_device.dart';
 import '../data/nfc_repository.dart';
 
 /// A source of card reads and writes.
@@ -24,6 +25,19 @@ abstract class CardReader {
   /// stack exposes no raw anticollision or arbitrary block access, so this is a
   /// permanent property of the medium, not a missing feature.
   bool get supportsRawAccess;
+
+  /// The live device behind this reader, or null when it has none.
+  ///
+  /// Returned rather than reconstructed by callers: a second
+  /// [ChameleonDevice] for the same physical reader has its own pending-command
+  /// slot and its own notification subscription, so it writes commands nobody
+  /// is listening for and waits for replies the FIRST instance silently drops.
+  /// Observed on hardware — every inspection timed out while the log showed
+  /// 'Dropped unmatched frame awaiting=null'.
+  ///
+  /// Non-null exactly when [supportsRawAccess] is true, so the flag and the
+  /// thing it gates come from the same object.
+  ChameleonDevice? get rawDevice;
 
   bool get isInWriteCooldown;
 

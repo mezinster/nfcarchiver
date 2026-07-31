@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../inspect/presentation/screens/inspect_dialog.dart';
 import '../../data/ble_scanner.dart';
 import '../providers/reader_provider.dart';
 
@@ -181,6 +182,36 @@ class _ReaderPickerScreenState extends ConsumerState<ReaderPickerScreen> {
                     onTap: _connecting ? null : () => _connect(d),
                   ),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Visible but DISABLED under phone NFC, never hidden: a silently
+          // absent control teaches the user nothing, whereas a disabled one
+          // with a reason explains a permanent platform limit.
+          Tooltip(
+            message: reader.reader.supportsRawAccess
+                ? ''
+                : l10n.inspectNeedsChameleon,
+            child: OutlinedButton.icon(
+              onPressed: reader.reader.rawDevice == null
+                  ? null
+                  : () {
+                      // The reader's OWN device, never a fresh one: a second
+                      // instance is not subscribed to notifications and every
+                      // command it sends times out.
+                      final dev = reader.reader.rawDevice!;
+                      reader.reader.stopSession();
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => InspectDialog(
+                            device: dev,
+                            uid: (reader.deviceId ?? 'card').replaceAll(':', ''),
+                          ),
+                        ),
+                      );
+                    },
+              icon: const Icon(Icons.travel_explore),
+              label: Text(l10n.inspectTitle),
             ),
           ),
           if (reader.kind == ReaderKind.chameleon) ...[

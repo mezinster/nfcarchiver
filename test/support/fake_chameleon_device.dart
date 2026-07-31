@@ -1,6 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:nfc_archiver/core/chameleon/chameleon_device.dart';
+import 'package:nfc_archiver/core/mifare/card_layout.dart';
+import 'package:nfc_archiver/core/nfc/ndef_bytes.dart';
+import 'package:nfc_archiver/core/nfc/type2.dart';
 
 /// An in-memory [ChameleonDevice] for tests.
 ///
@@ -110,6 +113,30 @@ class FakeChameleonDevice implements ChameleonDevice {
   /// a card's starting state without going through the write path under test.
   void setBlock(int block, Uint8List data) =>
       _blocks[block] = Uint8List.fromList(data);
+
+  /// Store [chunk] in the medium's NATIVE envelope: raw blocks on Classic, a
+  /// Type-2 TLV wrapping an NDEF record on NTAG.
+  ///
+  /// The two differ, and that difference is the whole reason nfarBytesSoFar
+  /// exists — a fake that stored raw bytes on NTAG would make the unwrap look
+  /// unnecessary.
+  void writeNfar(Uint8List chunk) {
+    if (sak == 0x08) {
+      for (final w in chunkToBlocks(chunk)) {
+        setBlock(w.block, w.data);
+      }
+      return;
+    }
+    final memory = wrapType2Tlv(encodeNdefMime(chunk));
+    for (var i = 0; i < memory.length; i += 4) {
+      final page = ndefStartPage + (i ~/ 4);
+      if (page >= totalPages) break;
+      final end = (i + 4) < memory.length ? i + 4 : memory.length;
+      final bytes = Uint8List(4)
+        ..setRange(0, end - i, Uint8List.sublistView(memory, i, end));
+      _pages[page] = bytes;
+    }
+  }
 
   /// Slows each block read so cancellation and superseded-run tests have a run
   /// long enough to interrupt.

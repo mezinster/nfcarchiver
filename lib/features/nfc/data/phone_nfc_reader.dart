@@ -1,6 +1,7 @@
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
+import '../../../core/chameleon/chameleon_device.dart';
 import '../domain/card_reader.dart';
 import 'nfc_repository.dart';
 
@@ -25,6 +26,9 @@ class PhoneNfcReader implements CardReader {
   /// platform, not a deferred feature.
   @override
   bool get supportsRawAccess => false;
+
+  @override
+  ChameleonDevice? get rawDevice => null;
 
   @override
   bool get isInWriteCooldown => _repository.isInWriteCooldown;

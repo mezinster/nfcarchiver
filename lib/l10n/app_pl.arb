@@ -164,5 +164,20 @@
   "readerConnectFailed": "Nie udało się połączyć z Chameleonem.",
   "readerPhoneSubtitle": "Używa własnego NFC telefonu",
   "readerChameleonSubtitle": "Dodaje Mifare Classic i zbadanie karty przez Bluetooth",
-  "readerSearch": "Szukaj"
+  "readerSearch": "Szukaj",
+  "inspectTitle": "Zbadaj kartę",
+  "inspectIdentity": "Tożsamość",
+  "inspectNfar": "Fragment NFAR",
+  "inspectRaw": "Dane surowe",
+  "inspectHoldStill": "Trzymaj kartę nieruchomo na czytniku…",
+  "inspectDone": "Badanie zakończone.",
+  "inspectStopped": "Zatrzymano.",
+  "inspectCardLost": "Karta opuściła pole — częściowy zrzut.",
+  "inspectCopy": "Kopiuj",
+  "inspectCopied": "Raport skopiowany.",
+  "inspectShare": "Udostępnij",
+  "inspectClose": "Zamknij",
+  "inspectNeedsChameleon": "Zbadanie karty wymaga Chameleona — NFC telefonu nie ma bezpośredniego dostępu do karty.",
+  "inspectReading": "Odczyt {done} z {total}…",
+  "inspectRead": "Odczytano {done} z {total}"
 }

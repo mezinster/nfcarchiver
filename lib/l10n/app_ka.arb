@@ -171,5 +171,20 @@
   "readerConnectFailed": "Chameleon-თან დაკავშირება ვერ მოხერხდა.",
   "readerPhoneSubtitle": "იყენებს ტელეფონის საკუთარ NFC-ს",
   "readerChameleonSubtitle": "ამატებს Mifare Classic-ს და ბარათის დათვალიერებას Bluetooth-ით",
-  "readerSearch": "ძებნა"
+  "readerSearch": "ძებნა",
+  "inspectTitle": "ბარათის დათვალიერება",
+  "inspectIdentity": "იდენტიფიკაცია",
+  "inspectNfar": "NFAR ფრაგმენტი",
+  "inspectRaw": "დაუმუშავებელი",
+  "inspectHoldStill": "გეჭიროთ ბარათი უძრავად წამკითხველზე…",
+  "inspectDone": "დათვალიერება დასრულდა.",
+  "inspectStopped": "შეჩერდა.",
+  "inspectCardLost": "ბარათი მოშორდა — ნაწილობრივი დამპი.",
+  "inspectCopy": "კოპირება",
+  "inspectCopied": "ანგარიში დაკოპირდა.",
+  "inspectShare": "გაზიარება",
+  "inspectClose": "დახურვა",
+  "inspectNeedsChameleon": "ბარათის დათვალიერებას სჭირდება Chameleon — ტელეფონის NFC-ს არ აქვს პირდაპირი წვდომა ბარათთან.",
+  "inspectReading": "იკითხება {done} / {total}…",
+  "inspectRead": "წაკითხულია {done} / {total}"
 }

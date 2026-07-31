@@ -211,9 +211,14 @@ class BleChameleonDevice implements ChameleonDevice {
     Duration timeout = const Duration(seconds: 5),
     Set<int> alsoAllow = const {},
   }) async {
-    if (!_connected && cmd != ChameleonCmd.changeDeviceMode &&
-        cmd != ChameleonCmd.getAppVersion) {
-      throw const CardReadException('Not connected to a Chameleon');
+    // Keyed on the notification subscription, not on _connected: writing a
+    // command while nothing is listening produces a five-second timeout on a
+    // reply that actually arrived — and did, on hardware. connect() subscribes
+    // before it sends anything, so its own commands still pass.
+    if (_notifySub == null) {
+      throw const CardReadException(
+        'Not listening to this Chameleon — connect() was never called on this instance',
+      );
     }
     if (_pending != null) {
       throw StateError('A Chameleon command is already in flight');
