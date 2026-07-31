@@ -12,13 +12,18 @@ import { pr } from './plural.js';
 export const en = {
   // — shell / device bar —
   connect: 'Connect Chameleon',
+  usePhoneNfc: 'Use phone NFC',
+  disconnect: 'Disconnect',
   inspectCard: 'Inspect card',
   themeToggle: 'Toggle light/dark',
   language: 'Language',
   statusConnected: 'connected',
   statusDisconnected: 'disconnected',
   connectedDot: 'Connected.',
+  connectedPhoneNfc: 'Using phone NFC.',
   readerDisconnectedClickConnect: 'Reader disconnected — click Connect to resume.',
+  inspectNeedsChameleon: 'Card inspection needs a Chameleon — phone NFC has no raw card access.',
+  autoDetectNeedsChameleon: 'Pick a tag type: phone NFC cannot detect card capacity.',
 
   // — tabs —
   tabArchive: 'Archive',

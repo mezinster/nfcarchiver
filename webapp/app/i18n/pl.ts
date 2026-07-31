@@ -13,13 +13,18 @@ const BYTE = { one: 'bajt', few: 'bajty', many: 'bajtów', other: 'bajtów' };
 export const pl: Messages = {
   // — shell / device bar —
   connect: 'Połącz z Chameleonem',
+  usePhoneNfc: 'Użyj NFC telefonu',
+  disconnect: 'Rozłącz',
   inspectCard: 'Zbadaj kartę',
   themeToggle: 'Przełącz jasny/ciemny motyw',
   language: 'Język',
   statusConnected: 'połączono',
   statusDisconnected: 'rozłączono',
   connectedDot: 'Połączono.',
+  connectedPhoneNfc: 'Używane NFC telefonu.',
   readerDisconnectedClickConnect: 'Czytnik rozłączony — kliknij „Połącz”, aby kontynuować.',
+  inspectNeedsChameleon: 'Zbadanie karty wymaga Chameleona — NFC telefonu nie ma bezpośredniego dostępu do karty.',
+  autoDetectNeedsChameleon: 'Wybierz typ znacznika: NFC telefonu nie potrafi wykryć pojemności karty.',
 
   // — tabs —
   tabArchive: 'Archiwizuj',

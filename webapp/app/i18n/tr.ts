@@ -10,13 +10,18 @@ const FILE = { one: 'dosya', other: 'dosya' };
 export const tr: Messages = {
   // — shell / device bar —
   connect: "Chameleon'a bağlan",
+  usePhoneNfc: "Telefonun NFC'sini kullan",
+  disconnect: 'Bağlantıyı kes',
   inspectCard: 'Kartı incele',
   themeToggle: 'Açık/koyu tema',
   language: 'Dil',
   statusConnected: 'bağlı',
   statusDisconnected: 'bağlı değil',
   connectedDot: 'Bağlandı.',
+  connectedPhoneNfc: "Telefonun NFC'si kullanılıyor.",
   readerDisconnectedClickConnect: "Okuyucu bağlantısı kesildi — devam etmek için Bağlan'a tıklayın.",
+  inspectNeedsChameleon: "Kart incelemesi için Chameleon gerekir — telefonun NFC'sinin ham karta erişimi yoktur.",
+  autoDetectNeedsChameleon: "Bir etiket türü seçin: telefonun NFC'si kart kapasitesini algılayamaz.",
 
   // — tabs —
   tabArchive: 'Arşivle',

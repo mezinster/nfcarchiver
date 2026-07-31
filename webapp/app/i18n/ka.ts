@@ -10,13 +10,18 @@ const FILE = { one: 'ფაილი', other: 'ფაილი' };
 export const ka: Messages = {
   // — shell / device bar —
   connect: 'Chameleon-თან დაკავშირება',
+  usePhoneNfc: 'ტელეფონის NFC-ის გამოყენება',
+  disconnect: 'გათიშვა',
   inspectCard: 'ბარათის დათვალიერება',
   themeToggle: 'ღია/მუქი თემა',
   language: 'ენა',
   statusConnected: 'დაკავშირებულია',
   statusDisconnected: 'გათიშულია',
   connectedDot: 'დაკავშირებულია.',
+  connectedPhoneNfc: 'გამოიყენება ტელეფონის NFC.',
   readerDisconnectedClickConnect: 'წამკითხველი გაითიშა — გასაგრძელებლად დააჭირეთ „დაკავშირებას“.',
+  inspectNeedsChameleon: 'ბარათის დათვალიერებას სჭირდება Chameleon — ტელეფონის NFC-ს არ აქვს პირდაპირი წვდომა ბარათთან.',
+  autoDetectNeedsChameleon: 'აირჩიეთ ბარათის ტიპი: ტელეფონის NFC ვერ ამოიცნობს ბარათის ტევადობას.',
 
   // — tabs —
   tabArchive: 'არქივაცია',

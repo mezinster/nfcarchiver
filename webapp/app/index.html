@@ -82,11 +82,13 @@
 
     <div id="device-bar">
       <button id="connect" data-i18n="connect">Connect Chameleon</button>
+      <button id="use-web-nfc" hidden data-i18n="usePhoneNfc">Use phone NFC</button>
       <!-- No data-i18n: this span mirrors live connection state, so device.ts
            owns it and re-renders it on locale change. applyStaticText() would
            overwrite "connected" with the disconnected text. -->
       <span id="conn">disconnected</span>
       <button id="inspect" disabled data-i18n="inspectCard">Inspect card</button>
+      <button id="disconnect" disabled data-i18n="disconnect">Disconnect</button>
       <pre id="device-status"></pre>
     </div>
 

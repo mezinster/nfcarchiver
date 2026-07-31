@@ -13,13 +13,18 @@ const BYTE = { one: 'байт', few: 'байта', many: 'байт', other: 'б�
 export const ru: Messages = {
   // — shell / device bar —
   connect: 'Подключить Chameleon',
+  usePhoneNfc: 'Использовать NFC телефона',
+  disconnect: 'Отключить',
   inspectCard: 'Осмотреть карту',
   themeToggle: 'Светлая/тёмная тема',
   language: 'Язык',
   statusConnected: 'подключено',
   statusDisconnected: 'отключено',
   connectedDot: 'Подключено.',
+  connectedPhoneNfc: 'Используется NFC телефона.',
   readerDisconnectedClickConnect: 'Считыватель отключён — нажмите «Подключить», чтобы продолжить.',
+  inspectNeedsChameleon: 'Для осмотра карты нужен Chameleon — у NFC телефона нет прямого доступа к карте.',
+  autoDetectNeedsChameleon: 'Выберите тип метки: NFC телефона не может определить ёмкость карты.',
 
   // — tabs —
   tabArchive: 'Архивировать',
