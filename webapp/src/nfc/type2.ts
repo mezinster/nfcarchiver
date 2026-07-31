@@ -118,3 +118,24 @@ export function ndefCapacityFromCC(cc: Uint8Array): number | null {
   if (cc.length < 4 || cc[0] !== 0xe1 || cc[2] === 0) return null;
   return cc[2]! * 8;
 }
+
+/** NDEF data area each NTAG type declares in its FACTORY Capability Container
+ *  (MLEN x 8). Smaller than raw user memory: NTAG215 496 vs 504, NTAG216 872 vs
+ *  888, NTAG213 144 == 144. */
+const FACTORY_CC_BYTES: Record<NtagType, number> = {
+  [NtagType.NTAG213]: 144,
+  [NtagType.NTAG215]: 496,
+  [NtagType.NTAG216]: 872,
+};
+
+export function ntagFactoryNdefCapacity(t: NtagType): number {
+  return FACTORY_CC_BYTES[t];
+}
+
+/** Chunk payload for a reader that cannot read the tag's own Capability
+ *  Container — Web NFC. Assumes the factory CC, which is what an unmodified tag
+ *  ships with, so the bytes match what the Chameleon path writes after reading
+ *  the real CC. */
+export function webNfcChunkPayload(t: NtagType): number {
+  return chunkPayloadForCapacity(ntagFactoryNdefCapacity(t));
+}

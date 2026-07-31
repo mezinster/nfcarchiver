@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   wrapType2Tlv, readType2Ndef, NtagType, ntagUserBytes, detectNtagType, ntagChunkPayloadSize,
-  chunkPayloadForCapacity, ndefCapacityFromCC,
+  chunkPayloadForCapacity, ndefCapacityFromCC, ntagFactoryNdefCapacity, webNfcChunkPayload,
 } from '../src/nfc/type2.js';
 import { encodeNdefMime, NdefFormatError } from '../src/nfc/ndef.js';
 import { TOTAL_OVERHEAD } from '../src/chunk.js';
@@ -75,4 +75,24 @@ test('ndefCapacityFromCC reads MLEN×8 from a valid CC and rejects an invalid on
   assert.equal(ndefCapacityFromCC(new Uint8Array([0xe1, 0x10, 0x12, 0x00])), 144); // NTAG213
   assert.equal(ndefCapacityFromCC(new Uint8Array([0x00, 0x00, 0x00, 0x00])), null); // blank/unformatted
   assert.equal(ndefCapacityFromCC(new Uint8Array([0xe1, 0x10])), null); // too short
+});
+
+test('ntagFactoryNdefCapacity returns the CC-declared area, not raw memory', () => {
+  assert.equal(ntagFactoryNdefCapacity(NtagType.NTAG213), 144);
+  assert.equal(ntagFactoryNdefCapacity(NtagType.NTAG215), 496);
+  assert.equal(ntagFactoryNdefCapacity(NtagType.NTAG216), 872);
+});
+
+test('webNfcChunkPayload matches what the Chameleon path writes', () => {
+  // The Chameleon reads the real CC and sizes from it. Web NFC cannot, so it
+  // assumes the factory value — the two must agree or cards written by the two
+  // readers would differ.
+  assert.equal(webNfcChunkPayload(NtagType.NTAG215), chunkPayloadForCapacity(496));
+  assert.equal(webNfcChunkPayload(NtagType.NTAG215), 420);
+});
+
+test('webNfcChunkPayload is never larger than the raw-memory estimate', () => {
+  for (const t of [NtagType.NTAG213, NtagType.NTAG215, NtagType.NTAG216]) {
+    assert.ok(webNfcChunkPayload(t) <= ntagChunkPayloadSize(t), `${t} overflows`);
+  }
 });
