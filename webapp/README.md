@@ -93,9 +93,18 @@ Phone NFC's limits are the Web NFC API's, not a missing feature:
   collides every such card onto one key (the archive would stall forever on
   card 2), and a random one would let the same card be written twice.
 
-**Disconnect** is disabled while the active reader is busy (an archive write,
-a restore scan, or a card inspection in progress) — the same `readerBusy`
-interlock that also gates **Inspect card**.
+**Reader ownership.** Archiving, restore scanning and card inspection all
+drive the same reader through the same `Transport`, and none of them tolerates
+a second loop calling `awaitTag()` underneath it. `app/ui/reader-lock.ts` holds
+one owner at a time: **Archive to cards** and **Scan cards** each grey the
+other out (with a tooltip saying why), and **Inspect card** is disabled while
+either runs. `release()` is owner-checked, so the subsystem that finishes first
+cannot free a lock another still holds.
+
+**Disconnect is deliberately never gated on that lock.** It is the app's only
+universal escape hatch — the archive loop has no Stop control — and both loops
+handle a mid-flight teardown cleanly, so it doubles as the way to abandon a
+stuck write.
 
 **Scan model.** `app/ui/browser-ndef-io.ts` (`BrowserNdefIO`) is the only file
 that touches `NDEFReader`. It arms exactly one scan per connection —

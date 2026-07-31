@@ -21,6 +21,7 @@ export const tr: Messages = {
   connectedPhoneNfc: "Telefonun NFC'si kullanılıyor.",
   readerDisconnectedClickConnect: "Okuyucu bağlantısı kesildi — devam etmek için Bağlan'a tıklayın.",
   inspectNeedsChameleon: "Kart incelemesi için Chameleon gerekir — telefonun NFC'sinin ham karta erişimi yoktur.",
+  readerBusyElsewhere: 'Okuyucu başka bir işlemle meşgul — önce onu bitirin veya durdurun.',
   autoDetectNeedsChameleon: "Bir etiket türü seçin: telefonun NFC'si kart kapasitesini algılayamaz.",
 
   // — tabs —

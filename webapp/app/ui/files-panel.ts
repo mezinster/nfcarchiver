@@ -5,6 +5,7 @@ import { renderFileList, humanSize } from './files-view.js';
 import { PasswordRequiredError } from '../controller.js';
 import { DecryptionError } from '../../src/crypto.js';
 import { humanError } from './errors.js';
+import { mimeForFilename } from '../download-mime.js';
 import { log } from '../../src/log/logger.js';
 import { t } from '../i18n/index.js';
 
@@ -19,7 +20,7 @@ async function download(id: string, setStatus: (m: string) => void): Promise<voi
     try {
       const { data, name } = await filesController.prepareDownload(id, pw);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([data as BlobPart]));
+      a.href = URL.createObjectURL(new Blob([data as BlobPart], { type: mimeForFilename(name) }));
       a.download = name;
       a.click();
       URL.revokeObjectURL(a.href);

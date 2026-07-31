@@ -24,6 +24,7 @@ export const pl: Messages = {
   connectedPhoneNfc: 'Używane NFC telefonu.',
   readerDisconnectedClickConnect: 'Czytnik rozłączony — kliknij „Połącz”, aby kontynuować.',
   inspectNeedsChameleon: 'Zbadanie karty wymaga Chameleona — NFC telefonu nie ma bezpośredniego dostępu do karty.',
+  readerBusyElsewhere: 'Czytnik jest zajęty inną operacją — najpierw ją zakończ lub zatrzymaj.',
   autoDetectNeedsChameleon: 'Wybierz typ znacznika: NFC telefonu nie potrafi wykryć pojemności karty.',
 
   // — tabs —

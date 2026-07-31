@@ -22,7 +22,7 @@ let currentAbort: AbortController | null = null;
 export function openInspector(
   dev: ChameleonDevice,
   raw: RawAntiColl,
-  setReaderBusy: (busy: boolean) => void,
+  setBusy: (busy: boolean) => void,
 ): void {
   if (running) return;
   const dialog = $('inspect-dialog') as HTMLDialogElement;
@@ -78,7 +78,7 @@ export function openInspector(
 
   dialog.showModal();
   running = true;
-  setReaderBusy(true);
+  setBusy(true);
   log.info('inspect', 'Inspection started');
   void runInspection(dev, raw, io, ac.signal)
     .catch((e: unknown) => { if (currentAbort === ac) status.textContent = String(e); })
@@ -88,7 +88,7 @@ export function openInspector(
       // would never fire (there is none pending) while a still-running one
       // would leave the button permanently disabled if guarded on the epoch.
       running = false;
-      setReaderBusy(false);
+      setBusy(false);
       log.info('inspect', 'Inspection finished', { rows: rows.length });
     });
 }
