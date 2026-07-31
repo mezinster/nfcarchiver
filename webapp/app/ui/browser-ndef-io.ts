@@ -42,9 +42,11 @@ export class BrowserNdefIO implements NdefIO {
     this.scanning?.abort();
     const ac = new AbortController();
     this.scanning = ac;
-    if (opts?.signal) {
-      opts.signal.addEventListener('abort', () => ac.abort(), { once: true });
-    }
+    // Named so cleanup() can detach it. The caller's signal outlives one call —
+    // restore uses a single AbortController for a whole scan session — so a
+    // 50-card scan would otherwise leave 50 dead listeners on it.
+    const forwardAbort = (): void => ac.abort();
+    opts?.signal?.addEventListener('abort', forwardAbort, { once: true });
 
     return new Promise<NdefReading>((resolve, reject) => {
       let timer: ReturnType<typeof setTimeout> | null = null;
@@ -66,6 +68,9 @@ export class BrowserNdefIO implements NdefIO {
       // unconditionally would wipe a newer call's handlers out from under it.
       const cleanup = (): void => {
         if (timer !== null) clearTimeout(timer);
+        // Unconditional: the timer and this listener are private to this call
+        // (both close over `ac`), unlike the handlers on the shared reader.
+        opts?.signal?.removeEventListener('abort', forwardAbort);
         if (this.scanning === ac) {
           reader.onreading = null;
           reader.onreadingerror = null;

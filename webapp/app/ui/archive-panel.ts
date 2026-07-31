@@ -36,15 +36,22 @@ function selectedPayloadSize(): number {
  *  text (see the onConnectionChange handler below), and writing here
  *  unconditionally would clobber a message mid-archive if the user swaps
  *  readers while a write is in progress (the Connect/Use-phone-NFC buttons
- *  stay enabled during archiving). */
-function syncTargetTagForReader(): void {
+ *  stay enabled during archiving).
+ *
+ *  Returns whether it moved the selection — assigning `sel.value` fires no
+ *  `change` event, so the caller must drive whatever that event would have. */
+function syncTargetTagForReader(): boolean {
   const sel = $('target-tag') as HTMLSelectElement;
   const auto = sel.querySelector<HTMLOptionElement>('option[value="auto"]')!;
   const mifare = sel.querySelector<HTMLOptionElement>('option[value="720"]')!;
   const webNfc = activeReaderName() === 'web-nfc';
   auto.disabled = webNfc;
   mifare.disabled = webNfc;
-  if (webNfc && (sel.value === 'auto' || sel.value === '720')) sel.value = 'NTAG215';
+  if (webNfc && (sel.value === 'auto' || sel.value === '720')) {
+    sel.value = 'NTAG215';
+    return true;
+  }
+  return false;
 }
 
 export function initArchivePanel(): void {
@@ -105,7 +112,10 @@ export function initArchivePanel(): void {
 
   onConnectionChange((connected) => {
     ($('archive') as HTMLButtonElement).disabled = !connected || archiving;
-    syncTargetTagForReader();
+    // The fallback changes the basis of the card-count estimate (720 B/chunk ->
+    // NTAG215's), and a programmatic `sel.value = …` fires no change event, so
+    // the counter would otherwise keep showing the old figure until the first tap.
+    if (syncTargetTagForReader()) scheduleCounter();
     // Guarded the same way the pre-existing archiveReady write was: while a
     // write is in progress, this element carries live progress/error text
     // (see ArchiveOrchestrator's io.setStatus calls) that a reader hand-off
@@ -130,11 +140,18 @@ export function initArchivePanel(): void {
       hideProgress,
       confirmOverwrite,
       isConnected,
-      // Resolve with the freshly-built transport the next time we connect.
+      activeTransport: currentTransport,
+      // Resolve with the freshly-built transport the next time we connect — or
+      // right away if one is already live. A reader hand-off (Connect, Use
+      // phone NFC, or a target-tag change under phone NFC) installs the new
+      // transport before the write loop gets to look, so waiting for a further
+      // connection event would wait forever.
       awaitReconnect: () => new Promise<Transport>((resolve) => {
-        const off = onConnectionChange((connected) => {
-          const t = currentTransport();
-          if (connected && t) { off(); resolve(t); }
+        const live = currentTransport();
+        if (isConnected() && live) { resolve(live); return; }
+        const off = onConnectionChange(() => {
+          const next = currentTransport();
+          if (isConnected() && next) { off(); resolve(next); }
         });
       }),
       log,
