@@ -363,16 +363,27 @@ class ChameleonReader implements CardReader {
 
   Future<void> _writeClassic(Uint8List bytes) async {
     final writes = chunkToBlocks(bytes);
+    log.info('reader', 'Writing blocks', {
+      'count': writes.length,
+      'blocks': writes.map((w) => w.block).join(','),
+    });
     for (final w in writes) {
       await _device.writeBlock(w.block, factoryKeyA, w.data);
+      log.debug('reader', 'Block written', {'block': w.block});
     }
     // Verified by reading back, exactly as the web app's Chameleon transport
     // does — a write that reports success but did not land is the worst
     // possible outcome for an archive.
+    log.info('reader', 'Verifying by read-back');
     for (final w in writes) {
       final back = await _readBlockStrict(w.block);
       for (var i = 0; i < blockSize; i++) {
         if (back[i] != w.data[i]) {
+          log.error('reader', 'Verification failed', {
+            'block': w.block,
+            'wrote': hexDump(w.data),
+            'read': hexDump(back),
+          });
           throw CardReadException(
             'Verification failed on block ${w.block}: read-back does not match',
           );
