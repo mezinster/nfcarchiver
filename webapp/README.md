@@ -82,6 +82,16 @@ Phone NFC's limits are the Web NFC API's, not a missing feature:
   `webNfcChunkPayload()` / `ntagFactoryNdefCapacity()` in `src/nfc/type2.ts`
   (144 / 496 / 872 B for NTAG213/215/216) — never the larger raw-memory
   estimate `ntagChunkPayloadSize()` uses for the Chameleon path.
+  Because that type is baked into the transport, changing the target-tag
+  selector while phone NFC is active **rebuilds** the transport (through the
+  same `teardownActiveReader()` hand-off); otherwise it would keep sizing
+  chunks for the previously selected chip.
+- **Identity can be missing.** Chrome reports an empty `serialNumber` for some
+  cards and some Android builds. Both loops key their already-written /
+  already-seen sets on the UID, so `WebNfcTransport.awaitTag()` rejects such a
+  tap with `UnidentifiedTagError` instead of minting a UID: an empty one
+  collides every such card onto one key (the archive would stall forever on
+  card 2), and a random one would let the same card be written twice.
 
 **Disconnect** is disabled while the active reader is busy (an archive write,
 a restore scan, or a card inspection in progress) — the same `readerBusy`

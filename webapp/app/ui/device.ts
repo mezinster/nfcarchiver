@@ -95,6 +95,13 @@ export function onConnectionChange(cb: (connected: boolean) => void): () => void
   };
 }
 
+/** Iterates a COPY: a listener may unsubscribe itself from inside its own
+ *  callback (archive-panel's awaitReconnect does exactly that), and splicing
+ *  the live array mid-iteration would skip the listener after it. */
+function notify(state: boolean): void {
+  for (const cb of [...listeners]) cb(state);
+}
+
 /** The one teardown path for a reader hand-off. Connect, Use phone NFC, and
  *  Disconnect all call this FIRST, so no site can forget to close the
  *  outgoing reader or leave its listeners live behind a new session.
@@ -131,10 +138,56 @@ async function teardownActiveReader(): Promise<void> {
 export function initDeviceBar(): void {
   const deviceStatus = $('device-status');
 
+  /** Bring the whole device bar back to the disconnected state after a failed
+   *  hand-off. The teardown that opened the hand-off cleared the state
+   *  variables, but it deliberately renders nothing and notifies nobody (its
+   *  caller normally goes straight on to connect something else). When the
+   *  connect that followed it fails, that silence leaves #conn reading
+   *  "connected", Disconnect/Archive enabled, and every listener still
+   *  believing it is connected — a real true->false transition that fires zero
+   *  callbacks.
+   *
+   *  Tears down again rather than just nulling the fields: the failed attempt
+   *  may have got as far as an open BLE session with a live `disconnected`
+   *  listener on it, and only teardownActiveReader() closes that and bumps the
+   *  epoch that retires the listener. */
+  const failHandOff = async (message: string): Promise<void> => {
+    await teardownActiveReader();
+    renderConn();
+    updateDeviceButtons();
+    deviceStatus.textContent = message;
+    notify(false);
+  };
+
   renderConn();
-  onLocaleChange(renderConn);
+  // The Inspect tooltip is derived from `t` too, so it needs re-rendering on a
+  // locale change just as much as #conn does.
+  onLocaleChange(() => { renderConn(); updateDeviceButtons(); });
 
   if (webNfcAvailable()) ($('use-web-nfc') as HTMLButtonElement).hidden = false;
+
+  /** Build (or rebuild) the Web NFC transport for the current #target-tag
+   *  selection. Web NFC has no capability container, so the chosen NtagType is
+   *  baked into the transport — which makes it stale the moment the user picks
+   *  a different chip. Always routed through teardownActiveReader() so the
+   *  outgoing reader is closed and its epoch retired, and always notifies, so a
+   *  write loop in flight adopts the new transport (see ArchiveOrchestrator's
+   *  transport-identity gate) instead of driving the retired one. */
+  const activateWebNfc = async (): Promise<void> => {
+    await teardownActiveReader();
+    try {
+      transport = new WebNfcTransport(new BrowserNdefIO(), selectedNtagType());
+      reader = 'web-nfc';
+      connected = true;
+      renderConn();
+      updateDeviceButtons();
+      notify(true);
+      deviceStatus.textContent = t.connectedPhoneNfc;
+    } catch (e) {
+      await failHandOff(humanError(e));
+      log.error('device', 'Phone NFC activation failed', { error: String(e) });
+    }
+  };
 
   $('connect').addEventListener('click', async () => {
     log.info('device', 'Connecting');
@@ -159,7 +212,7 @@ export function initDeviceBar(): void {
         renderConn();
         deviceStatus.textContent = t.readerDisconnectedClickConnect;
         log.warn('device', 'Disconnected');
-        for (const cb of listeners) cb(false);
+        notify(false);
       });
       // use() is async (the adapter's install() runs availability checks etc.);
       // it MUST be awaited before connect(), or this.port is still undefined.
@@ -170,25 +223,34 @@ export function initDeviceBar(): void {
       reader = 'chameleon';
       renderConn();
       updateDeviceButtons();
-      for (const cb of listeners) cb(true);
+      notify(true);
       deviceStatus.textContent = t.connectedDot;
       log.info('device', 'Connected');
     } catch (e) {
-      deviceStatus.textContent = humanError(e);
+      // The teardown above already dropped whatever reader was live, so this is
+      // a genuine connected -> disconnected transition even though nothing here
+      // "disconnected": dismissing Chrome's Bluetooth chooser while phone NFC
+      // was in use must not leave the bar claiming it is still connected.
+      await failHandOff(humanError(e));
       log.error('device', 'Connect failed', { error: String(e) });
     }
   });
 
   $('use-web-nfc').addEventListener('click', async () => {
     log.info('device', 'Using phone NFC');
-    await teardownActiveReader();
-    transport = new WebNfcTransport(new BrowserNdefIO(), selectedNtagType());
-    reader = 'web-nfc';
-    connected = true;
-    renderConn();
-    updateDeviceButtons();
-    for (const cb of listeners) cb(true);
-    deviceStatus.textContent = t.connectedPhoneNfc;
+    await activateWebNfc();
+  });
+
+  // The NtagType is baked into WebNfcTransport at build time, so a target-tag
+  // change while phone NFC is active leaves the transport sizing chunks for the
+  // OLD chip — the panel would prepare NTAG216-sized cards and the first tap
+  // would silently re-chunk them down to NTAG215's (or fail every tap with
+  // CardCapacityError the other way round). Rebuild it. The Chameleon reads
+  // capacity from the card it taps, so its path must not be disturbed.
+  $('target-tag').addEventListener('change', () => {
+    if (reader !== 'web-nfc') return;
+    log.info('device', 'Target tag changed — rebuilding the phone NFC transport');
+    void activateWebNfc();
   });
 
   $('disconnect').addEventListener('click', async () => {
@@ -196,7 +258,7 @@ export function initDeviceBar(): void {
     await teardownActiveReader();
     renderConn();
     updateDeviceButtons();
-    for (const cb of listeners) cb(false);
+    notify(false);
   });
 
   $('inspect').addEventListener('click', () => {
