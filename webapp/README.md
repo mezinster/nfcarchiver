@@ -1,9 +1,10 @@
 # NFC Archiver — Web
 
 A browser port of [NFC Archiver](../README.md). It runs entirely client-side
-(no server, no upload, no tracking) and uses a **Chameleon Ultra** over **Web
-Bluetooth** to read and write NFAR archives on physical NFC cards from a Chromium
-browser.
+(no server, no upload, no tracking) and reads/writes NFAR archives on physical
+NFC cards from a Chromium browser, either via a **Chameleon Ultra** over **Web
+Bluetooth** or, on Chrome for Android, the phone's own radio via **Web NFC**
+— see [Readers](#readers) below.
 
 The bytes it writes are identical to the Flutter app's, so archives are
 **interoperable in both directions**: a card written on the phone restores in the
@@ -51,6 +52,55 @@ for the manual real-device checklist (BLE pairing, round-trip, cross-read).
   progressively as the ~64 BLE reads arrive; Copy/Download give a plain-text
   report. Read-only, and disabled while an archive write or scan owns the reader.
 - A branded, themed (light/dark), tabbed UI.
+
+## Readers
+
+Two ways to talk to a card, behind the same `Transport` interface — pick one in
+the device bar:
+
+- **Connect Chameleon** (`AutoTransport`, over Web Bluetooth) — full raw access
+  to both media types (Mifare Classic 1K and NTAG213/215/216). The only reader
+  that can do **Inspect card**.
+- **Use phone NFC** (`WebNfcTransport`, over the phone's own radio via the
+  [Web NFC API](https://developer.mozilla.org/en-US/docs/Web/API/Web_NFC_API))
+  — shown only when `NDEFReader` exists, which today means **Chrome on
+  Android**; there's no Web NFC in desktop Chrome, Firefox, or iOS Safari.
+
+Connecting either reader tears down the other first
+(`teardownActiveReader()` in `app/ui/device.ts`), so only one is ever live.
+
+Phone NFC's limits are the Web NFC API's, not a missing feature:
+
+- **NDEF only, no raw access.** The API is `scan()`/`write()` over NDEF
+  messages — nothing lower-level. That rules out **Mifare Classic** (not an
+  NDEF format) and **Inspect card** (needs raw block/page reads); both are
+  disabled in the UI while phone NFC is the active reader.
+- **No capacity discovery.** Web NFC never exposes a tag's Capability
+  Container, so chunk size can't be measured off the card the way the
+  Chameleon path does. It's taken from the tag type explicitly picked in the
+  target-tag selector instead, sized against that type's *factory* CC bytes —
+  `webNfcChunkPayload()` / `ntagFactoryNdefCapacity()` in `src/nfc/type2.ts`
+  (144 / 496 / 872 B for NTAG213/215/216) — never the larger raw-memory
+  estimate `ntagChunkPayloadSize()` uses for the Chameleon path.
+
+**Disconnect** is disabled while the active reader is busy (an archive write,
+a restore scan, or a card inspection in progress) — the same `readerBusy`
+interlock that also gates **Inspect card**.
+
+**Unverified on real hardware:** `app/ui/browser-ndef-io.ts` is the only file
+that touches `NDEFReader`, and two of its behaviours are written from the Web
+NFC specification, not from an observed Chrome session:
+
+- the `DOMException` → `CardCapacityError` mapping (`NotSupportedError` /
+  `NetworkError` on a write that doesn't fit) may not match what Chrome
+  actually raises for an undersized card;
+- `stop()` assumes `scan({ signal })` rejects with `AbortError` once the
+  passed `AbortSignal` fires. If Chrome instead just stops firing
+  `onreading`/`onreadingerror` without ever settling that promise, aborting
+  mid-scan has no timeout backing it — `stop()` would hang rather than
+  return. Treat both as open questions until validated on an Android phone
+  running Chrome; [`HARDWARE_TESTING.md`](HARDWARE_TESTING.md) does not yet
+  have a phone-NFC checklist (it's Chameleon-only today).
 
 ## Localization
 
@@ -245,10 +295,9 @@ damaging a neighbouring application.
 - Marginal RF coupling (a card pressed flat vs a few mm off the reader) can make the
   scan return transient BCC/parity/collision errors; the transport treats those as
   "no tag yet" and keeps polling.
-- **Deferred:** an IndexedDB-backed file manager (the Files tab is a placeholder),
-  phone-native **Web NFC** writing (Android Chrome, no Chameleon — reuses
-  `nfc/ndef.ts`), NTAG blank-tag CC formatting (factory/NDEF-formatted tags are
-  assumed), and a device-disconnect path.
+- **Deferred:** an IndexedDB-backed file manager (the Files tab is a
+  placeholder) and NTAG blank-tag CC formatting (factory/NDEF-formatted tags
+  are assumed).
 
 ## License
 
