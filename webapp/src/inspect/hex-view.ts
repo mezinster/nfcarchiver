@@ -24,6 +24,7 @@ export interface IdentityDiagnosis {
 }
 
 const HEX_WIDTH = 16 * 3 - 1; // "FF FF ... FF"
+const ATQA_BYTES = 2;
 
 const hex = (b: Uint8Array): string =>
   Array.from(b, (x) => x.toString(16).padStart(2, '0').toUpperCase()).join(' ');
@@ -64,7 +65,15 @@ export function formatIdentity(meta: DumpMeta, diag: IdentityDiagnosis | null): 
     lines.push('BCC       anticollision failed — identity unavailable (the dump may still work)');
     return lines.join('\n');
   }
-  lines.push(`ATQA      ${hex(diag.atqa)}`);
+  // ATQA is a fixed 2-byte field (Classic 1K answers 04 00, LSB first). A reader
+  // that returns anything else garbled the WUPA frame, and an unlabelled odd
+  // value reads as a real card property in a report meant for bug reports — one
+  // real tap rendered "ATQA 3F" while the anticollision right after it was clean.
+  // The bytes are kept, not dropped: in an inspector the failure is information.
+  const atqaNote = diag.atqa.length === ATQA_BYTES
+    ? ''
+    : `  ← malformed (expected ${ATQA_BYTES} bytes, got ${diag.atqa.length})`;
+  lines.push(`ATQA      ${hex(diag.atqa)}${atqaNote}`);
   lines.push(`UID (CL1) ${hex(diag.uidCl1)}`);
   lines.push(
     `BCC       returned ${byte(diag.bccReturned)} · computed ${byte(diag.bccComputed)} · ` +

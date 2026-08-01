@@ -52,6 +52,33 @@ test('identity reports a Classic BCC verdict', () => {
   assert.match(text, /OK/);
 });
 
+test('a well-formed ATQA is reported without comment', () => {
+  const text = formatIdentity(CLASSIC_META, DIAG);
+  assert.match(text, /ATQA {6}04 00\s*$/m);
+});
+
+test('a malformed ATQA is flagged rather than passed off as a card property', () => {
+  // Observed on real hardware: one tap returned a single byte where the two-byte
+  // ATQA belongs, and the report rendered "ATQA  3F" — indistinguishable from a
+  // genuine value. The anticollision frame right after it was clean, so the dump
+  // stays useful; the inspector keeps the bytes and labels them instead of
+  // throwing, as it does everywhere else that a card disappoints it.
+  const short = formatIdentity(CLASSIC_META, { ...DIAG, atqa: new Uint8Array([0x3f]) });
+  assert.match(short, /3F/, 'the offending bytes must survive into the report');
+  assert.match(short, /malformed/i);
+  assert.match(short, /expected 2 bytes, got 1/);
+
+  const empty = formatIdentity(CLASSIC_META, { ...DIAG, atqa: new Uint8Array() });
+  assert.match(empty, /expected 2 bytes, got 0/);
+
+  const long = formatIdentity(CLASSIC_META, { ...DIAG, atqa: new Uint8Array([0x04, 0x00, 0x99]) });
+  assert.match(long, /expected 2 bytes, got 3/);
+
+  // The rest of the identity must still be reported — a bad ATQA is not fatal.
+  assert.match(short, /B9 16 27 51/);
+  assert.match(short, /Verdict {3}BCC OK/);
+});
+
 test('a 7-byte cascade UID is normal on NTAG and a fault on Classic', () => {
   const cascadeDiag = { ...DIAG, uidCl1: new Uint8Array([0x88, 0x04, 0xaa, 0xbb]), isCascade: true };
   const ntagMeta: DumpMeta = {

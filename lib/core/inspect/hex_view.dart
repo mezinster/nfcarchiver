@@ -38,6 +38,7 @@ class IdentityDiagnosis {
 }
 
 const int _hexWidth = 16 * 3 - 1; // "FF FF ... FF"
+const int _atqaBytes = 2;
 
 String _hex(Uint8List b) =>
     b.map((x) => x.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
@@ -92,7 +93,15 @@ String formatIdentity(DumpMeta meta, IdentityDiagnosis? diag) {
     return lines.join('\n');
   }
 
-  lines.add('ATQA      ${_hex(diag.atqa)}');
+  // ATQA is a fixed 2-byte field (Classic 1K answers 04 00, LSB first). A reader
+  // that returns anything else garbled the WUPA frame, and an unlabelled odd
+  // value reads as a real card property in a report meant for bug reports — one
+  // real tap rendered "ATQA 3F" while the anticollision right after it was clean.
+  // The bytes are kept, not dropped: in an inspector the failure is information.
+  final atqaNote = diag.atqa.length == _atqaBytes
+      ? ''
+      : '  ← malformed (expected $_atqaBytes bytes, got ${diag.atqa.length})';
+  lines.add('ATQA      ${_hex(diag.atqa)}$atqaNote');
   lines.add('UID (CL1) ${_hex(diag.uidCl1)}');
   lines.add(
     'BCC       returned ${_byte(diag.bccReturned)} · '

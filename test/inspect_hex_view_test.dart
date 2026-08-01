@@ -26,7 +26,8 @@ Uint8List _blockBytes(int b) =>
   );
 
   final diag = IdentityDiagnosis(
-    atqa: Uint8List.fromList(const [0x00, 0x04]),
+    // ATQA 0x0004 as a Classic 1K actually puts it on the wire: LSB first.
+    atqa: Uint8List.fromList(const [0x04, 0x00]),
     uidCl1: Uint8List.fromList(const [0xde, 0xad, 0xbe, 0xef]),
     bccReturned: bcc,
     bccComputed: bcc,
@@ -197,7 +198,7 @@ void main() {
       final meta = DumpMeta(
           sak: 0x08, uid: Uint8List.fromList(const [1, 2, 3, 4]), totalUnits: 64);
       final bad = IdentityDiagnosis(
-        atqa: Uint8List.fromList(const [0x00, 0x04]),
+        atqa: Uint8List.fromList(const [0x04, 0x00]),
         uidCl1: Uint8List.fromList(const [1, 2, 3, 4]),
         bccReturned: 0x00,
         bccComputed: 0x04,
@@ -205,6 +206,36 @@ void main() {
         isCascade: false,
       );
       expect(formatIdentity(meta, bad), contains('magic'));
+    });
+
+    test('a malformed ATQA is flagged rather than passed off as a card property',
+        () {
+      // Mirrors the TypeScript test of the same name. The shared fixture pins
+      // only a well-formed ATQA, so without this the two ports could diverge on
+      // the malformed path with nothing to notice.
+      final meta = DumpMeta(
+          sak: 0x08, uid: Uint8List.fromList(const [1, 2, 3, 4]), totalUnits: 64);
+      IdentityDiagnosis withAtqa(List<int> bytes) => IdentityDiagnosis(
+            atqa: Uint8List.fromList(bytes),
+            uidCl1: Uint8List.fromList(const [1, 2, 3, 4]),
+            bccReturned: 1 ^ 2 ^ 3 ^ 4,
+            bccComputed: 1 ^ 2 ^ 3 ^ 4,
+            bccValid: true,
+            isCascade: false,
+          );
+
+      final short = formatIdentity(meta, withAtqa(const [0x3f]));
+      expect(short, contains('3F'), reason: 'the offending bytes must survive');
+      expect(short, contains('malformed (expected 2 bytes, got 1)'));
+      expect(formatIdentity(meta, withAtqa(const [])),
+          contains('expected 2 bytes, got 0'));
+      expect(formatIdentity(meta, withAtqa(const [0x04, 0x00, 0x99])),
+          contains('expected 2 bytes, got 3'));
+
+      // A well-formed ATQA carries no note, and a bad one is not fatal.
+      expect(formatIdentity(meta, withAtqa(const [0x04, 0x00])),
+          isNot(contains('malformed')));
+      expect(short, contains('Verdict   BCC OK'));
     });
   });
 }
