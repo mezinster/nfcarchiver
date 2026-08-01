@@ -261,12 +261,20 @@
       dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
       dialog p { margin: 0; }
       .dialog-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-      /* overflow-x MUST stay hidden. The hex dump grows wider as pages are
-         read, and if the dialog itself scrolls sideways its rounded right
-         corner scrolls out of view — the visible right edge then goes square
-         part-way through a read. Each <pre> scrolls internally instead, which
-         is also what keeps the dump readable. */
-      dialog.inspect { max-width: min(96vw, 62rem); max-height: 88vh; overflow-y: auto; overflow-x: hidden; }
+      /* The dialog MUST NOT be the scroll container. A rounded box cannot clip
+         its own scrollbar — Chromium paints the gutter outside the border-radius
+         clip — so a scrolling dialog goes square down its right edge as soon as
+         the dump is tall enough. The dialog stays overflow:hidden (its radius
+         then clips everything inside) and .inspect-body scrolls instead.
+         overflow-x also stays hidden there: the hex dump grows wider as pages
+         are read, and each <pre> scrolls internally, which is what keeps the
+         dump readable. */
+      dialog.inspect {
+        max-width: min(96vw, 62rem); max-height: 88vh;
+        overflow: hidden; padding: 0;
+        display: flex; flex-direction: column;
+      }
+      .inspect-body { overflow-y: auto; overflow-x: hidden; padding: 1.25rem; }
       .inspect-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
       .inspect-actions { margin-left: auto; display: flex; gap: 0.4rem; }
       dialog.inspect pre {
@@ -486,22 +494,24 @@
     </dialog>
 
     <dialog id="inspect-dialog" class="inspect">
-      <div class="inspect-head">
-        <strong data-i18n="inspectCard">Inspect card</strong>
-        <span id="inspect-progress" class="muted"></span>
-        <span class="inspect-actions">
-          <button id="inspect-copy" class="btn-text" type="button" data-i18n="copy">Copy</button>
-          <button id="inspect-download" class="btn-text" type="button" data-i18n="download">Download</button>
-          <button id="inspect-close" class="btn-text" type="button" data-i18n="close">Close</button>
-        </span>
+      <div class="inspect-body">
+        <div class="inspect-head">
+          <strong data-i18n="inspectCard">Inspect card</strong>
+          <span id="inspect-progress" class="muted"></span>
+          <span class="inspect-actions">
+            <button id="inspect-copy" class="btn-text" type="button" data-i18n="copy">Copy</button>
+            <button id="inspect-download" class="btn-text" type="button" data-i18n="download">Download</button>
+            <button id="inspect-close" class="btn-text" type="button" data-i18n="close">Close</button>
+          </span>
+        </div>
+        <p id="inspect-status" class="muted"></p>
+        <h4 data-i18n="inspectIdentity">Identity</h4>
+        <pre id="inspect-identity"></pre>
+        <h4 data-i18n="inspectNfar">NFAR chunk</h4>
+        <pre id="inspect-nfar"></pre>
+        <h4 data-i18n="inspectRaw">Raw</h4>
+        <pre id="inspect-raw"></pre>
       </div>
-      <p id="inspect-status" class="muted"></p>
-      <h4 data-i18n="inspectIdentity">Identity</h4>
-      <pre id="inspect-identity"></pre>
-      <h4 data-i18n="inspectNfar">NFAR chunk</h4>
-      <pre id="inspect-nfar"></pre>
-      <h4 data-i18n="inspectRaw">Raw</h4>
-      <pre id="inspect-raw"></pre>
     </dialog>
 
     <script type="module" src="./dist/main.js"></script>
