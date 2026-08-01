@@ -30,7 +30,8 @@ const meta: DumpMeta = {
 };
 
 const diag: IdentityDiagnosis = {
-  atqa: new Uint8Array([0x00, 0x04]),
+  // ATQA 0x0004 as a Classic 1K actually puts it on the wire: LSB first.
+  atqa: new Uint8Array([0x04, 0x00]),
   uidCl1: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
   bccReturned: 0xde ^ 0xad ^ 0xbe ^ 0xef,
   bccComputed: 0xde ^ 0xad ^ 0xbe ^ 0xef,

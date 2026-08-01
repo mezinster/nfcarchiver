@@ -3,7 +3,7 @@ NFC Archiver — card inspection
 IDENTITY
 Medium    Mifare Classic 1K (SAK 0x08)
 UID       DE AD BE EF
-ATQA      00 04
+ATQA      04 00
 UID (CL1) DE AD BE EF
 BCC       returned 0x22 · computed 0x22 · OK
 Verdict   BCC OK
