@@ -269,12 +269,15 @@
          overflow-x also stays hidden there: the hex dump grows wider as pages
          are read, and each <pre> scrolls internally, which is what keeps the
          dump readable. */
-      dialog.inspect {
-        max-width: min(96vw, 62rem); max-height: 88vh;
-        overflow: hidden; padding: 0;
-        display: flex; flex-direction: column;
-      }
-      .inspect-body { overflow-y: auto; overflow-x: hidden; padding: 1.25rem; }
+      /* NEVER set `display` on a dialog here. Author CSS beats the UA sheet
+         whatever the specificity, so a `display:` on `dialog.inspect` also
+         overrides the UA's `dialog:not([open]) { display: none }` — the closed
+         dialog then renders permanently in the page as a ghost copy, and Close
+         appears dead because it shuts a modal that a twin is still standing in
+         for. The height cap therefore lives on .inspect-body, not on a flex
+         parent: the dialog is fit-content around it either way. */
+      dialog.inspect { max-width: min(96vw, 62rem); overflow: hidden; padding: 0; }
+      .inspect-body { max-height: 88vh; overflow-y: auto; overflow-x: hidden; padding: 1.25rem; }
       .inspect-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
       .inspect-actions { margin-left: auto; display: flex; gap: 0.4rem; }
       dialog.inspect pre {

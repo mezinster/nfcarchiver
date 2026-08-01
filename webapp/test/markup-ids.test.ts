@@ -55,6 +55,58 @@ test('the tab strip keeps the structure shell.ts queries', () => {
   assert.match(tabs[1]!, /aria-selected="true"/, 'no tab is initially selected');
 });
 
+/**
+ * Two CSS invariants that only bite in a real browser, so nothing else in the
+ * suite can catch them. Both were live bugs in the inspect dialog.
+ *
+ * Returns the author rules whose subject is a <dialog> element itself — not a
+ * descendant (`dialog.inspect pre`) and not a pseudo-element (`dialog::backdrop`),
+ * neither of which is the dialog box.
+ */
+function dialogSubjectRules(): Array<{ selector: string; body: string }> {
+  const style = /<style>([\s\S]*?)<\/style>/.exec(html);
+  assert.ok(style, 'no <style> block in index.html');
+  const css = style[1]!
+    .replace(/\/\*[\s\S]*?\*\//g, '')     // comments may contain example CSS
+    .replace(/@media[^{]*\{/g, '');       // flatten, so rules inside are scanned too
+
+  const out: Array<{ selector: string; body: string }> = [];
+  for (const rule of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const body = rule[2]!;
+    for (const selector of rule[1]!.split(',')) {
+      // The subject is the last compound selector: what the rule actually styles.
+      const subject = selector.trim().split(/[\s>+~]+/).pop() ?? '';
+      if (/^dialog\b/.test(subject) && !subject.includes('::')) out.push({ selector: subject, body });
+    }
+  }
+  assert.ok(out.length > 0, 'no dialog rules found — the CSS scan may be stale');
+  return out;
+}
+
+test('no author rule sets display on a dialog that can be closed', () => {
+  // Author CSS beats the UA sheet regardless of specificity, so `display` on a
+  // bare `dialog…` selector also defeats `dialog:not([open]) { display: none }`.
+  // The closed dialog then renders permanently as a ghost copy of itself, and
+  // Close looks broken: it shuts a modal whose twin is still on screen.
+  // Qualifying the selector with [open] is the escape hatch.
+  const offenders = dialogSubjectRules()
+    .filter((r) => /(^|[;\s])display\s*:/.test(r.body) && !r.selector.includes('[open]'))
+    .map((r) => r.selector);
+  assert.deepEqual(offenders, [],
+    `these rules set display on a dialog without an [open] qualifier: ${offenders.join(', ')}`);
+});
+
+test('a dialog is never its own scroll container', () => {
+  // A rounded box cannot clip its own scrollbar — Chromium paints the gutter
+  // outside the border-radius clip, so a scrolling dialog goes square down its
+  // right edge. An inner wrapper must scroll instead.
+  const offenders = dialogSubjectRules()
+    .filter((r) => /overflow(-[xy])?\s*:\s*(auto|scroll)/.test(r.body))
+    .map((r) => r.selector);
+  assert.deepEqual(offenders, [],
+    `these rules let a dialog scroll itself, squaring its corners: ${offenders.join(', ')}`);
+});
+
 test('every icon referenced by <use> is defined in the sprite', () => {
   const defined = new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map((m) => m[1]!));
   const referenced = new Set<string>();
