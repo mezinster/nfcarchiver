@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -250,7 +250,7 @@ class _FilePickerScreenState extends ConsumerState<FilePickerScreen> {
   Future<void> _pickFile(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      final result = await FilePicker.platform.pickFiles();
+      final result = await FilePicker.pickFiles();
       if (result == null || result.files.isEmpty) return;
 
       final file = result.files.first;

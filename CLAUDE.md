@@ -136,8 +136,10 @@ F-Droid metadata lives in `fdroid/com.nfcarchiver.nfc_archiver.yml` (a reference
 
 Key gotchas:
 
-- **`compileSdk` must stay at 34** — F-Droid's build server has a JDK 21 `jlink`/`JdkImageTransform` bug with SDK 35. Do not bump `compileSdk` unless F-Droid upgrades their JDK or the bug is fixed. The build also installs JDK 17 from Debian Bookworm as a workaround.
-- **Flutter version is pinned from the release workflow** — `prebuild` extracts `FLUTTER_VERSION` from `.github/workflows/release.yml` via `sed`. If you rename/restructure the workflow, the F-Droid build will break.
+- **`compileSdk` is 36** — it was pinned to 34 for a JDK 21 `jlink`/`JdkImageTransform` bug on F-Droid's builder. That pin is no longer needed: the buildserver image is now `buildserver-trixie`, the recipe installs JDK 17 from Bookworm and sets `JAVA_HOME` to it, and published F-Droid Flutter apps build on `compileSdk 36`. `android/build.gradle` also forces every **plugin subproject** to the same `compileSdk`; plugins pinning an older one fail `checkDebugAarMetadata` once a transitive AndroidX artifact requires a newer API level.
+- **`flutter pub get --enforce-lockfile`** — F-Droid's canonical Flutter template (`templates/build-flutter.yml` in fdroiddata) uses this flag, so `pubspec.lock` must be consistent with the pinned Flutter SDK. CI passes the same flag; without it CI silently re-resolves and cannot catch the drift, which is how a broken lockfile reached F-Droid unnoticed (issue #63).
+- **AGP stays on the 8.x line** — Flutter 3.44 requires AGP >= 8.6.0, but AGP 9+ reads only the new DSL, which `android/app/build.gradle` (Groovy) does not use. `android/gradle.properties` carries `android.newDsl=false` and `android.builtInKotlin=false` for the same reason.
+- **Flutter version is pinned from the release workflow** — `prebuild` extracts `FLUTTER_VERSION` from `.github/workflows/release.yml` via `sed`. If you rename/restructure the workflow, the F-Droid build will break. The `sed` must also match exactly one line — keep a single `FLUTTER_VERSION: 'X.Y.Z'` in that file.
 - **`pub get` runs in `prebuild`, not `build`** — F-Droid scans dependencies between prebuild and build. `.pub-cache` is in `scandelete` (deleted after scanning). Any build step that depends on `.pub-cache` must set `PUB_CACHE=$(pwd)/.pub-cache`.
 - **Categories** — F-Droid does not accept `Utility`. Current categories: `Connectivity`, `System`.
 - **Commit reference** — Use full commit SHA in the `commit:` field, not tag references.
