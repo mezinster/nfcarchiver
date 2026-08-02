@@ -12,11 +12,14 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(":app")
 }
+// Force every plugin subproject onto the app's compileSdk. Plugins that pin an
+// older one fail `checkDebugAarMetadata` as soon as any transitive AndroidX
+// artifact requires a newer API level.
 subprojects { project ->
     if (project.name != 'app') {
         afterEvaluate {
             if (it.hasProperty('android')) {
-                it.android.compileSdk = 34
+                it.android.compileSdk = 36
             }
         }
     }

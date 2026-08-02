@@ -27,7 +27,7 @@ on:
         default: false
 
 env:
-  FLUTTER_VERSION: '3.24.0'
+  FLUTTER_VERSION: '3.44.8'
 
 jobs:
   version:
@@ -93,7 +93,7 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Generate localization files
         run: flutter gen-l10n
@@ -130,7 +130,7 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Generate localization files
         run: flutter gen-l10n
@@ -211,7 +211,7 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Generate localization files
         run: flutter gen-l10n

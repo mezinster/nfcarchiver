@@ -40,14 +40,98 @@ Builds:
       - $$flutter$$/bin/flutter gen-l10n
       - $$flutter$$/bin/flutter build apk --release
 
-  - versionName: 1.1.0
-    versionCode: 13
-    commit: 4567440489984e253b7da1c63b184a7ef96dabb9
+  - versionName: 1.0.9
+    versionCode: 9
+    commit: ba701356ebad31b8c38409551c1a4829fb7c23df
     sudo:
-      - echo 'deb http://deb.debian.org/debian bookworm main' > /etc/apt/sources.list.d/bookworm.list
+      - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
       - apt-get update
-      - apt-get install -y openjdk-17-jdk-headless
-      - update-java-alternatives -a
+      - apt-get install -y -t bookworm openjdk-17-jdk-headless
+      - update-java-alternatives -s java-1.17.0-openjdk-amd64
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter gen-l10n
+      - $$flutter$$/bin/flutter build apk --release
+
+  - versionName: 1.0.10
+    versionCode: 10
+    commit: 3fb980252d72dc282fce709ca5be71626f635771
+    sudo:
+      - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
+      - apt-get update
+      - apt-get install -y -t bookworm openjdk-17-jdk-headless
+      - update-java-alternatives -s java-1.17.0-openjdk-amd64
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter gen-l10n
+      - $$flutter$$/bin/flutter build apk --release
+
+  - versionName: 1.0.11
+    versionCode: 11
+    commit: 6ba871c3295216d97855ddbeb8327aeb0b14759e
+    sudo:
+      - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
+      - apt-get update
+      - apt-get install -y -t bookworm openjdk-17-jdk-headless
+      - update-java-alternatives -s java-1.17.0-openjdk-amd64
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@stable
+    rm:
+      - ios
+    prebuild:
+      - flutterVersion=$(sed -n -E "s/.*FLUTTER_VERSION:\ '(.*)'/\1/p" .github/workflows/release.yml)
+      - '[[ $flutterVersion ]]'
+      - git -C $$flutter$$ checkout -f $flutterVersion
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter gen-l10n
+      - $$flutter$$/bin/flutter build apk --release
+
+  - versionName: 1.0.12
+    versionCode: 12
+    commit: 26183ca5da344f0949934bf7fa95aea0d961ebfb
+    sudo:
+      - echo "deb https://deb.debian.org/debian bookworm main" > /etc/apt/sources.list.d/bookworm.list
+      - apt-get update
+      - apt-get install -y -t bookworm openjdk-17-jdk-headless
+      - update-java-alternatives -s java-1.17.0-openjdk-amd64
     output: build/app/outputs/flutter-apk/app-release.apk
     srclibs:
       - flutter@stable
@@ -71,5 +155,5 @@ Builds:
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
-CurrentVersion: 1.1.0
-CurrentVersionCode: 13
+CurrentVersion: 1.0.12
+CurrentVersionCode: 12

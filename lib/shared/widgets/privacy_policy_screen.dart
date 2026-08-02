@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:nfc_archiver/l10n/app_localizations.dart';
 
 /// Screen displaying the app's privacy policy.
 class PrivacyPolicyScreen extends StatelessWidget {
