@@ -1,0 +1,3 @@
+Kart incelemesi düzeltmesi ve güncellenmiş yapı
+- Düzeltildi: kart incelemesi hatalı biçimlendirilmiş ATQA değerini artık kart özelliği olarak göstermek yerine işaretliyor
+- Güncellendi: Flutter 3.44.8 ve Android API seviye 36 ile yeniden derlendi

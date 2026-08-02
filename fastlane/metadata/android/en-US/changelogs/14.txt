@@ -1,0 +1,3 @@
+Card inspector fix and an updated build
+- Fixed: the card inspector now flags a malformed ATQA instead of showing it as a card property
+- Updated: rebuilt on Flutter 3.44.8 and Android API level 36

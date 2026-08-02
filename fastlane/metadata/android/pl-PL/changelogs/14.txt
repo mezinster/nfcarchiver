@@ -1,0 +1,3 @@
+Poprawka badania karty i zaktualizowana kompilacja
+- Poprawka: badanie karty oznacza teraz nieprawidłowe ATQA zamiast pokazywać je jako właściwość karty
+- Aktualizacja: zbudowano na Flutterze 3.44.8 i poziomie API Androida 36
