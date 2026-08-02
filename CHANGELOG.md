@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-02
+
+### Fixed
+- **Card inspector ATQA validation**: a malformed ATQA is now flagged as such instead of being printed as if it were a legitimate card property.
+
+### Changed
+- **Toolchain upgraded to Flutter 3.44.8** (Dart 3.12.2) from 3.24.0, with `compileSdk`/`targetSdk` raised to 36 and Java 17. This also resolves an F-Droid build failure: `pubspec.lock` pinned a `vm_service` newer than the previously pinned SDK bundled, which `flutter pub get --enforce-lockfile` refuses. CI now passes the same flag so the drift cannot recur silently.
+- **Plugins updated** for the newer SDK: `file_picker` to 11.x (its 6.x line referenced the removed v1 embedding), plus `flutter_reactive_ble`, `path_provider`, `shared_preferences` and `intl`.
+
+## [1.1.0] - 2026-07-31
+
+### Added
+- **Chameleon Ultra reader over Bluetooth** — choose between the phone's own NFC radio and a Chameleon from the app bar.
+- **MIFARE Classic 1K support** — 752 usable bytes per card, roughly 1.5x an NTAG215.
+- **Card inspector** — dump any card block by block, with a decoded NFAR header and CRC check (requires a Chameleon).
+
+### Fixed
+- NTAG tags written by the web app can now be rewritten from the phone.
+
 ## [1.0.12] - 2026-04-02
 
 ### Added
