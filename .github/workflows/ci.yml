@@ -11,9 +11,72 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Decides which of the two codebases a change actually touches. The jobs below
+  # gate on this with a job-level `if:`, never with a workflow-level `paths:`
+  # filter: "Analyze & Test" and "Build Android APK" are required status checks,
+  # and a workflow filtered out by `paths:` never reports them at all, leaving
+  # every web-app-only PR stuck on "Expected — waiting for status". A job skipped
+  # by `if:` still posts its check run, with conclusion "skipped", which the
+  # ruleset accepts.
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      flutter: ${{ steps.filter.outputs.flutter }}
+      webapp: ${{ steps.filter.outputs.webapp }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          # Full history so the base commit of the diff is present locally.
+          fetch-depth: 0
+
+      - name: Classify changed paths
+        id: filter
+        env:
+          # Interpolated into the environment, not into the script body.
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          # Branch creation, a force-pushed base, or any unreachable commit means
+          # we cannot tell what changed. Fail open and run everything.
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "Base commit unavailable ($BASE_SHA) — running all jobs."
+            echo "flutter=true" >> "$GITHUB_OUTPUT"
+            echo "webapp=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Three-dot: diff against the merge base, so commits that landed on the
+          # base branch after this PR opened are not counted as our changes.
+          files=$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")
+          echo "Changed files:"
+          echo "$files" | sed 's/^/  /'
+
+          flutter=false
+          webapp=false
+
+          # This workflow appears in both sets: a change to the pipeline must be
+          # validated by every job the pipeline runs.
+          if grep -qE '^(lib|test|tool|android|ios)/|^(pubspec\.(yaml|lock)|analysis_options\.yaml|l10n\.yaml)$|^\.github/workflows/ci\.yml$' <<< "$files"; then
+            flutter=true
+          fi
+          if grep -qE '^webapp/|^\.github/workflows/ci\.yml$' <<< "$files"; then
+            webapp=true
+          fi
+
+          echo "flutter=$flutter" >> "$GITHUB_OUTPUT"
+          echo "webapp=$webapp" >> "$GITHUB_OUTPUT"
+          echo "flutter=\`$flutter\` webapp=\`$webapp\`" >> "$GITHUB_STEP_SUMMARY"
+
   analyze-and-test:
     name: Analyze & Test
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true'
 
     steps:
       - name: Checkout repository
@@ -49,7 +112,10 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
-    needs: analyze-and-test
+    # Deliberately not gated on analyze-and-test: it consumes none of that job's
+    # output, and serialising the two cost ~2 min of wall clock on every PR.
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true'
 
     steps:
       - name: Checkout repository
@@ -88,6 +154,8 @@ jobs:
   webapp:
     name: Web app core (TypeScript)
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.webapp == 'true'
 
     steps:
       - name: Checkout repository
