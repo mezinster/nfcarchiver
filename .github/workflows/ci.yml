@@ -24,6 +24,7 @@ jobs:
     outputs:
       flutter: ${{ steps.filter.outputs.flutter }}
       webapp: ${{ steps.filter.outputs.webapp }}
+      interop: ${{ steps.filter.outputs.interop }}
 
     steps:
       - name: Checkout repository
@@ -47,6 +48,7 @@ jobs:
             echo "Base commit unavailable ($BASE_SHA) — running all jobs."
             echo "flutter=true" >> "$GITHUB_OUTPUT"
             echo "webapp=true" >> "$GITHUB_OUTPUT"
+            echo "interop=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -58,8 +60,9 @@ jobs:
 
           flutter=false
           webapp=false
+          interop=false
 
-          # This workflow appears in both sets: a change to the pipeline must be
+          # This workflow appears in every set: a change to the pipeline must be
           # validated by every job the pipeline runs.
           if grep -qE '^(lib|test|tool|android|ios)/|^(pubspec\.(yaml|lock)|analysis_options\.yaml|l10n\.yaml)$|^\.github/workflows/ci\.yml$' <<< "$files"; then
             flutter=true
@@ -67,10 +70,18 @@ jobs:
           if grep -qE '^webapp/|^\.github/workflows/ci\.yml$' <<< "$files"; then
             webapp=true
           fi
+          # Only the two cores define the on-tag bytes, plus the harness that
+          # compares them and the dependency pins that supply the primitives.
+          # UI code on either side (lib/features/**, webapp/app/**) cannot change
+          # the wire format, and neither can an unrelated webapp/test/** file.
+          if grep -qE '^(lib/core|tool)/|^webapp/src/|^webapp/test/(fixtures/|write_ts_fixtures\.ts|interop-dart\.test\.ts|hex\.ts)|^(pubspec\.(yaml|lock)|webapp/package(-lock)?\.json)$|^\.github/workflows/ci\.yml$' <<< "$files"; then
+            interop=true
+          fi
 
           echo "flutter=$flutter" >> "$GITHUB_OUTPUT"
           echo "webapp=$webapp" >> "$GITHUB_OUTPUT"
-          echo "flutter=\`$flutter\` webapp=\`$webapp\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "interop=$interop" >> "$GITHUB_OUTPUT"
+          echo "flutter=\`$flutter\` webapp=\`$webapp\` interop=\`$interop\`" >> "$GITHUB_STEP_SUMMARY"
 
   analyze-and-test:
     name: Analyze & Test
@@ -177,3 +188,64 @@ jobs:
         # rm -rf dist because the `tsc && node --test` chain does not clean
         # stale compiled tests.
         run: rm -rf dist && npm test
+
+  # The Flutter app and the web app are independent implementations of the same
+  # on-tag format; lib/core/mifare/card_layout.dart is a hand-written port of
+  # webapp/src/mifare/card-layout.ts. The committed fixtures under
+  # webapp/test/fixtures/ prove they agreed *when those files were generated* —
+  # nothing regenerates them, so a change to either core silently invalidates the
+  # snapshot while every test keeps passing. This job makes each side decode the
+  # other side's *current* output, which is the only thing that actually defends
+  # the byte-compatibility guarantee.
+  #
+  # Regenerate-and-diff would not work here: both generators randomise the
+  # archive ID, salt and IV, so a fresh run never reproduces the committed bytes.
+  interop:
+    name: Cross-language interop
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.interop == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: webapp/package-lock.json
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate localization files
+        run: flutter gen-l10n
+
+      - name: Install web app dependencies
+        working-directory: webapp
+        run: npm ci
+
+      - name: Regenerate fixtures from the current Dart core
+        run: |
+          dart run tool/generate_web_fixtures.dart
+          dart run tool/generate_mifare_fixtures.dart
+
+      - name: TypeScript decodes the current Dart output
+        working-directory: webapp
+        run: rm -rf dist && npx tsc && node --test 'dist/test/interop-dart.test.js'
+
+      - name: Regenerate fixtures from the current TypeScript core
+        working-directory: webapp
+        run: node dist/test/write_ts_fixtures.js
+
+      - name: Dart decodes the current TypeScript output
+        run: dart run tool/verify_web_fixtures.dart
