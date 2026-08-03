@@ -39,7 +39,7 @@ dependencies:
   package_info_plus: ^8.0.0
 
   # Crypto & Compression
-  pointycastle: ^3.7.3
+  pointycastle: ^4.0.0
   archive: ^3.4.0
 
   # Utils
