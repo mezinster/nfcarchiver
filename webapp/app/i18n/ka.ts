@@ -65,6 +65,10 @@ export const ka: Messages = {
     `✓ ჩაწერილი და შემოწმებულია ${written} / ${total} — მიადეთ შემდეგი ბარათი`,
   archiveDone: (n) => `დასრულდა — ჩაწერილი და შემოწმებულია ${n} ${pr(n, CARD)}.`,
   tapCardOf: (i, total) => `მიადეთ ბარათი ${i} / ${total} წამკითხველს…`,
+  writingCard: (i, total) => `მიმდინარეობს ბარათის ${i} / ${total} ჩაწერა — არ მოხსნათ ბარათი…`,
+  cardAlreadyWritten: (uid) =>
+    `ბარათზე ${uid} უკვე ჩაწერილია ამ არქივის ნაწილი — მიადეთ სხვა ბარათი (კლონებს ერთი და იგივე UID აქვთ).`,
+  awaitingOverwriteAnswer: 'ბარათზე უკვე არის მონაცემები — ველოდებით თქვენს პასუხს დიალოგში…',
   readerDisconnectedResume: 'წამკითხველი გაითიშა — გასაგრძელებლად ხელახლა დააკავშირეთ.',
   readerSwitchedResume: 'წამკითხველი შეიცვალა — გრძელდება ახალ წამკითხველზე.',
   rechunked: (payloadSize, total) =>

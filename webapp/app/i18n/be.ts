@@ -68,6 +68,10 @@ export const be: Messages = {
     `✓ запісана і праверана ${written} з ${total} — прыкладзіце наступную карту`,
   archiveDone: (n) => `Гатова — запісана і праверана ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Прыкладзіце карту ${i} з ${total} да счытвальніка…`,
+  writingCard: (i, total) => `Запіс карты ${i} з ${total} — не прыбірайце карту…`,
+  cardAlreadyWritten: (uid) =>
+    `На карту ${uid} ужо запісана частка гэтага архіва — прыкладзіце іншую карту (у клонаў аднолькавы UID).`,
+  awaitingOverwriteAnswer: 'На карце ўжо ёсць даныя — чакаем вашага адказу ў дыялогу…',
   readerDisconnectedResume: 'Счытвальнік адключаны — падключыцеся зноў, каб працягнуць.',
   readerSwitchedResume: 'Счытвальнік зменены — працягваем на новым счытвальніку.',
   rechunked: (payloadSize, total) =>

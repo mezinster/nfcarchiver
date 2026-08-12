@@ -68,6 +68,10 @@ export const pl: Messages = {
     `✓ zapisano i zweryfikowano ${written} z ${total} — przyłóż następną kartę`,
   archiveDone: (n) => `Gotowe — zapisano i zweryfikowano ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Przyłóż kartę ${i} z ${total} do czytnika…`,
+  writingCard: (i, total) => `Zapisywanie karty ${i} z ${total} — nie zabieraj karty…`,
+  cardAlreadyWritten: (uid) =>
+    `Karta ${uid} zawiera już fragment tego archiwum — przyłóż inną kartę (klony mają ten sam UID).`,
+  awaitingOverwriteAnswer: 'Ta karta zawiera już dane — czekamy na Twoją odpowiedź w oknie dialogowym…',
   readerDisconnectedResume: 'Czytnik rozłączony — połącz ponownie, aby kontynuować.',
   readerSwitchedResume: 'Zmieniono czytnik — wznawianie na nowym czytniku.',
   rechunked: (payloadSize, total) =>
