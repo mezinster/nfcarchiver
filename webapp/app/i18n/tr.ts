@@ -65,6 +65,10 @@ export const tr: Messages = {
     `✓ ${total} karttan ${written} tanesi yazıldı ve doğrulandı — sonraki kartı okutun`,
   archiveDone: (n) => `Bitti — ${n} ${pr(n, CARD)} yazıldı ve doğrulandı.`,
   tapCardOf: (i, total) => `Kart ${i}/${total} — okuyucuya okutun…`,
+  writingCard: (i, total) => `Kart ${i}/${total} yazılıyor — kartı sabit tutun…`,
+  cardAlreadyWritten: (uid) =>
+    `${uid} kartı bu arşivin bir parçasını zaten içeriyor — başka bir kart okutun (klon kartlar aynı UID'yi paylaşır).`,
+  awaitingOverwriteAnswer: 'Bu kartta zaten veri var — iletişim kutusundaki yanıtınız bekleniyor…',
   readerDisconnectedResume: 'Okuyucu bağlantısı kesildi — devam etmek için yeniden bağlanın.',
   readerSwitchedResume: 'Okuyucu değişti — yeni okuyucuda devam ediliyor.',
   rechunked: (payloadSize, total) =>

@@ -68,6 +68,10 @@ export const uk: Messages = {
     `✓ записано та перевірено ${written} з ${total} — прикладіть наступну картку`,
   archiveDone: (n) => `Готово — записано та перевірено ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Прикладіть картку ${i} з ${total} до зчитувача…`,
+  writingCard: (i, total) => `Запис картки ${i} з ${total} — не прибирайте картку…`,
+  cardAlreadyWritten: (uid) =>
+    `На картку ${uid} вже записано частину цього архіву — прикладіть іншу картку (у клонів однаковий UID).`,
+  awaitingOverwriteAnswer: 'На картці вже є дані — чекаємо на вашу відповідь у діалозі…',
   readerDisconnectedResume: 'Зчитувач відключено — підключіться знову, щоб продовжити.',
   readerSwitchedResume: 'Зчитувач змінено — продовжуємо на новому зчитувачі.',
   rechunked: (payloadSize, total) =>

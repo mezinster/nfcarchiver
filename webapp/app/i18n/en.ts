@@ -66,6 +66,10 @@ export const en = {
   progressWriting: (written: number, total: number) => `✓ ${written} of ${total} written & verified — tap the next card`,
   archiveDone: (n: number) => `Done — wrote and verified ${n} ${pr(n, { one: 'card', other: 'cards' })}.`,
   tapCardOf: (i: number, total: number) => `Tap card ${i} of ${total} on the reader…`,
+  writingCard: (i: number, total: number) => `Writing card ${i} of ${total} — hold it still…`,
+  cardAlreadyWritten: (uid: string) =>
+    `Card ${uid} already holds a chunk of this archive — tap a different card (cloned cards share a UID).`,
+  awaitingOverwriteAnswer: 'This card already holds data — waiting for your answer in the dialog…',
   readerDisconnectedResume: 'Reader disconnected — reconnect to resume.',
   readerSwitchedResume: 'Reader switched — resuming on the new reader.',
   rechunked: (payloadSize: number, total: number) =>

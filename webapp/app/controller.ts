@@ -38,6 +38,24 @@ export interface DetectedArchive {
   complete: boolean;
 }
 
+/**
+ * Boundary events inside a single writeNextCard call, reported as they happen.
+ *
+ * A card operation is one long await from the caller's point of view — tag
+ * detection, the NFAR peek, then (on a Mifare Classic 1K) 47 block writes and
+ * 47 verify reads, 15-25 s of BLE round trips. Without these events a stall
+ * anywhere in that span is indistinguishable from "the user has not tapped
+ * yet": the status line still shows the previous card's prompt and the log is
+ * empty. The core stays free of the logger — the caller decides what to do
+ * with these.
+ */
+export type ArchiveWriteEvent =
+  | { phase: 'tag'; uid: string; maxChunkPayload: number }
+  | { phase: 'already-written'; uid: string }
+  | { phase: 'peeked'; uid: string; isNfar: boolean }
+  | { phase: 'writing'; uid: string; chunkIndex: number; bytes: number }
+  | { phase: 'written'; uid: string; chunkIndex: number };
+
 export class OverwriteRequiredError extends Error {
   constructor(message: string) {
     super(message);
@@ -105,22 +123,37 @@ export class ArchiveController {
     return { total: this.chunks.length, written: this.written, awaiting };
   }
 
-  async writeNextCard(signal?: AbortSignal, confirmOverwrite = false): Promise<{ done: boolean; progress: ArchiveProgress; rechunkedTo?: { total: number; payloadSize: number } }> {
+  async writeNextCard(
+    signal?: AbortSignal,
+    confirmOverwrite = false,
+    onEvent?: (e: ArchiveWriteEvent) => void,
+  ): Promise<{ done: boolean; progress: ArchiveProgress; rechunkedTo?: { total: number; payloadSize: number }; skipped?: 'already-written' }> {
     if (this.written >= this.chunks.length) return { done: true, progress: this.progress(null) };
     const tag = await this.transport.awaitTag({ signal });
     const key = uidHex(tag.uid);
+    onEvent?.({ phase: 'tag', uid: key, maxChunkPayload: tag.maxChunkPayload });
     if (this.writtenUids.has(key)) {
-      return { done: false, progress: this.progress(this.written) };
+      // No progress is possible from this card. Reported rather than returned
+      // as a bare no-op: the caller must be able to say so and to pace itself,
+      // or a card left sitting on the reader becomes an unthrottled, silent
+      // poll loop that looks exactly like a hang.
+      onEvent?.({ phase: 'already-written', uid: key });
+      return { done: false, progress: this.progress(this.written), skipped: 'already-written' };
     }
     let rechunkedTo: { total: number; payloadSize: number } | undefined;
     if (this.written === 0 && tag.maxChunkPayload !== this.payloadSize) {
       const total = this.rechunkForCapacity(tag.maxChunkPayload);
       rechunkedTo = { total, payloadSize: tag.maxChunkPayload };
     }
-    if (!confirmOverwrite && (await this.transport.peekIsNfar())) {
-      throw new OverwriteRequiredError('This card already holds NFAR data; confirm to overwrite');
+    if (!confirmOverwrite) {
+      const isNfar = await this.transport.peekIsNfar();
+      onEvent?.({ phase: 'peeked', uid: key, isNfar });
+      if (isNfar) throw new OverwriteRequiredError('This card already holds NFAR data; confirm to overwrite');
     }
-    await this.transport.writeChunk(encodeChunk(this.chunks[this.written]!));
+    const bytes = encodeChunk(this.chunks[this.written]!);
+    onEvent?.({ phase: 'writing', uid: key, chunkIndex: this.written, bytes: bytes.length });
+    await this.transport.writeChunk(bytes);
+    onEvent?.({ phase: 'written', uid: key, chunkIndex: this.written });
     this.writtenUids.add(key);
     this.written += 1;
     const done = this.written >= this.chunks.length;

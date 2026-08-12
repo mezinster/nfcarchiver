@@ -7,7 +7,7 @@
  * on a fresh transport (see setTransport on the controller). The panel supplies
  * real DOM/browser IO; tests supply a stub IO + MockTransport.
  */
-import { ArchiveController, OverwriteRequiredError, type ArchiveRequest } from '../controller.js';
+import { ArchiveController, OverwriteRequiredError, type ArchiveRequest, type ArchiveWriteEvent } from '../controller.js';
 import { TagTimeoutError, UnsupportedTagError, type Transport } from '../../src/transport/transport.js';
 import { humanError } from './errors.js';
 import { t } from '../i18n/index.js';
@@ -75,6 +75,36 @@ export class ArchiveOrchestrator {
     let inUse = transport;
     const usable = (): boolean => this.io.isConnected() && this.io.activeTransport() === inUse;
     const breaker = new FailureBreaker();
+    // Turns the boundary events of one writeNextCard call into log lines and a
+    // live status. Everything below happens inside a single await, so without
+    // this the UI keeps showing the PREVIOUS card's prompt for the whole 15-25 s
+    // of a Mifare Classic write and the log stays empty between "Prepared" and
+    // "Write complete" — every way a card can get stuck looks the same.
+    const onEvent = (e: ArchiveWriteEvent): void => {
+      switch (e.phase) {
+        case 'tag':
+          this.io.log.debug('archive', 'Tag detected', { uid: e.uid, maxChunkPayload: e.maxChunkPayload });
+          break;
+        case 'already-written':
+          // The UID is the whole message. Cloned Mifare cards share one UID, so
+          // a user swapping twins sees a card they believe is new being refused
+          // over and over; naming the UID makes "the reader is seeing the same
+          // card" visible instead of leaving it to be inferred.
+          this.io.setStatus(t.cardAlreadyWritten(e.uid.toUpperCase()));
+          this.io.log.warn('archive', 'Card already written — skipped', { uid: e.uid });
+          break;
+        case 'peeked':
+          this.io.log.debug('archive', 'Peeked for existing NFAR data', { uid: e.uid, isNfar: e.isNfar });
+          break;
+        case 'writing':
+          this.io.setStatus(t.writingCard(e.chunkIndex + 1, total));
+          this.io.log.info('archive', 'Writing chunk to card', { uid: e.uid, chunk: e.chunkIndex + 1, bytes: e.bytes });
+          break;
+        case 'written':
+          this.io.log.info('archive', 'Card written & verified', { uid: e.uid, chunk: e.chunkIndex + 1 });
+          break;
+      }
+    };
     while (!done) {
       const iterationStart = Date.now();
       if (!usable()) {
@@ -87,9 +117,20 @@ export class ArchiveOrchestrator {
         continue;
       }
       try {
-        const res = await ctrl.writeNextCard(undefined, overwriteAll);
+        const res = await ctrl.writeNextCard(undefined, overwriteAll, onEvent);
         total = res.progress.total;
         done = res.done;
+        if (res.skipped === 'already-written') {
+          // Not a failure and not progress: a card the user already wrote is
+          // sitting on the reader. Pacing is what makes this safe — the success
+          // path bypasses the catch block's ensureMinInterval, so without it
+          // this is an unthrottled poll of the reader that renders no change
+          // and logs nothing. That is precisely what a hang looks like.
+          // (The status is set by the 'already-written' event above, which
+          // carries the UID.)
+          await ensureMinInterval(iterationStart, 250);
+          continue;
+        }
         this.render(res.progress.written, total, done);
         if (res.rechunkedTo) {
           this.io.setStatus(t.rechunked(res.rechunkedTo.payloadSize, res.rechunkedTo.total));
@@ -110,11 +151,18 @@ export class ArchiveOrchestrator {
         await ensureMinInterval(iterationStart, 250);
         if (e instanceof TagTimeoutError) { this.io.setStatus(t.noCardTapHold); continue; }
         if (e instanceof OverwriteRequiredError) {
+          // Announced BEFORE the prompt opens. The await below is unbounded, so
+          // a dialog the user never answers — or one that never became visible
+          // — is an indefinite silent stall with the previous card's prompt
+          // still on screen. The status line and log now name the wait.
+          this.io.setStatus(t.awaitingOverwriteAnswer);
+          this.io.log.info('archive', 'Overwrite prompt opened — awaiting the answer');
           const choice = await this.io.confirmOverwrite();
+          this.io.log.info('archive', 'Overwrite prompt answered', { choice });
           if (choice === 'skip') { this.io.setStatus(t.skippedTapDifferent); continue; }
           if (choice === 'all') { overwriteAll = true; this.io.log.info('archive', 'Overwrite all remaining'); }
           try {
-            const res = await ctrl.writeNextCard(undefined, true);
+            const res = await ctrl.writeNextCard(undefined, true, onEvent);
             total = res.progress.total;
             done = res.done;
             this.render(res.progress.written, total, done);

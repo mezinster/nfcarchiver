@@ -68,6 +68,10 @@ export const ru: Messages = {
     `✓ записано и проверено ${written} из ${total} — приложите следующую карту`,
   archiveDone: (n) => `Готово — записано и проверено ${n} ${pr(n, CARD_ACC)}.`,
   tapCardOf: (i, total) => `Приложите карту ${i} из ${total} к считывателю…`,
+  writingCard: (i, total) => `Запись карты ${i} из ${total} — не убирайте карту…`,
+  cardAlreadyWritten: (uid) =>
+    `На карту ${uid} уже записана часть этого архива — приложите другую карту (у клонов одинаковый UID).`,
+  awaitingOverwriteAnswer: 'На карте уже есть данные — ждём вашего ответа в диалоге…',
   readerDisconnectedResume: 'Считыватель отключён — переподключитесь, чтобы продолжить.',
   readerSwitchedResume: 'Считыватель изменён — продолжаем на новом считывателе.',
   rechunked: (payloadSize, total) =>

@@ -283,3 +283,105 @@ test('repeated wrong-media taps never trip the archive breaker', async () => {
   await inner.awaitTag();
   assert.equal(decodeChunk(await inner.readChunk()).chunkIndex, 0, 'the archive still completed');
 });
+
+// ---------------------------------------------------------------------------
+// Traceability of a stuck write. A multi-card archive that stops making
+// progress used to look identical whatever the cause: the status line still
+// showed the previous card's tap prompt (render() only runs after a whole card
+// completes) and the log held nothing between "Prepared" and "Write complete".
+// These three tests pin the boundary reporting that tells the causes apart.
+// ---------------------------------------------------------------------------
+
+const twoCardData = crypto.getRandomValues(new Uint8Array(1000)); // incompressible -> 2 cards
+
+test('re-tapping an already-written card says so instead of silently skipping', async () => {
+  const inner = new MockTransport();
+  const logger = new Logger();
+  const { io, statuses } = makeIO(inner, { log: logger });
+  const orch = new ArchiveOrchestrator(io);
+
+  inner.enqueueTag(uid(0)); // card 1 written
+  inner.enqueueTag(uid(0)); // user puts the SAME card back — no progress possible
+  inner.enqueueTag(uid(0)); // and again
+  inner.enqueueTag(uid(1)); // finally a fresh card -> archive completes
+
+  const startedAt = Date.now();
+  await orch.run(inner, { data: twoCardData, fileName: 'blob.bin', compress: false, payloadSize: 720 });
+  const elapsed = Date.now() - startedAt;
+
+  // The UID must be in the message. Cloned Mifare cards share a UID, so a user
+  // swapping twins sees a card they believe is new refused over and over — a
+  // message without the UID leaves that to be inferred, which is exactly the
+  // 90-second silent skip loop observed on hardware on 2026-08-13.
+  assert.ok(statuses.some((s) => /already holds/i.test(s) && /A00000/i.test(s)),
+    `the user must be told WHICH card is already written; got ${JSON.stringify(statuses)}`);
+  assert.ok(logger.snapshot().some((e) => /already written/i.test(e.msg)),
+    'the skip must reach the log — it is otherwise invisible');
+  // The skip is a SUCCESS return, so it never reaches the catch block's
+  // ensureMinInterval. Unpaced, a card left on the reader is an unthrottled
+  // poll that renders no change and logs nothing — indistinguishable from a
+  // hang, and the exact shape loop-guards.ts exists to prevent. Two skips must
+  // therefore cost at least two intervals.
+  assert.ok(elapsed >= 500, `two skips must be paced at 250 ms each; took ${elapsed} ms`);
+});
+
+test('each card is logged at every boundary so a stall can be located', async () => {
+  const inner = new MockTransport();
+  const logger = new Logger();
+  const { io } = makeIO(inner, { log: logger });
+
+  inner.enqueueTag(uid(0));
+  inner.enqueueTag(uid(1));
+  await new ArchiveOrchestrator(io).run(inner, {
+    data: twoCardData, fileName: 'blob.bin', compress: false, payloadSize: 720,
+  });
+
+  const msgs = logger.snapshot().map((e) => e.msg);
+  assert.ok(msgs.some((m) => /tag detected/i.test(m)),
+    `a tap must be logged, so "no card" is distinguishable from "stuck mid-write"; got ${JSON.stringify(msgs)}`);
+  assert.ok(msgs.some((m) => /writing chunk/i.test(m)),
+    'the start of a card write must be logged — a stall inside it is otherwise silent');
+  assert.equal(msgs.filter((m) => /card written/i.test(m)).length, 2,
+    'every completed card must be logged with its UID');
+});
+
+test('a write in flight replaces the tap prompt instead of leaving it frozen', async () => {
+  const inner = new MockTransport();
+  const { io, statuses } = makeIO(inner);
+
+  inner.enqueueTag(uid(0));
+  inner.enqueueTag(uid(1));
+  await new ArchiveOrchestrator(io).run(inner, {
+    data: twoCardData, fileName: 'blob.bin', compress: false, payloadSize: 720,
+  });
+
+  // On a Mifare Classic 1K a card write is 94 BLE round trips (47 blocks +
+  // 47 verify reads), 15-25 s. Showing "tap the next card" throughout makes a
+  // working write and a hung one indistinguishable.
+  assert.ok(statuses.some((s) => /writing card/i.test(s)),
+    `a write in progress must be visible; got ${JSON.stringify(statuses)}`);
+});
+
+test('the overwrite prompt announces itself, so an unanswered dialog is traceable', async () => {
+  const inner = new MockTransport();
+  const logger = new Logger();
+  const existing = encodeChunk({
+    archiveId: new Uint8Array(16).fill(9), totalChunks: 1, chunkIndex: 0,
+    payload: new Uint8Array([1]), crc32: 0, flags: 0,
+  });
+  const { io, statuses } = makeIO(inner, { log: logger, confirmOverwrite: async () => 'once' });
+
+  inner.enqueueTag(uid(0), existing); // tap -> prompt (throws, tag consumed)
+  inner.enqueueTag(uid(0), existing); // re-tap -> the confirmed write
+  inner.enqueueTag(uid(1), existing); // second card, prompted again
+  inner.enqueueTag(uid(1), existing);
+
+  await new ArchiveOrchestrator(io).run(inner, {
+    data: twoCardData, fileName: 'blob.bin', compress: false, payloadSize: 720,
+  });
+
+  assert.ok(logger.snapshot().some((e) => /overwrite/i.test(e.msg)),
+    'opening the prompt must be logged — a dialog nobody answers is otherwise a silent hang');
+  assert.ok(statuses.some((s) => /waiting for your answer/i.test(s)),
+    `the status line must say a prompt is open; got ${JSON.stringify(statuses)}`);
+});
