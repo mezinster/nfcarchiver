@@ -10,6 +10,7 @@ import '../domain/mifare_block_io.dart';
 import '../domain/mifare_tag_codec.dart';
 import '../domain/ndef_availability.dart';
 import '../domain/ndef_formatter.dart';
+import '../domain/ndef_io.dart';
 import '../domain/ndef_tag_codec.dart';
 import '../domain/tag_codec.dart';
 import 'nfc_capabilities.dart';
@@ -51,7 +52,7 @@ class NfcRepository {
   /// MifareClassic is unambiguously ours. NDEF handles everything else.
   final List<TagCodec> _codecs = [
     MifareTagCodec(mifareIoFor),
-    NdefTagCodec(),
+    NdefTagCodec(ndefIoFor),
   ];
 
   /// First codec that can handle this tag, or null.
@@ -235,7 +236,7 @@ class NfcRepository {
           // not the (1-4 byte stricter) `codec.capacityBytes(tag)` used below
           // for other media.
           if (codec is NdefTagCodec) {
-            final ndef = Ndef.from(tag)!;
+            final ndef = ndefIoFor(tag)!;
             if (!ndef.isWritable) {
               onError('Tag is not writable');
               return;
@@ -446,7 +447,7 @@ class NfcRepository {
 
     // Try to get NDEF info
     final codec = _codecFor(tag);
-    final ndef = codec != null ? Ndef.from(tag) : null;
+    final ndef = codec != null ? ndefIoFor(tag) : null;
     if (ndef != null) {
       capacity = ndef.maxSize;
       isWritable = ndef.isWritable;
