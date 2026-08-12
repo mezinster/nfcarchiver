@@ -28,7 +28,7 @@ dependencies:
   flutter_reactive_ble: ^5.5.0
 
   # Navigation
-  go_router: ^14.0.0
+  go_router: ^17.3.0
 
   # File Operations
   file_picker: ^11.0.3
