@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -24,6 +26,33 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NFCReaderUsageDescription</key>
+	<string>This app uses NFC to read and write archive data to NFC tags.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Connects to a Chameleon Ultra reader to read and write NFC cards.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -41,33 +70,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-
-	<!-- NFC Configuration -->
-	<key>NFCReaderUsageDescription</key>
-	<string>This app uses NFC to read and write archive data to NFC tags.</string>
-
-	<!-- NDEF Tag Types -->
 	<key>com.apple.developer.nfc.readersession.felica.systemcodes</key>
 	<array/>
 	<key>com.apple.developer.nfc.readersession.iso7816.select-identifiers</key>
 	<array>
 		<string>D2760000850101</string>
 	</array>
-
-	<!-- Bluetooth (Chameleon Ultra reader).
-
-	     Required: iOS TERMINATES the app on the first Core Bluetooth call if
-	     this string is missing. Unlike the NFC entitlement above, Bluetooth
-	     needs no paid-programme capability, so the reader works on a free
-	     Personal Team.
-
-	     This is the only route to Mifare Classic on iOS — Core NFC has no
-	     CRYPTO1, so the phone's own radio can never read those cards. -->
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Connects to a Chameleon Ultra reader to read and write NFC cards.</string>
 </dict>
 </plist>
