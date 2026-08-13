@@ -128,6 +128,35 @@ A browser port that reads/writes NFAR archives on physical cards, either via a C
 10. **TestFlight** — Distribute a build via TestFlight for pre-release testing before submitting for review
 11. **App Review submission** — Submit for Apple review; address any rejection feedback
 
+## iOS Development (Mac)
+
+### The two radios have very different gates
+
+|  | Core NFC | Core Bluetooth (Chameleon) |
+|---|---|---|
+| Entitlement | `com.apple.developer.nfc.readersession.formats` — **paid programme only** | none |
+| Free Personal Team | session fails with a *sandbox restriction* | works |
+| Mifare Classic | **impossible** — Core NFC has no CRYPTO1 | works, via the reader |
+| Info.plist | `NFCReaderUsageDescription` | `NSBluetoothAlwaysUsageDescription` |
+
+**A missing `NSBluetoothAlwaysUsageDescription` does not degrade — iOS terminates the app** on the first Core Bluetooth call.
+
+The consequence is counter-intuitive and worth stating plainly: **the Chameleon route makes iOS *more* capable than the phone's own radio.** Native iOS NFC can never touch Mifare Classic, the app's primary medium; routed through the reader it can, because CRYPTO1 runs on the Chameleon. So a free Apple account plus a Chameleon is a working iOS setup, while a free account with no reader is not.
+
+`ChameleonReader.isAvailable()` returns `true` unconditionally and imports nothing from `nfc_manager`, so the reader path is independent of Core NFC by construction — keep it that way.
+
+### What the Chameleon path does NOT verify
+
+It bypasses `nfc_manager` entirely (it uses `lib/core/chameleon/`), so it exercises **none** of `IosNdefIO`, `NdefStatusIos`, or the `defaultTargetPlatform` guards in `ndefIoFor`/`mifareIoFor`. Verifying those needs Core NFC, hence the paid programme. Don't let a green Chameleon run on iOS be mistaken for iOS coverage of the `nfc_manager` layer.
+
+### Toolchain
+
+- **Xcode 26 is the last version supporting Intel Macs**; macOS Tahoe 26 is the last macOS for Intel. Xcode 27 is Apple Silicon only. An Intel Mac works for now — don't plan around it long-term.
+- Free Personal Team builds **expire after 7 days** and must be re-deployed from Xcode; 3 apps max; no TestFlight.
+- `IPHONEOS_DEPLOYMENT_TARGET` is `12.0`.
+- Pin Flutter to the CI version by tag (see the version in `.github/workflows/ci.yml`), then `flutter pub get && cd ios && pod install`.
+- Enable Developer Mode on the iPhone (Settings → Privacy & Security) before the first `flutter run`.
+
 ## F-Droid Build Notes
 
 F-Droid metadata lives in `fdroid/com.nfcarchiver.nfc_archiver.yml` (a reference mirror); the authoritative copy is in [fdroiddata](https://gitlab.com/fdroid/fdroiddata).
