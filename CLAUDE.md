@@ -128,6 +128,44 @@ A browser port that reads/writes NFAR archives on physical cards, either via a C
 10. **TestFlight** — Distribute a build via TestFlight for pre-release testing before submitting for review
 11. **App Review submission** — Submit for Apple review; address any rejection feedback
 
+## iOS Development (Mac)
+
+### The two radios have very different gates
+
+|  | Core NFC | Core Bluetooth (Chameleon) |
+|---|---|---|
+| Entitlement | `com.apple.developer.nfc.readersession.formats` — **paid programme only** | none |
+| Free Personal Team | session fails with a *sandbox restriction* | works |
+| Mifare Classic | **impossible** — Core NFC has no CRYPTO1 | works, via the reader |
+| Info.plist | `NFCReaderUsageDescription` | `NSBluetoothAlwaysUsageDescription` |
+
+**A missing `NSBluetoothAlwaysUsageDescription` does not degrade — iOS terminates the app** on the first Core Bluetooth call.
+
+The consequence is counter-intuitive and worth stating plainly: **the Chameleon route makes iOS *more* capable than the phone's own radio.** Native iOS NFC can never touch Mifare Classic, the app's primary medium; routed through the reader it can, because CRYPTO1 runs on the Chameleon. So a free Apple account plus a Chameleon is a working iOS setup, while a free account with no reader is not.
+
+`ChameleonReader.isAvailable()` returns `true` unconditionally and imports nothing from `nfc_manager`, so the reader path is independent of Core NFC by construction — keep it that way.
+
+### What the Chameleon path does NOT verify
+
+It bypasses `nfc_manager` entirely (it uses `lib/core/chameleon/`), so it exercises **none** of `IosNdefIO`, `NdefStatusIos`, or the `defaultTargetPlatform` guards in `ndefIoFor`/`mifareIoFor`. Verifying those needs Core NFC, hence the paid programme. Don't let a green Chameleon run on iOS be mistaken for iOS coverage of the `nfc_manager` layer.
+
+### Toolchain
+
+- **Xcode 26 is the last version supporting Intel Macs**; macOS Tahoe 26 is the last macOS for Intel. Xcode 27 is Apple Silicon only. An Intel Mac works for now — don't plan around it long-term.
+- **Xcode is not installable from the App Store on Sequoia.** The App Store only ever offers the newest Xcode, and 26.4+ requires macOS Tahoe 26.2. On macOS 15.x get the `.xip` for **Xcode 26.3** from <https://developer.apple.com/download/all/?q=xcode> — a free Apple ID is enough, no paid membership.
+- Free Personal Team builds **expire after 7 days** and must be re-deployed from Xcode; 3 apps max; no TestFlight.
+- `IPHONEOS_DEPLOYMENT_TARGET` is `13.0`, matching the Flutter 3.44 template. It was `12.0`, which no longer builds: `pod install` fails against the Flutter podspec. If a Flutter upgrade raises the template's target again, this must follow.
+- Pin Flutter to the CI version by tag (see the version in `.github/workflows/ci.yml`), then `flutter pub get`. **Do not run `pod install` first** — `ios/Podfile` is generated, not tracked, and only `flutter build ios` / `flutter run` creates it. `flutter pub get` alone does not.
+- Enable Developer Mode on the iPhone (Settings → Privacy & Security) before the first `flutter run`.
+
+### Signing on a free Apple ID
+
+`Runner.entitlements` requests `com.apple.developer.nfc.readersession.formats`, and **a Personal Team cannot sign it** — Xcode refuses to create the provisioning profile, so a device build dies at signing before the app launches. Simulator builds are unaffected (they are not signed at all).
+
+`CODE_SIGN_ENTITLEMENTS` is therefore indirected through `$(NFAR_CODE_SIGN_ENTITLEMENTS)`, defaulted in `ios/Flutter/Debug.xcconfig` and `Release.xcconfig`. To build on a free account, create the gitignored `ios/Flutter/LocalOverrides.xcconfig` containing `NFAR_CODE_SIGN_ENTITLEMENTS =` (empty). You lose Core NFC and keep the Chameleon — which, per the table above, is the only path to Mifare Classic anyway.
+
+**Only `Debug.xcconfig` includes that override.** `Release.xcconfig` (shared with Profile) hardcodes the entitlements path, so the workaround cannot leak into a shipped IPA. Keep it that way — an IPA that silently lost the entitlement ships an app whose NFC is dead, and nobody finds out until after App Review.
+
 ## F-Droid Build Notes
 
 F-Droid metadata lives in `fdroid/com.nfcarchiver.nfc_archiver.yml` (a reference mirror); the authoritative copy is in [fdroiddata](https://gitlab.com/fdroid/fdroiddata).

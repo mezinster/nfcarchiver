@@ -27,6 +27,11 @@ Flutter/flutter_export_environment.sh
 ServiceDefinitions.json
 Runner/GeneratedPluginRegistrant.*
 
+# Per-developer build-setting overrides — see Flutter/Debug.xcconfig.
+# Free Apple IDs blank NFAR_CODE_SIGN_ENTITLEMENTS here to sign on a Personal
+# Team; that is a local choice and must never reach a release build.
+Flutter/LocalOverrides.xcconfig
+
 # Exceptions to above rules.
 !default.mode1v3
 !default.mode2v3

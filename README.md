@@ -78,8 +78,8 @@ Only one reader is active at a time; switching disconnects the previous one. Car
 
 - Flutter SDK 3.5+
 - Android SDK (API 26+) for Android
-- Xcode 15+ for iOS
-- Device with NFC support
+- Xcode 16+ and iOS 13+ for iOS
+- Device with NFC support, or a Chameleon Ultra reader over Bluetooth
 
 #### Building
 
@@ -97,12 +97,23 @@ flutter run
 
 #### iOS
 
-For iOS, NFC entitlements configuration in Xcode is required:
+Which setup you need depends on which radio you want.
+
+**Using the phone's own NFC** — requires paid Apple Developer Program membership:
 
 1. Open `ios/Runner.xcworkspace` in Xcode
 2. Select Runner → Signing & Capabilities
 3. Add "Near Field Communication Tag Reading"
-4. Apple Developer Program membership required
+
+Note this route cannot read Mifare Classic on iOS at all: Core NFC does not implement CRYPTO1.
+
+**Using a Chameleon Ultra over Bluetooth** — works on a **free** Apple ID, and is the only way to reach Mifare Classic on iOS. Core Bluetooth needs no entitlement, but a Personal Team cannot sign the NFC entitlement the project declares, so blank it locally:
+
+```bash
+echo 'NFAR_CODE_SIGN_ENTITLEMENTS =' > ios/Flutter/LocalOverrides.xcconfig
+```
+
+That file is gitignored and only applies to debug builds. See `CLAUDE.md` → "Signing on a free Apple ID".
 
 ### Architecture
 

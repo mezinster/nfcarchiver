@@ -1,0 +1,29 @@
+// Hand-written, unlike the same line in Debug.xcconfig and Release.xcconfig.
+// CocoaPods injects that include automatically, but only into a base config it
+// owns — it refuses to touch a custom one and says so:
+//
+//   CocoaPods did not set the base configuration of your project because your
+//   project already has a custom config set.
+//
+// Without it PODS_ROOT is undefined and the build fails on paths that resolve
+// to "/Target Support Files/...". A future `pod install` will NOT repair this,
+// so keep the line.
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"
+#include "Generated.xcconfig"
+
+// Profile builds used to share Release.xcconfig, which is where the free-team
+// override hook is deliberately absent. That left a free Apple ID with no
+// usable configuration at all: debug is the only one it can sign, and iOS 14+
+// refuses to run a debug Flutter build from the home screen because the engine
+// needs JIT and JIT needs an attached debugger —
+//
+//   Cannot create a FlutterEngine instance in debug mode without Flutter
+//   tooling or Xcode.
+//
+// Profile is AOT-compiled, so it launches untethered, and it is never shipped:
+// the release workflow builds an IPA from Release. Allowing the override here
+// therefore costs nothing and is the only way a free account can carry the app
+// around — which is the whole point of a Bluetooth reader.
+NFAR_CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
+NFAR_BUNDLE_ID = com.nfcarchiver.nfcArchiver
+#include? "LocalOverrides.xcconfig"
