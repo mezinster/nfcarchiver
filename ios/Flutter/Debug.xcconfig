@@ -1,2 +1,25 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+// Signing entitlements, indirected through a variable so a local build can drop
+// them without touching a tracked file.
+//
+// Runner.entitlements requests com.apple.developer.nfc.readersession.formats.
+// A free Apple ID signs as a "Personal Team", and Personal Teams cannot enable
+// Near Field Communication Tag Reading — Xcode refuses to create the profile,
+// so the build fails at signing before the app ever launches.
+//
+// That matters because the Chameleon reader path needs no NFC entitlement at
+// all: it is Core Bluetooth end to end, and it is iOS's ONLY route to Mifare
+// Classic (Core NFC has no CRYPTO1). Blanking this variable therefore buys a
+// fully working reader build on a free account, losing only the phone's own
+// NFC radio — which could not read Mifare Classic anyway.
+//
+// To use it, create ios/Flutter/LocalOverrides.xcconfig (gitignored) with:
+//     NFAR_CODE_SIGN_ENTITLEMENTS =
+//
+// The include is last so the override wins, and it is DEBUG ONLY —
+// Release.xcconfig deliberately has no such hook, so this workaround cannot
+// follow anyone into a shipped build.
+NFAR_CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
+#include? "LocalOverrides.xcconfig"

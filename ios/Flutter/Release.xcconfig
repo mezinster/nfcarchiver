@@ -1,2 +1,11 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
+
+// See Debug.xcconfig for why this is a variable rather than a literal path.
+//
+// Deliberately NOT overridable: unlike Debug.xcconfig this file does not
+// include LocalOverrides.xcconfig, so a developer's free-team workaround can
+// never follow them into a release or profile build. Release and Profile share
+// this file, and an IPA that silently lost the NFC entitlement would ship an
+// app whose NFC is dead — a failure nobody notices until after App Review.
+NFAR_CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
