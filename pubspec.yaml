@@ -21,7 +21,7 @@ dependencies:
   riverpod_annotation: ^2.3.3
 
   # NFC
-  nfc_manager: ^3.5.1
+  nfc_manager: ^4.2.1
 
   # Bluetooth LE (Chameleon Ultra). BSD-3-Clause — flutter_blue_plus is NOT
   # an option: its licence is non-free and F-Droid would reject the app.

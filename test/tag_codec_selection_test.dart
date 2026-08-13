@@ -8,7 +8,7 @@ import 'package:nfc_manager/nfc_manager.dart';
 /// Duplicated from mifare_tag_codec_test.dart (see Task 6 brief: Dart test
 /// files cannot cleanly import each other's private helpers) as lowerCamelCase
 /// to avoid the non_constant_identifier_names ignore that file needed.
-NfcTag fakeTag() => const NfcTag(handle: 'test', data: <String, dynamic>{});
+NfcTag fakeTag() => const NfcTag(data: <String, dynamic>{});
 
 void main() {
   test('Mifare is tried before NDEF', () {

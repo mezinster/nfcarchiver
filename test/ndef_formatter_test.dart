@@ -7,6 +7,7 @@ import 'package:nfc_archiver/core/models/chunk.dart';
 import 'package:nfc_archiver/core/nfc/ndef_bytes.dart';
 import 'package:nfc_archiver/core/services/checksum_service.dart';
 import 'package:nfc_archiver/features/nfc/domain/ndef_formatter.dart';
+import 'package:nfc_manager/ndef_record.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 
 /// Characterization tests for the bytes `NdefFormatter` puts on a tag.
@@ -44,7 +45,7 @@ void main() {
   test('the record is a media record typed with the NFAR MIME string', () {
     final record = formatter.chunkToNdef(makeChunk(64)).records.single;
 
-    expect(record.typeNameFormat, NdefTypeNameFormat.media);
+    expect(record.typeNameFormat, TypeNameFormat.media);
     expect(record.type, ascii.encode(nfarMimeType));
     expect(String.fromCharCodes(record.type),
         'application/vnd.nfcarchiver.chunk');
@@ -96,7 +97,7 @@ void main() {
       final record = formatter.chunkToNdef(chunk).records.single;
 
       expect(tnfOf(encodeNdefMime(chunk.toBytes())), 0x02);
-      expect(record.typeNameFormat, NdefTypeNameFormat.media);
+      expect(record.typeNameFormat, TypeNameFormat.media);
     });
 
     test('both use the same MIME type bytes', () {

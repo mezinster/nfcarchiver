@@ -2,12 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager/nfc_manager_android.dart';
+import 'package:nfc_manager/nfc_manager_ios.dart';
 
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
 import '../domain/mifare_block_io.dart';
 import '../domain/mifare_tag_codec.dart';
+import '../domain/android_tech_list.dart';
 import '../domain/ndef_availability.dart';
 import '../domain/ndef_formatter.dart';
 import '../domain/ndef_io.dart';
@@ -91,8 +94,15 @@ class NfcRepository {
   }
 
   /// Check if NFC is available on this device.
+  ///
+  /// v4 deprecates the plugin's own `isAvailable()` in favour of
+  /// [NfcManager.checkAvailability], which distinguishes "NFC is switched off"
+  /// from "this device has no NFC at all". Collapsed back to a bool here to keep
+  /// every caller's meaning identical; the richer state is available to any
+  /// future caller that wants to tell the user which of the two it is.
   Future<bool> isAvailable() async {
-    return NfcManager.instance.isAvailable();
+    return await NfcManager.instance.checkAvailability() ==
+        NfcAvailability.enabled;
   }
 
   /// Start an NFC session for reading chunks.
@@ -115,7 +125,10 @@ class NfcRepository {
     final completer = Completer<void Function()>();
 
     NfcManager.instance.startSession(
-      alertMessage: alertMessage,
+      // Required in v4. v3 defaulted to `NfcPollingOption.values.toSet()`, so
+      // passing anything narrower here would silently stop discovering tags.
+      pollingOptions: NfcPollingOption.values.toSet(),
+      alertMessageIos: alertMessage,
       onDiscovered: (tag) async {
         // Ignore reads during write cooldown to prevent re-reading just-written tags
         if (isInWriteCooldown) {
@@ -144,7 +157,7 @@ class NfcRepository {
           onError('Failed to read tag: $e');
         }
       },
-      onError: (error) async {
+      onSessionErrorIos: (error) {
         onError(error.message);
       },
     );
@@ -188,7 +201,10 @@ class NfcRepository {
     final completer = Completer<void Function()>();
 
     NfcManager.instance.startSession(
-      alertMessage: alertMessage,
+      // Required in v4. v3 defaulted to `NfcPollingOption.values.toSet()`, so
+      // passing anything narrower here would silently stop discovering tags.
+      pollingOptions: NfcPollingOption.values.toSet(),
+      alertMessageIos: alertMessage,
       onDiscovered: (tag) async {
         try {
           final tagInfo = _extractTagInfo(tag);
@@ -296,7 +312,7 @@ class NfcRepository {
           onError('Failed to write tag: $e');
         }
       },
-      onError: (error) async {
+      onSessionErrorIos: (error) {
         onError(error.message);
       },
     );
@@ -419,8 +435,8 @@ class NfcRepository {
   /// Stop any active NFC session.
   void stopSession({String? message}) {
     NfcManager.instance.stopSession(
-      alertMessage: message,
-      errorMessage: null,
+      alertMessageIos: message,
+      errorMessageIos: null,
     );
   }
 
@@ -430,12 +446,20 @@ class NfcRepository {
   /// `MifareUltralight` tag whose NDEF detection failed is a good tag that was
   /// tapped badly, not one the user needs to replace.
   NdefUnavailableReason _ndefUnavailableReason(NfcTag tag) {
+    // v3 read these off an untyped map; v4 exposes a typed tech list. Same
+    // evidence, looked up by class name instead of map key.
+    final techList = NfcTagAndroid.from(tag)?.techList ?? const <String>[];
     return classifyNdefUnavailable(
-      hasNfcA: tag.data['nfca'] != null,
-      hasMifareUltralight: tag.data['mifareultralight'] != null,
+      hasNfcA: androidHasTech(techList, 'NfcA'),
+      hasMifareUltralight: androidHasTech(techList, 'MifareUltralight'),
       deviceSupportsMifare: _deviceSupportsMifare,
     );
   }
+
+  /// Colon-separated lowercase hex, matching the identifier format v3 produced
+  /// from the untyped map ('04:1a:2b:...').
+  String _hexId(List<int> id) =>
+      id.map((b) => b.toRadixString(16).padLeft(2, '0')).join(':');
 
   /// Extract tag info from NFC tag.
   NfcTagInfo _extractTagInfo(NfcTag tag) {
@@ -454,46 +478,34 @@ class NfcRepository {
       technologies.add('NDEF');
     }
 
-    // Try NfcA (Android)
-    final nfcAData = tag.data['nfca'];
-    final nfcA = nfcAData is Map ? Map<String, dynamic>.from(nfcAData) : null;
-    if (nfcA != null) {
-      final id = nfcA['identifier'] as List<dynamic>?;
-      if (id != null) {
-        identifier = id.map((b) => (b as int).toRadixString(16).padLeft(2, '0')).join(':');
+    // Android exposes the tag's identity and technology list up front; v3
+    // required probing an untyped map key per technology.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final atag = NfcTagAndroid.from(tag);
+      if (atag != null) {
+        if (atag.id.isNotEmpty) identifier = _hexId(atag.id);
+        technologies.addAll(androidTechLabels(atag.techList));
+
+        final ultralight = MifareUltralightAndroid.from(tag);
+        switch (ultralight?.type) {
+          case MifareUltralightTypeAndroid.ultralight:
+            tagType = NfcTagType.mifareUltralight;
+          case MifareUltralightTypeAndroid.ultralightC:
+            tagType = NfcTagType.mifareUltralightC;
+          case MifareUltralightTypeAndroid.unknown:
+          case null:
+            break;
+        }
       }
-      technologies.add('NfcA');
     }
 
-    // Try MifareUltralight (Android)
-    final mifareData = tag.data['mifareultralight'];
-    final mifare = mifareData is Map ? Map<String, dynamic>.from(mifareData) : null;
-    if (mifare != null) {
-      final type = mifare['type'] as int?;
-      if (type == 1) {
-        tagType = NfcTagType.mifareUltralight;
-      } else if (type == 2) {
-        tagType = NfcTagType.mifareUltralightC;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final iso15693 = Iso15693Ios.from(tag);
+      if (iso15693 != null) {
+        identifier = _hexId(iso15693.identifier);
+        technologies.add('ISO15693');
       }
-      technologies.add('MifareUltralight');
-    }
-
-    // Try ISO15693 (iOS)
-    final iso15693Data = tag.data['iso15693'];
-    final iso15693 = iso15693Data is Map ? Map<String, dynamic>.from(iso15693Data) : null;
-    if (iso15693 != null) {
-      final id = iso15693['identifier'] as List<dynamic>?;
-      if (id != null) {
-        identifier = id.map((b) => (b as int).toRadixString(16).padLeft(2, '0')).join(':');
-      }
-      technologies.add('ISO15693');
-    }
-
-    // Try FeliCa (iOS/Android)
-    final felicaData = tag.data['felica'];
-    final felica = felicaData is Map ? Map<String, dynamic>.from(felicaData) : null;
-    if (felica != null) {
-      technologies.add('FeliCa');
+      if (FeliCaIos.from(tag) != null) technologies.add('FeliCa');
     }
 
     // Infer tag type from capacity if not already set

@@ -5,10 +5,11 @@ import 'package:nfc_archiver/core/models/chunk.dart';
 import 'package:nfc_archiver/core/services/checksum_service.dart';
 import 'package:nfc_archiver/features/nfc/domain/ndef_io.dart';
 import 'package:nfc_archiver/features/nfc/domain/ndef_tag_codec.dart';
+import 'package:nfc_manager/ndef_record.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 
 /// nfc_manager exposes a const NfcTag constructor explicitly for testing.
-NfcTag fakeTag() => const NfcTag(handle: 'test', data: <String, dynamic>{});
+NfcTag fakeTag() => const NfcTag(data: <String, dynamic>{});
 
 /// In-memory NDEF tag. Mirrors `FakeMifareBlockIO`: the codec's real logic runs
 /// against it, so everything above the platform boundary is testable without a
@@ -26,7 +27,7 @@ class FakeNdefIO implements NdefIO {
   final List<NdefMessage> writes = [];
 
   @override
-  Future<NdefMessage> read() async => stored ?? NdefMessage([]);
+  Future<NdefMessage> read() async => stored ?? NdefMessage(records: []);
 
   @override
   Future<void> write(NdefMessage message) async {
@@ -75,7 +76,7 @@ void main() {
   });
 
   test('readChunk returns null when the tag holds no NFAR record', () async {
-    final io = FakeNdefIO(stored: NdefMessage([]));
+    final io = FakeNdefIO(stored: NdefMessage(records: []));
     final codec = NdefTagCodec((_) => io);
 
     expect(await codec.readChunk(fakeTag()), isNull);

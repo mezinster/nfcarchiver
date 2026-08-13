@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager/ndef_record.dart';
 
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/models/chunk.dart';
@@ -26,13 +26,13 @@ class NdefFormatter {
     // The field values are the tag's contents and the web app writes the same
     // record for NTAG, so they are pinned by test/ndef_formatter_test.dart.
     final record = NdefRecord(
-      typeNameFormat: NdefTypeNameFormat.media,
+      typeNameFormat: TypeNameFormat.media,
       type: ascii.encode(nfarMimeType),
       identifier: Uint8List(0),
       payload: bytes,
     );
 
-    return NdefMessage([record]);
+    return NdefMessage(records: [record]);
   }
 
   /// Convert NDEF message to a Chunk.
@@ -51,8 +51,8 @@ class NdefFormatter {
       }
 
       // Also try to parse as raw binary (for backwards compatibility)
-      if (record.typeNameFormat == NdefTypeNameFormat.unknown ||
-          record.typeNameFormat == NdefTypeNameFormat.media) {
+      if (record.typeNameFormat == TypeNameFormat.unknown ||
+          record.typeNameFormat == TypeNameFormat.media) {
         try {
           final data = Uint8List.fromList(record.payload);
           if (validateMagic(data)) {
@@ -69,7 +69,7 @@ class NdefFormatter {
 
   /// Check if an NDEF record is an NFAR chunk.
   bool _isNfarRecord(NdefRecord record) {
-    if (record.typeNameFormat != NdefTypeNameFormat.media) {
+    if (record.typeNameFormat != TypeNameFormat.media) {
       return false;
     }
 
