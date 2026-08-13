@@ -8,7 +8,6 @@ import 'package:nfc_archiver/core/nfc/ndef_bytes.dart';
 import 'package:nfc_archiver/core/services/checksum_service.dart';
 import 'package:nfc_archiver/features/nfc/domain/ndef_formatter.dart';
 import 'package:nfc_manager/ndef_record.dart';
-import 'package:nfc_manager/nfc_manager.dart';
 
 /// Characterization tests for the bytes `NdefFormatter` puts on a tag.
 ///

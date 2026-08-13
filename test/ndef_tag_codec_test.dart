@@ -27,7 +27,7 @@ class FakeNdefIO implements NdefIO {
   final List<NdefMessage> writes = [];
 
   @override
-  Future<NdefMessage> read() async => stored ?? NdefMessage(records: []);
+  Future<NdefMessage> read() async => stored ?? const NdefMessage(records: []);
 
   @override
   Future<void> write(NdefMessage message) async {
@@ -76,7 +76,7 @@ void main() {
   });
 
   test('readChunk returns null when the tag holds no NFAR record', () async {
-    final io = FakeNdefIO(stored: NdefMessage(records: []));
+    final io = FakeNdefIO(stored: const NdefMessage(records: []));
     final codec = NdefTagCodec((_) => io);
 
     expect(await codec.readChunk(fakeTag()), isNull);
