@@ -9,3 +9,4 @@
 // this file, and an IPA that silently lost the NFC entitlement would ship an
 // app whose NFC is dead — a failure nobody notices until after App Review.
 NFAR_CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
+NFAR_BUNDLE_ID = com.nfcarchiver.nfcArchiver
