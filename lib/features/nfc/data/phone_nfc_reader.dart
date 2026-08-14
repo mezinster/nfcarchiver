@@ -3,6 +3,7 @@ import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
 import '../../../core/chameleon/chameleon_device.dart';
 import '../domain/card_reader.dart';
+import 'nfc_capabilities.dart';
 import 'nfc_repository.dart';
 
 /// The phone's own NFC radio, behind the [CardReader] seam.
@@ -46,6 +47,13 @@ class PhoneNfcReader implements CardReader {
 
   @override
   Future<bool> isAvailable() => _repository.isAvailable();
+
+  /// The one capability that is genuinely the phone's own: whether this
+  /// handset's NFC controller speaks CRYPTO1. Answered by the platform channel
+  /// rather than the repository because it is hardware, not session, state —
+  /// and it is false on every iPhone, where the channel does not exist.
+  @override
+  Future<bool> supportsMifareClassic() => hasMifareClassicSupport();
 
   @override
   Future<void Function()> startReadSession({

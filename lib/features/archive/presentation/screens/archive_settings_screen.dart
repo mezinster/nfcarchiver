@@ -5,8 +5,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/nfar_format.dart';
 import '../../../../shared/utils/format_utils.dart';
-import '../../../nfc/data/nfc_capabilities.dart';
+import '../../../nfc/domain/tag_type_availability.dart';
+import '../../../nfc/presentation/providers/reader_provider.dart';
 import '../providers/archive_provider.dart';
+
+/// Where a no-longer-offered Mifare selection lands. Matches
+/// [selectedTagTypeProvider]'s own default, so the fallback is the same choice
+/// the user would have started from.
+const _fallbackTagType = NfcTagType.ntag216;
 
 /// Screen for configuring archive settings.
 class ArchiveSettingsScreen extends ConsumerStatefulWidget {
@@ -49,9 +55,27 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
     final tagType = ref.watch(selectedTagTypeProvider);
     final compress = ref.watch(compressionEnabledProvider);
     final encrypt = ref.watch(encryptionEnabledProvider);
-    final mifareSupported =
-        ref.watch(mifareSupportProvider).valueOrNull ?? false;
+    // Asked of the active reader: a Chameleon brings Mifare Classic with it,
+    // which on iOS is the only way to reach the medium at all.
+    final mifareAvailability = ref.watch(mifareClassicAvailableProvider);
+    final mifareAvailable = mifareAvailability.valueOrNull ?? false;
     final l10n = AppLocalizations.of(context)!;
+
+    // A reader that could do Mifare may have been swapped for one that cannot,
+    // leaving a selection the list no longer offers — a radio group with
+    // nothing selected, and an archive chunked for a medium this reader cannot
+    // write. Only acted on once the capability is actually KNOWN: during the
+    // first frame's load `mifareAvailable` is false for every reader, and
+    // resetting then would clear a legitimate Mifare choice.
+    if (mifareAvailability.hasValue &&
+        !mifareAvailable &&
+        tagType.medium == TagMedium.mifareClassic) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(selectedTagTypeProvider.notifier).state = _fallbackTagType;
+        _updateConfig(ref);
+      });
+    }
 
     if (state is! ArchiveConfiguring && state is! ArchiveFileSelected) {
       return Scaffold(
@@ -94,11 +118,7 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  ...NfcTagType.values
-                      .where((t) => t != NfcTagType.custom)
-                      .where((t) =>
-                          t.medium != TagMedium.mifareClassic ||
-                          mifareSupported)
+                  ...selectableTagTypes(mifareAvailable: mifareAvailable)
                       .map((type) => RadioListTile<NfcTagType>(
                             title: Text(type.name),
                             subtitle:

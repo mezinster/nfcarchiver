@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Platform channel for NFC hardware capabilities Flutter cannot query itself.
 const MethodChannel nfcCapabilitiesChannel =
@@ -12,6 +11,12 @@ const MethodChannel nfcCapabilitiesChannel =
 /// controllers have it, Broadcom and Samsung's S3FWRN5 generally do not, and
 /// iOS never does. Any failure to answer is treated as "not supported" — the
 /// feature is hidden rather than offered and then failing at tap.
+///
+/// This answers for the PHONE'S OWN RADIO only, and is reached through
+/// `PhoneNfcReader.supportsMifareClassic()`. The UI must ask the active reader
+/// instead (`mifareClassicAvailableProvider`) — a Chameleon does CRYPTO1 in its
+/// own chip, so what this function reports says nothing about what that reader
+/// can do.
 Future<bool> hasMifareClassicSupport() async {
   try {
     final result =
@@ -23,7 +28,3 @@ Future<bool> hasMifareClassicSupport() async {
     return false;
   }
 }
-
-/// Queried once and cached for the app's lifetime — hardware does not change.
-final mifareSupportProvider =
-    FutureProvider<bool>((ref) => hasMifareClassicSupport());

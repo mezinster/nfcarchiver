@@ -99,6 +99,13 @@ class ChameleonReader implements CardReader {
   @override
   Future<bool> isAvailable() async => true;
 
+  /// Unconditional, for the same reason [isAvailable] is: CRYPTO1 runs on the
+  /// Chameleon, so the phone underneath is irrelevant. This is what makes the
+  /// reader iOS's ONLY route to Mifare Classic — Core NFC has no CRYPTO1 and
+  /// never will, so the phone's own radio can never touch the medium.
+  @override
+  Future<bool> supportsMifareClassic() async => true;
+
   @override
   Future<void Function()> startReadSession({
     required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
