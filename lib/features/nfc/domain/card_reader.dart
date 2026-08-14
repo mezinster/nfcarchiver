@@ -39,6 +39,17 @@ abstract class CardReader {
   /// thing it gates come from the same object.
   ChameleonDevice? get rawDevice;
 
+  /// Whether this reader can read and write Mifare Classic cards.
+  ///
+  /// Asked of the READER, not the phone, because CRYPTO1 lives in the reader
+  /// chip. The phone's own controller has it only on NXP hardware and never on
+  /// iOS; a Chameleon always does. Gating the UI on the phone alone therefore
+  /// hid the app's primary medium on every iPhone even with a reader attached.
+  ///
+  /// Asynchronous because the phone's answer comes from a platform channel;
+  /// a Chameleon's is a constant.
+  Future<bool> supportsMifareClassic();
+
   bool get isInWriteCooldown;
 
   /// Bring the reader up. A no-op for the phone radio, which is always there;

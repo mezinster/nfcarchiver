@@ -13,6 +13,7 @@ class FakeCardReader implements CardReader {
   FakeCardReader({
     required this.name,
     required this.supportsRawAccess,
+    this.mifareClassic = false,
     this.failConnect = false,
   });
 
@@ -21,6 +22,13 @@ class FakeCardReader implements CardReader {
 
   @override
   final bool supportsRawAccess;
+
+  /// What this reader claims about CRYPTO1 — the real readers differ, so the
+  /// fake must be able to differ too.
+  final bool mifareClassic;
+
+  @override
+  Future<bool> supportsMifareClassic() async => mifareClassic;
 
   /// Mirrors the real contract: non-null exactly when raw access is offered.
   @override

@@ -145,3 +145,17 @@ final readerControllerProvider =
 final activeReaderProvider = Provider<CardReader>(
   (ref) => ref.watch(readerControllerProvider).reader,
 );
+
+/// Whether Mifare Classic is on offer right now.
+///
+/// Derived from the ACTIVE READER, not from the phone. CRYPTO1 lives in the
+/// reader chip, so connecting a Chameleon adds the medium and dropping it
+/// takes the medium away — on an iPhone that is the difference between the
+/// app's primary medium being reachable and being unreachable, since Core NFC
+/// has no CRYPTO1 at all.
+///
+/// Re-queried on every reader switch rather than cached for the app's lifetime
+/// (as the phone-only check was), because unlike hardware, the answer changes.
+final mifareClassicAvailableProvider = FutureProvider<bool>(
+  (ref) => ref.watch(activeReaderProvider).supportsMifareClassic(),
+);
