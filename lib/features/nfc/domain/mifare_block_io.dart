@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-import 'package:nfc_manager/platform_tags.dart';
+import 'package:nfc_manager/nfc_manager_android.dart';
 
 /// Factory key A. Every card this app writes stays factory-keyed, because
 /// sector trailers are never written.
@@ -30,7 +31,7 @@ abstract interface class MifareBlockIO {
 /// Real implementation over `nfc_manager`.
 class NfcManagerMifareBlockIO implements MifareBlockIO {
   NfcManagerMifareBlockIO(this._mifare);
-  final MifareClassic _mifare;
+  final MifareClassicAndroid _mifare;
 
   @override
   Future<bool> authenticateSector(int sectorIndex, Uint8List keyA) =>
@@ -46,8 +47,17 @@ class NfcManagerMifareBlockIO implements MifareBlockIO {
 }
 
 /// Adapter used in production: null when the tag is not a Mifare Classic card,
-/// or when this phone's controller cannot talk CRYPTO1.
+/// when this phone's controller cannot talk CRYPTO1, or when the platform has no
+/// Mifare Classic support at all.
+///
+/// The Android guard is not belt-and-braces. `MifareClassicAndroid.from` casts
+/// `tag.data as TagPigeon?`, which THROWS on an iOS tag rather than returning
+/// null — and `MifareTagCodec.supports()` calls this for every tap, so an
+/// unguarded lookup would break codec selection on the first tag an iPhone sees.
+/// (Core NFC has no CRYPTO1, so iOS could never read these cards anyway; the
+/// point is to answer "no" instead of throwing.)
 MifareBlockIO? mifareIoFor(NfcTag tag) {
-  final mifare = MifareClassic.from(tag);
+  if (defaultTargetPlatform != TargetPlatform.android) return null;
+  final mifare = MifareClassicAndroid.from(tag);
   return mifare == null ? null : NfcManagerMifareBlockIO(mifare);
 }

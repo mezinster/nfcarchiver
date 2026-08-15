@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager/ndef_record.dart';
 
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/models/chunk.dart';
@@ -16,13 +17,22 @@ class NdefFormatter {
   NdefMessage chunkToNdef(Chunk chunk) {
     final bytes = chunk.toBytes();
 
-    // Create NDEF record with custom MIME type
-    final record = NdefRecord.createMime(
-      nfarMimeType,
-      bytes,
+    // Built explicitly rather than via `NdefRecord.createMime`, which
+    // nfc_manager v4 removes — `ndef_record` ships only the general
+    // constructor. These are the exact fields createMime produced: it
+    // normalises the type with `toLowerCase().trim().split(';').first`, a
+    // no-op for [nfarMimeType], then passes an empty identifier.
+    //
+    // The field values are the tag's contents and the web app writes the same
+    // record for NTAG, so they are pinned by test/ndef_formatter_test.dart.
+    final record = NdefRecord(
+      typeNameFormat: TypeNameFormat.media,
+      type: ascii.encode(nfarMimeType),
+      identifier: Uint8List(0),
+      payload: bytes,
     );
 
-    return NdefMessage([record]);
+    return NdefMessage(records: [record]);
   }
 
   /// Convert NDEF message to a Chunk.
@@ -41,8 +51,8 @@ class NdefFormatter {
       }
 
       // Also try to parse as raw binary (for backwards compatibility)
-      if (record.typeNameFormat == NdefTypeNameFormat.unknown ||
-          record.typeNameFormat == NdefTypeNameFormat.media) {
+      if (record.typeNameFormat == TypeNameFormat.unknown ||
+          record.typeNameFormat == TypeNameFormat.media) {
         try {
           final data = Uint8List.fromList(record.payload);
           if (validateMagic(data)) {
@@ -59,7 +69,7 @@ class NdefFormatter {
 
   /// Check if an NDEF record is an NFAR chunk.
   bool _isNfarRecord(NdefRecord record) {
-    if (record.typeNameFormat != NdefTypeNameFormat.media) {
+    if (record.typeNameFormat != TypeNameFormat.media) {
       return false;
     }
 
@@ -100,13 +110,6 @@ class NdefFormatter {
     return 1 + 1 + lengthBytes + typeSize + payloadSize;
   }
 
-
-  /// Create an empty NDEF message (for erasing tags).
-  NdefMessage createEmpty() {
-    return NdefMessage([
-      NdefRecord.createText(''),
-    ]);
-  }
 
   /// Parse metadata from NDEF message without fully parsing the chunk.
   ///

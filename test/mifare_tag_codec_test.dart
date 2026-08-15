@@ -9,7 +9,7 @@ import 'package:nfc_manager/nfc_manager.dart';
 
 /// nfc_manager exposes a const NfcTag constructor explicitly for testing.
 // ignore: non_constant_identifier_names
-NfcTag FakeTag() => const NfcTag(handle: 'test', data: <String, dynamic>{});
+NfcTag FakeTag() => const NfcTag(data: <String, dynamic>{});
 
 /// In-memory Mifare Classic 1K: 64 blocks of 16 bytes, factory-keyed.
 class FakeMifareBlockIO implements MifareBlockIO {
