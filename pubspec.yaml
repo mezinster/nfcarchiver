@@ -43,7 +43,7 @@ dependencies:
   archive: ^3.4.0
 
   # Utils
-  uuid: ^4.2.1
+  uuid: ^4.6.0
   permission_handler: ^11.1.0
   equatable: ^2.0.5
   collection: ^1.18.0
