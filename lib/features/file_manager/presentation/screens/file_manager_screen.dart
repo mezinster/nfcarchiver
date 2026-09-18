@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/services/file_actions_service.dart';
 import '../../../../shared/utils/format_utils.dart';
@@ -206,12 +205,7 @@ class _FileCard extends ConsumerWidget {
                       exportWithFeedback(
                           context, () => actions.exportFile(file.path));
                     case 'share':
-                      Share.shareXFiles([
-                        XFile(
-                          file.path,
-                          mimeType: FileActionsService.mimeTypeFor(file.path),
-                        ),
-                      ]);
+                      actions.shareFile(file.path);
                     case 'delete':
                       _confirmDelete(context, ref);
                   }

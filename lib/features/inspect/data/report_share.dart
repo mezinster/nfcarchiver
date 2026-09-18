@@ -28,7 +28,7 @@ Future<File> writeReportFile(
 /// the untyped Blob that garbled restored text in the web app.
 Future<void> shareReport(String report, {String uid = 'card'}) async {
   final file = await writeReportFile(report, uid: uid);
-  await Share.shareXFiles([
+  await SharePlus.instance.share(ShareParams(files: [
     XFile(file.path, mimeType: lookupMimeType(file.path) ?? 'text/plain'),
-  ]);
+  ]));
 }

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_archiver/core/services/file_actions_service.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
+import 'package:share_plus/share_plus.dart';
 
 void main() {
   group('mimeTypeFor', () {
@@ -63,6 +64,32 @@ void main() {
         opener: (path, {type}) async => throw Exception('channel down'),
       );
       expect(await service.openFile('/a/b.pdf'), OpenOutcome.failed);
+    });
+  });
+
+  group('shareFile', () {
+    test('shares the file with an explicit MIME type', () async {
+      // CLAUDE.md: an untyped XFile reaches Android as octet-stream and
+      // strict receivers (Telegram) refuse to send it.
+      List<XFile>? shared;
+      final service =
+          FileActionsService(sharer: (files) async => shared = files);
+
+      await service.shareFile('/a/b/report.PDF');
+
+      expect(shared, hasLength(1));
+      expect(shared!.single.path, '/a/b/report.PDF');
+      expect(shared!.single.mimeType, 'application/pdf');
+    });
+
+    test('an unknown extension is still typed, as octet-stream', () async {
+      List<XFile>? shared;
+      final service =
+          FileActionsService(sharer: (files) async => shared = files);
+
+      await service.shareFile('/a/restored_file');
+
+      expect(shared!.single.mimeType, 'application/octet-stream');
     });
   });
 

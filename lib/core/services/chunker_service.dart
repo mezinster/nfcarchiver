@@ -23,7 +23,7 @@ class ChunkerService {
   /// [tagType] - The type of NFC tag to target (determines chunk size)
   /// [flags] - Flags indicating compression/encryption
   ///
-  /// Returns a tuple of (ArchiveMetadata, List<Chunk>)
+  /// Returns a tuple of `(ArchiveMetadata, List<Chunk>)`
   ({ArchiveMetadata metadata, List<Chunk> chunks}) createChunks({
     required Uint8List data,
     required NfcTagType tagType,

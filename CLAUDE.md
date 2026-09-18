@@ -73,7 +73,7 @@ Riverpod with `StateNotifier` pattern using sealed classes for type-safe state t
 
 ### File Sharing (`share_plus`)
 
-All `Share.shareXFiles` calls include explicit MIME types resolved via the `mime` package (`lookupMimeType()`) from file extensions. This is required for Telegram and other strict Android apps that validate content before enabling the send button. Without MIME types, Android's `ContentResolver` reports `application/octet-stream` and the receiving app may refuse to send.
+Every shared file carries an explicit MIME type resolved via the `mime` package from its extension. Restored files go through `FileActionsService.shareFile` (one place, unit-tested); the inspection report is shared from `report_share.dart`. Both use `SharePlus.instance.share(ShareParams(files: ...))` — the old `Share.shareXFiles` is deprecated since share_plus 11. This is required for Telegram and other strict Android apps that validate content before enabling the send button. Without MIME types, Android's `ContentResolver` reports `application/octet-stream` and the receiving app may refuse to send.
 
 `AndroidManifest.xml` declares `SEND` and `SEND_MULTIPLE` intent queries for proper share target resolution on Android 11+ (API 30+ package visibility).
 

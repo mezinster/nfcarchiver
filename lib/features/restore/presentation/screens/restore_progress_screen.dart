@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../file_manager/data/file_manager_repository.dart';
 import '../../../file_manager/presentation/providers/file_manager_provider.dart';
@@ -576,11 +575,8 @@ class _RestoreProgressScreenState
     }
   }
 
-  Future<void> _shareFile(String path) async {
-    await Share.shareXFiles(
-      [XFile(path, mimeType: FileActionsService.mimeTypeFor(path))],
-    );
-  }
+  Future<void> _shareFile(String path) =>
+      ref.read(fileActionsProvider).shareFile(path);
 
   void _confirmDeleteFile(
       BuildContext context, String path, String fileName) {
