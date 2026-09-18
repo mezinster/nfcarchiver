@@ -104,30 +104,40 @@ void main() {
       if (tmp.existsSync()) await tmp.delete(recursive: true);
     });
 
-    test('offers the picker the bare filename and the file bytes', () async {
+    test('offers the picker the bare filename, the bytes and the MIME type',
+        () async {
+      // file_picker defaults mimeType to application/octet-stream; without
+      // the real type the saved copy of a photo is an untyped blob to the
+      // storage provider.
       final file = File(p.join(tmp.path, 'notes.txt'));
       await file.writeAsBytes([1, 2, 3]);
 
       String? seenName;
       Uint8List? seenBytes;
+      String? seenMime;
       final service = FileActionsService(
-        saver: ({fileName, bytes}) async {
+        saver: ({required fileName, required bytes, required mimeType}) async {
           seenName = fileName;
           seenBytes = bytes;
-          return 'content://downloads/notes.txt';
+          seenMime = mimeType;
+          return Uri.parse('content://downloads/notes.txt');
         },
       );
 
       expect(await service.exportFile(file.path), isTrue);
       expect(seenName, 'notes.txt');
       expect(seenBytes, [1, 2, 3]);
+      expect(seenMime, 'text/plain');
     });
 
     test('a dismissed picker is not a save', () async {
       final file = File(p.join(tmp.path, 'notes.txt'));
       await file.writeAsBytes([1]);
       final service =
-          FileActionsService(saver: ({fileName, bytes}) async => null);
+          FileActionsService(
+        saver: ({required fileName, required bytes, required mimeType}) async =>
+            null,
+      );
 
       expect(await service.exportFile(file.path), isFalse);
     });

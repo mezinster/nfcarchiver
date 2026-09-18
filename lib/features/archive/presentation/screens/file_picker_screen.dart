@@ -254,10 +254,10 @@ class _FilePickerScreenState extends ConsumerState<FilePickerScreen> {
   Future<void> _pickFile(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      final result = await FilePicker.pickFiles();
-      if (result == null || result.files.isEmpty) return;
+      final picked = await FilePicker.pickFiles();
+      if (picked.isEmpty) return;
 
-      final file = result.files.first;
+      final file = picked.first;
       if (file.path == null) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
