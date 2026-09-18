@@ -47,6 +47,7 @@ dependencies:
   permission_handler: ^11.1.0
   equatable: ^2.0.5
   collection: ^1.18.0
+  open_filex: ^4.7.0
 
 dev_dependencies:
   flutter_test:

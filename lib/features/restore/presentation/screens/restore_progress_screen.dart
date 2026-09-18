@@ -5,12 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mime/mime.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../file_manager/data/file_manager_repository.dart';
 import '../../../file_manager/presentation/providers/file_manager_provider.dart';
+import '../../../../core/services/file_actions_service.dart';
 import '../../../../shared/utils/format_utils.dart';
+import '../../../../shared/widgets/file_actions.dart';
 import '../providers/restore_provider.dart';
 
 /// Screen for completing archive restoration.
@@ -242,84 +243,116 @@ class _RestoreProgressScreenState
       return _buildTextCompleteView(context, state);
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.check_circle,
-            size: 96,
-            color: Theme.of(context).colorScheme.primary,
+    final actions = ref.read(fileActionsProvider);
+
+    // Centred when it fits, scrollable when it does not: a fixed Column
+    // clipped its last buttons off the bottom of a short screen.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: (constraints.maxHeight - 32).clamp(0.0, double.infinity),
           ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.archiveRestored,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            state.fileName,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            formatFileSize(state.result.dataSize),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withOpacity(0.6),
-                ),
-          ),
-
-          if (state.result.savedPath != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              l10n.savedTo(state.result.savedPath!),
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ],
-
-          const SizedBox(height: 48),
-
-          // Share button
-          if (state.result.savedPath != null)
-            FilledButton.icon(
-              onPressed: () => _shareFile(state.result.savedPath!),
-              icon: const Icon(Icons.share),
-              label: Text(l10n.shareFile),
-            ),
-
-          if (state.result.savedPath != null) ...[
-            const SizedBox(height: 12),
-
-            // Delete button
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
-                side: BorderSide(
-                    color: Theme.of(context).colorScheme.error),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 96,
+                color: Theme.of(context).colorScheme.primary,
               ),
-              onPressed: () => _confirmDeleteFile(
-                  context, state.result.savedPath!, state.fileName),
-              icon: const Icon(Icons.delete_outline),
-              label: Text(l10n.deleteFile),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                l10n.archiveRestored,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                state.fileName,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                formatFileSize(state.result.dataSize),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
+                    ),
+              ),
 
-          const SizedBox(height: 12),
+              if (state.result.savedPath != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l10n.savedTo(state.result.savedPath!),
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+              ],
 
-          OutlinedButton.icon(
-            onPressed: () {
-              ref.read(restoreProvider.notifier).reset();
-              context.go('/');
-            },
-            icon: const Icon(Icons.home),
-            label: Text(l10n.done),
+              const SizedBox(height: 48),
+
+              if (state.result.savedPath != null) ...[
+                // The file sits in app-private storage: Open views it in place,
+                // Save to device and Share are the two ways out.
+                FilledButton.icon(
+                  onPressed: () => openWithFeedback(
+                      context, () => actions.openFile(state.result.savedPath!)),
+                  icon: const Icon(Icons.open_in_new),
+                  label: Text(l10n.openFile),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => exportWithFeedback(context,
+                            () => actions.exportFile(state.result.savedPath!)),
+                        icon: const Icon(Icons.download),
+                        label: Text(l10n.saveToDevice),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _shareFile(state.result.savedPath!),
+                        icon: const Icon(Icons.share),
+                        label: Text(l10n.shareFile),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Delete button
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                    side: BorderSide(
+                        color: Theme.of(context).colorScheme.error),
+                  ),
+                  onPressed: () => _confirmDeleteFile(
+                      context, state.result.savedPath!, state.fileName),
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(l10n.deleteFile),
+                ),
+              ],
+
+              const SizedBox(height: 12),
+
+              OutlinedButton.icon(
+                onPressed: () {
+                  ref.read(restoreProvider.notifier).reset();
+                  context.go('/');
+                },
+                icon: const Icon(Icons.home),
+                label: Text(l10n.done),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -544,8 +577,9 @@ class _RestoreProgressScreenState
   }
 
   Future<void> _shareFile(String path) async {
-    final mime = lookupMimeType(path) ?? 'application/octet-stream';
-    await Share.shareXFiles([XFile(path, mimeType: mime)]);
+    await Share.shareXFiles(
+      [XFile(path, mimeType: FileActionsService.mimeTypeFor(path))],
+    );
   }
 
   void _confirmDeleteFile(

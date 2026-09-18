@@ -500,6 +500,26 @@
       }
     }
   },
+  "openFile": "Open",
+  "@openFile": {
+    "description": "Open a restored file with another app"
+  },
+  "saveToDevice": "Save to device",
+  "@saveToDevice": {
+    "description": "Copy a restored file to a user-chosen location via the system save dialog"
+  },
+  "savedToDevice": "Saved to device",
+  "@savedToDevice": {
+    "description": "Snackbar after a successful save to device"
+  },
+  "noAppToOpen": "No app installed to open this file",
+  "@noAppToOpen": {
+    "description": "Snackbar when no installed app can open the file type"
+  },
+  "openFailed": "Could not open the file",
+  "@openFailed": {
+    "description": "Snackbar when opening a file failed"
+  },
   "shareFile": "Share File",
   "@shareFile": {
     "description": "Share file button"
