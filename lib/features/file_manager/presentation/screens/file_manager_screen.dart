@@ -77,7 +77,7 @@ class FileManagerScreen extends ConsumerWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.6),
+                        .withValues(alpha: 0.6),
                   ),
             ),
           ],
@@ -103,7 +103,7 @@ class FileManagerScreen extends ConsumerWidget {
             ),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
           ),
         ),
@@ -190,7 +190,7 @@ class _FileCard extends ConsumerWidget {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withOpacity(0.6),
+                                .withValues(alpha: 0.6),
                           ),
                     ),
                   ],

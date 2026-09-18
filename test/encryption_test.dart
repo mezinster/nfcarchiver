@@ -18,9 +18,6 @@ void main() {
 
       // Encrypt
       final encrypted = service.encrypt(originalData, 'password');
-      print('Original size: ${originalData.length}');
-      print('Encrypted size: ${encrypted.length}');
-      print('Expected overhead: ${EncryptionService.encryptionOverhead}');
 
       // Verify size
       expect(
@@ -30,7 +27,6 @@ void main() {
 
       // Decrypt
       final decrypted = service.decrypt(encrypted, 'password');
-      print('Decrypted size: ${decrypted.length}');
 
       expect(decrypted, equals(originalData));
     });
@@ -81,24 +77,19 @@ void main() {
       final originalData = Uint8List.fromList(
         List.generate(1000, (i) => i % 10), // Repetitive = compressible
       );
-      print('Original size: ${originalData.length}');
 
       // Step 1: Compress
       final compressed = compressionService.compress(originalData);
-      print('Compressed size: ${compressed.length}');
 
       // Step 2: Encrypt
       final encrypted = encryptionService.encrypt(compressed, 'password');
-      print('Encrypted size: ${encrypted.length}');
 
       // Step 3: Decrypt
       final decrypted = encryptionService.decrypt(encrypted, 'password');
-      print('Decrypted size: ${decrypted.length}');
       expect(decrypted, equals(compressed));
 
       // Step 4: Decompress
       final decompressed = compressionService.decompress(decrypted);
-      print('Decompressed size: ${decompressed.length}');
 
       expect(decompressed, equals(originalData));
     });

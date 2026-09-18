@@ -102,12 +102,12 @@ class RestoreRepository {
     // Decrypt if encrypted
     if (NfarFlags.isEncrypted(flags)) {
       if (password == null || password.isEmpty) {
-        throw RestoreException('Archive is encrypted: password required');
+        throw const RestoreException('Archive is encrypted: password required');
       }
       try {
         data = _encryptionService.decrypt(data, password);
       } catch (_) {
-        throw RestoreException(
+        throw const RestoreException(
           'Decryption failed: wrong password or corrupted data',
         );
       }
@@ -118,7 +118,7 @@ class RestoreRepository {
       try {
         data = _compressionService.decompress(data);
       } catch (e) {
-        throw RestoreException('Decompression failed: corrupted data');
+        throw const RestoreException('Decompression failed: corrupted data');
       }
     }
 

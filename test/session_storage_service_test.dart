@@ -22,9 +22,9 @@ void main() {
     }
   });
 
-  Uint8List _testArchiveId() => Uint8List.fromList(List.generate(16, (i) => i + 1));
+  Uint8List testArchiveId() => Uint8List.fromList(List.generate(16, (i) => i + 1));
 
-  Chunk _makeChunk(Uint8List archiveId, int index, int total) {
+  Chunk makeChunk(Uint8List archiveId, int index, int total) {
     final payload = Uint8List.fromList([10, 20, 30]);
     final crc = ChecksumService.instance.calculate(payload);
     return Chunk(
@@ -39,10 +39,10 @@ void main() {
 
   group('SessionStorageService', () {
     test('save and loadAll roundtrip', () async {
-      final archiveId = _testArchiveId();
+      final archiveId = testArchiveId();
       final session = RestoreSession(archiveId: archiveId);
-      session.addChunk(_makeChunk(archiveId, 0, 3));
-      session.addChunk(_makeChunk(archiveId, 1, 3));
+      session.addChunk(makeChunk(archiveId, 0, 3));
+      session.addChunk(makeChunk(archiveId, 1, 3));
 
       await service.save(session);
       final loaded = await service.loadAll();
@@ -54,12 +54,12 @@ void main() {
     });
 
     test('save overwrites existing session', () async {
-      final archiveId = _testArchiveId();
+      final archiveId = testArchiveId();
       final session = RestoreSession(archiveId: archiveId);
-      session.addChunk(_makeChunk(archiveId, 0, 3));
+      session.addChunk(makeChunk(archiveId, 0, 3));
       await service.save(session);
 
-      session.addChunk(_makeChunk(archiveId, 1, 3));
+      session.addChunk(makeChunk(archiveId, 1, 3));
       await service.save(session);
 
       final loaded = await service.loadAll();
@@ -72,9 +72,9 @@ void main() {
       final id2 = Uint8List.fromList(List.generate(16, (i) => i + 17));
 
       final s1 = RestoreSession(archiveId: id1);
-      s1.addChunk(_makeChunk(id1, 0, 2));
+      s1.addChunk(makeChunk(id1, 0, 2));
       final s2 = RestoreSession(archiveId: id2);
-      s2.addChunk(_makeChunk(id2, 0, 2));
+      s2.addChunk(makeChunk(id2, 0, 2));
 
       await service.save(s1);
       await service.save(s2);
@@ -91,9 +91,9 @@ void main() {
       final id2 = Uint8List.fromList(List.generate(16, (i) => i + 17));
 
       final s1 = RestoreSession(archiveId: id1);
-      s1.addChunk(_makeChunk(id1, 0, 2));
+      s1.addChunk(makeChunk(id1, 0, 2));
       final s2 = RestoreSession(archiveId: id2);
-      s2.addChunk(_makeChunk(id2, 0, 2));
+      s2.addChunk(makeChunk(id2, 0, 2));
 
       await service.save(s1);
       await service.save(s2);
@@ -111,9 +111,9 @@ void main() {
     });
 
     test('loadAll skips corrupted JSON files', () async {
-      final archiveId = _testArchiveId();
+      final archiveId = testArchiveId();
       final session = RestoreSession(archiveId: archiveId);
-      session.addChunk(_makeChunk(archiveId, 0, 3));
+      session.addChunk(makeChunk(archiveId, 0, 3));
       await service.save(session);
 
       // Write a corrupted file

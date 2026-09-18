@@ -24,6 +24,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
   Future<void> _startScanning() async {
     await ref.read(restoreProvider.notifier).startScanning();
+    if (!mounted) return;
     _startNfcSession();
   }
 
@@ -51,6 +52,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
   Future<void> _startNfcSession() async {
     final nfcAvailable = await ref.read(nfcAvailableProvider.future);
+    // A BLE reader can take a moment to answer; the user may have left.
+    if (!mounted) return;
     if (!nfcAvailable) {
       final l10n = AppLocalizations.of(context);
       ref.read(restoreProvider.notifier).scanError(l10n?.nfcUnavailable ?? 'NFC is not available');
@@ -237,7 +240,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.6),
+                              .withValues(alpha: 0.6),
                         ),
                   ),
                 ],
@@ -444,7 +447,7 @@ class _NfcAnimatedIconState extends State<_NfcAnimatedIcon>
               color: Theme.of(context)
                   .colorScheme
                   .primaryContainer
-                  .withOpacity(0.3),
+                  .withValues(alpha: 0.3),
             ),
             child: Icon(
               Icons.nfc,
@@ -505,7 +508,7 @@ class _SessionCard extends StatelessWidget {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                             ),
                       ),
                     ],

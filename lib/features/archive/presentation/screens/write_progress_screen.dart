@@ -115,7 +115,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
                         color: Theme.of(dialogContext)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.6),
+                            .withValues(alpha: 0.6),
                       ),
                 ),
               ] else if (!canRechunk) ...[
@@ -237,7 +237,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withOpacity(0.6),
+                      .withValues(alpha: 0.6),
                 ),
           ),
         ],
@@ -294,7 +294,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.6),
+                              .withValues(alpha: 0.6),
                         ),
                   ),
                   const SizedBox(height: 8),
@@ -391,7 +391,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.6),
+                        .withValues(alpha: 0.6),
                   ),
             ),
             const SizedBox(height: 32),
@@ -438,7 +438,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withOpacity(0.6),
+                      .withValues(alpha: 0.6),
                 ),
           ),
           const SizedBox(height: 8),

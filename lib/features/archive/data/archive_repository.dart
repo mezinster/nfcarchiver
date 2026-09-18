@@ -101,7 +101,7 @@ class ArchiveRepository {
     required int newPayloadSize,
   }) {
     if (newPayloadSize <= 0) {
-      throw ArchiveException('Payload size must be positive');
+      throw const ArchiveException('Payload size must be positive');
     }
     if (newPayloadSize > NfarLimits.maxPayloadSize) {
       throw ArchiveException(
