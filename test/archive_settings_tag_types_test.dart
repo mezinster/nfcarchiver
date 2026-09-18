@@ -71,6 +71,26 @@ void main() {
     expect(find.text('Mifare Classic 1K'), findsNothing);
   });
 
+  testWidgets('tapping a tag type selects it', (tester) async {
+    // The tiles carry no groupValue/onChanged of their own; selection lives
+    // in the RadioGroup ancestor. Nothing else here taps a tile, so a group
+    // that is not wired up would go unnoticed.
+    final c = container();
+    c.read(archiveProvider.notifier).selectFile(
+          filePath: '/tmp/a.bin',
+          fileName: 'a.bin',
+          fileSize: 100,
+        );
+    await pumpSettings(tester, c);
+    expect(c.read(selectedTagTypeProvider), isNot(NfcTagType.ntag213));
+
+    await tester.ensureVisible(find.text('NTAG213'));
+    await tester.tap(find.text('NTAG213'));
+    await tester.pumpAndSettle();
+
+    expect(c.read(selectedTagTypeProvider), NfcTagType.ntag213);
+  });
+
   testWidgets('a connected Chameleon puts Mifare Classic on the list',
       (tester) async {
     final c = container();

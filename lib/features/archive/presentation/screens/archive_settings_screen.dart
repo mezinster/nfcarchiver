@@ -118,21 +118,27 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  ...selectableTagTypes(mifareAvailable: mifareAvailable)
-                      .map((type) => RadioListTile<NfcTagType>(
+                  RadioGroup<NfcTagType>(
+                    groupValue: tagType,
+                    onChanged: (value) {
+                      if (value != null) {
+                        ref.read(selectedTagTypeProvider.notifier).state =
+                            value;
+                        _updateConfig(ref);
+                      }
+                    },
+                    child: Column(
+                      children: [
+                        for (final type in selectableTagTypes(
+                            mifareAvailable: mifareAvailable))
+                          RadioListTile<NfcTagType>(
                             title: Text(type.name),
-                            subtitle:
-                                Text(l10n.bytesCapacity(type.capacity)),
+                            subtitle: Text(l10n.bytesCapacity(type.capacity)),
                             value: type,
-                            groupValue: tagType,
-                            onChanged: (value) {
-                              if (value != null) {
-                                ref.read(selectedTagTypeProvider.notifier).state =
-                                    value;
-                                _updateConfig(ref);
-                              }
-                            },
-                          )),
+                          ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
