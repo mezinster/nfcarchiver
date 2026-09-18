@@ -8,7 +8,7 @@ class BinaryReader {
   /// Creates a reader from a Uint8List.
   BinaryReader(this._buffer) : _offset = 0;
 
-  /// Creates a reader from a List<int>.
+  /// Creates a reader from a `List<int>`.
   BinaryReader.fromList(List<int> bytes)
       : _buffer = bytes is Uint8List ? bytes : Uint8List.fromList(bytes),
         _offset = 0;

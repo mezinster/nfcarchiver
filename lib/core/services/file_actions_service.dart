@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mime/mime.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
+import 'package:share_plus/share_plus.dart';
 
 /// What happened when the system was asked to open a file.
 enum OpenOutcome { opened, noApp, failed }
@@ -21,21 +22,29 @@ typedef FileSaver = Future<String?> Function({
   Uint8List? bytes,
 });
 
+/// Seam over `SharePlus.instance.share`.
+typedef FileSharer = Future<void> Function(List<XFile> files);
+
 /// Gets restored files out of the app's private `NFC_Archives` directory,
-/// which no other app can see: open them in place with a viewer, or copy them
-/// to a location the user picks.
+/// which no other app can see: open them in place with a viewer, copy them
+/// to a location the user picks, or hand them to the share sheet.
 ///
 /// Every file handed to another app carries an explicit MIME type resolved
 /// from its extension ([mimeTypeFor]). Without it Android's ContentResolver
-/// reports `application/octet-stream`, and the `ACTION_VIEW` chooser offers
-/// nothing useful — the same reason every `Share.shareXFiles` call is typed.
+/// reports `application/octet-stream`: the `ACTION_VIEW` chooser offers
+/// nothing useful, and strict share targets such as Telegram refuse to send.
 class FileActionsService {
-  FileActionsService({FileOpener? opener, FileSaver? saver})
+  FileActionsService({FileOpener? opener, FileSaver? saver, FileSharer? sharer})
       : _opener = opener ?? _platformOpen,
-        _saver = saver ?? _platformSave;
+        _saver = saver ?? _platformSave,
+        _sharer = sharer ?? _platformShare;
 
   final FileOpener _opener;
   final FileSaver _saver;
+  final FileSharer _sharer;
+
+  static Future<void> _platformShare(List<XFile> files) =>
+      SharePlus.instance.share(ShareParams(files: files));
 
   static Future<OpenResult> _platformOpen(String path, {String? type}) =>
       OpenFilex.open(path, type: type);
@@ -61,6 +70,10 @@ class FileActionsService {
       return OpenOutcome.failed;
     }
   }
+
+  /// Hand [filePath] to the system share sheet, typed.
+  Future<void> shareFile(String filePath) =>
+      _sharer([XFile(filePath, mimeType: mimeTypeFor(filePath))]);
 
   /// Let the user copy [filePath] somewhere other apps can reach, through the
   /// system "save as" picker (Downloads by default). Needs no storage
