@@ -157,81 +157,84 @@ class _FilePickerScreenState extends ConsumerState<FilePickerScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Text input card
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        Expanded(
+          child: SingleChildScrollView(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.text_snippet,
-                      color: Theme.of(context).colorScheme.primary,
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.text_snippet,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          l10n.enterTextToArchive,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      l10n.enterTextToArchive,
-                      style: Theme.of(context).textTheme.titleMedium,
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _textController,
+                      maxLines: 8,
+                      minLines: 4,
+                      decoration: InputDecoration(
+                        hintText: l10n.typeYourTextHere,
+                        border: const OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                      onChanged: (_) => setState(() {}),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _textController,
-                  maxLines: 8,
-                  minLines: 4,
-                  decoration: InputDecoration(
-                    hintText: l10n.typeYourTextHere,
-                    border: const OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: 12),
-                // Live byte counter
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.charactersCount(_textController.text.length),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
+                    const SizedBox(height: 12),
+                    // Live byte counter
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.charactersCount(_textController.text.length),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.6),
+                              ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
                           ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        l10n.bytesUnit(byteSize),
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            l10n.bytesUnit(byteSize),
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onPrimaryContainer,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
 
-        const Spacer(),
-
-        // Configure button
-        if (hasText)
+        // Configure button, pinned above the keyboard
+        if (hasText) ...[
+          const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: () {
               ref.read(archiveProvider.notifier).selectText(
@@ -243,6 +246,7 @@ class _FilePickerScreenState extends ConsumerState<FilePickerScreen> {
             icon: const Icon(Icons.settings),
             label: Text(l10n.configureArchive),
           ),
+        ],
       ],
     );
   }
