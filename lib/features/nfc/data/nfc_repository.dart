@@ -119,7 +119,7 @@ class NfcRepository {
     String alertMessage = 'Hold your device near an NFC tag',
   }) async {
     if (!await isAvailable()) {
-      throw NfcNotAvailableException();
+      throw const NfcNotAvailableException();
     }
 
     final completer = Completer<void Function()>();
@@ -195,7 +195,7 @@ class NfcRepository {
     String alertMessage = 'Hold your device near an NFC tag to write',
   }) async {
     if (!await isAvailable()) {
-      throw NfcNotAvailableException();
+      throw const NfcNotAvailableException();
     }
 
     final completer = Completer<void Function()>();

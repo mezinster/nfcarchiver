@@ -237,7 +237,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.6),
+                              .withValues(alpha: 0.6),
                         ),
                   ),
                 ],
@@ -444,7 +444,7 @@ class _NfcAnimatedIconState extends State<_NfcAnimatedIcon>
               color: Theme.of(context)
                   .colorScheme
                   .primaryContainer
-                  .withOpacity(0.3),
+                  .withValues(alpha: 0.3),
             ),
             child: Icon(
               Icons.nfc,
@@ -505,7 +505,7 @@ class _SessionCard extends StatelessWidget {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.5),
+                                  .withValues(alpha: 0.5),
                             ),
                       ),
                     ],

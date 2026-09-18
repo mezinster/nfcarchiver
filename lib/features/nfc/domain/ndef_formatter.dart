@@ -102,7 +102,7 @@ class NdefFormatter {
     // - M bytes: payload (chunk bytes)
 
     final payloadSize = chunk.totalSize;
-    final typeSize = nfarMimeType.length;
+    const typeSize = nfarMimeType.length;
 
     // Short record if payload < 256 bytes
     final lengthBytes = payloadSize < 256 ? 1 : 4;

@@ -13,7 +13,7 @@ void main() {
       testArchiveId = Uint8List.fromList(List.generate(16, (i) => i + 1));
     });
 
-    Chunk _makeChunk(Uint8List archiveId, int index, int total) {
+    Chunk makeChunk(Uint8List archiveId, int index, int total) {
       final payload = Uint8List.fromList([10, 20, 30]);
       final crc = ChecksumService.instance.calculate(payload);
       return Chunk(
@@ -28,8 +28,8 @@ void main() {
 
     test('toJson produces expected structure', () {
       final session = RestoreSession(archiveId: testArchiveId);
-      session.addChunk(_makeChunk(testArchiveId, 0, 3));
-      session.addChunk(_makeChunk(testArchiveId, 2, 3));
+      session.addChunk(makeChunk(testArchiveId, 0, 3));
+      session.addChunk(makeChunk(testArchiveId, 2, 3));
 
       final json = session.toJson();
 
@@ -45,8 +45,8 @@ void main() {
 
     test('fromJson roundtrip preserves all data', () {
       final session = RestoreSession(archiveId: testArchiveId);
-      session.addChunk(_makeChunk(testArchiveId, 0, 3));
-      session.addChunk(_makeChunk(testArchiveId, 2, 3));
+      session.addChunk(makeChunk(testArchiveId, 0, 3));
+      session.addChunk(makeChunk(testArchiveId, 2, 3));
 
       final json = session.toJson();
       final restored = RestoreSession.fromJson(json);
@@ -78,24 +78,24 @@ void main() {
       final session = RestoreSession(archiveId: testArchiveId);
       final initialUpdated = session.updatedAt;
 
-      session.addChunk(_makeChunk(testArchiveId, 0, 3));
+      session.addChunk(makeChunk(testArchiveId, 0, 3));
 
       expect(session.updatedAt.isAfter(initialUpdated) || session.updatedAt.isAtSameMomentAs(initialUpdated), isTrue);
     });
 
     test('updatedAt changes on replaceChunk', () {
       final session = RestoreSession(archiveId: testArchiveId);
-      session.addChunk(_makeChunk(testArchiveId, 0, 3));
+      session.addChunk(makeChunk(testArchiveId, 0, 3));
       final afterAdd = session.updatedAt;
 
-      session.replaceChunk(_makeChunk(testArchiveId, 0, 3));
+      session.replaceChunk(makeChunk(testArchiveId, 0, 3));
 
       expect(session.updatedAt.isAfter(afterAdd) || session.updatedAt.isAtSameMomentAs(afterAdd), isTrue);
     });
 
     test('fromJson preserves timestamps', () {
       final session = RestoreSession(archiveId: testArchiveId);
-      session.addChunk(_makeChunk(testArchiveId, 0, 3));
+      session.addChunk(makeChunk(testArchiveId, 0, 3));
 
       final json = session.toJson();
       final restored = RestoreSession.fromJson(json);

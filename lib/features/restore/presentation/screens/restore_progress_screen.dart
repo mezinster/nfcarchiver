@@ -105,7 +105,7 @@ class _RestoreProgressScreenState
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withOpacity(0.6),
+                      .withValues(alpha: 0.6),
                 ),
             textAlign: TextAlign.center,
           ),
@@ -279,7 +279,7 @@ class _RestoreProgressScreenState
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.6),
+                          .withValues(alpha: 0.6),
                     ),
               ),
 
@@ -396,7 +396,7 @@ class _RestoreProgressScreenState
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withOpacity(0.6),
+                                .withValues(alpha: 0.6),
                           ),
                     ),
                   ],
