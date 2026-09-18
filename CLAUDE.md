@@ -77,6 +77,12 @@ All `Share.shareXFiles` calls include explicit MIME types resolved via the `mime
 
 `AndroidManifest.xml` declares `SEND` and `SEND_MULTIPLE` intent queries for proper share target resolution on Android 11+ (API 30+ package visibility).
 
+### Open / Save to device (`open_filex`, `file_picker`)
+
+Restored files live in `getApplicationDocumentsDirectory()/NFC_Archives` — app-private, invisible to every other app. `FileActionsService` (`lib/core/services/file_actions_service.dart`, injected via `fileActionsProvider`) is the way out besides Share: `openFile` fires `ACTION_VIEW` through `open_filex` with the MIME type from `mimeTypeFor`, and `exportFile` hands the bytes to `FilePicker.saveFile` — the system save-as picker, Downloads by default, **no storage permission**. Don't replace it with a direct write to Downloads: on Android 10+ that needs MediaStore native code or a broad storage permission. Snackbar feedback is shared in `lib/shared/widgets/file_actions.dart`; both the file manager rows and the restore-complete view use it.
+
+`AndroidManifest.xml` carries a `VIEW */*` package-visibility query (without it the Open chooser is nearly empty on Android 11+) and strips the `READ_MEDIA_*` permissions `open_filex` merges in with `tools:node="remove"` — we only open our own files through its FileProvider. `test/android_manifest_test.dart` guards both, because nothing in Dart fails when either goes missing.
+
 ### Version Display
 
 Version and build number are read at runtime via `PackageInfo.fromPlatform()` (`package_info_plus` package) — **never hardcoded**. `pubspec.yaml` `version:` field is the single source of truth. The version propagates to:

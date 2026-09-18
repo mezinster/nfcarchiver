@@ -26,6 +26,13 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
+    <!-- open_filex merges READ_MEDIA_* so it can open arbitrary shared-storage
+         media. We only ever open our own restored files through its
+         FileProvider, which needs no permission, so keep them out of the app. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove" />
+
     <application
         android:label="NFC Archiver"
         android:name="${applicationName}"
@@ -73,6 +80,11 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.SEND_MULTIPLE"/>
+            <data android:mimeType="*/*"/>
+        </intent>
+        <!-- Without VIEW the "Open" chooser lists almost nothing on Android 11+. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
             <data android:mimeType="*/*"/>
         </intent>
     </queries>

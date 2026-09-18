@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:mime/mime.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/services/file_actions_service.dart';
 import '../../../../shared/utils/format_utils.dart';
+import '../../../../shared/widgets/file_actions.dart';
 import '../../data/file_manager_repository.dart';
 import '../providers/file_manager_provider.dart';
 
@@ -101,10 +102,8 @@ class FileManagerScreen extends ConsumerWidget {
               formatFileSize(loaded.storageInfo.totalBytes),
             ),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withOpacity(0.5),
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                 ),
           ),
         ),
@@ -156,56 +155,90 @@ class _FileCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final dateFormat = DateFormat.yMMMd();
 
+    final actions = ref.read(fileActionsProvider);
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            Icon(
-              _getFileIcon(file.name),
-              size: 36,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    file.name,
-                    style: Theme.of(context).textTheme.titleSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${formatFileSize(file.size)}  •  ${l10n.modifiedDate(dateFormat.format(file.modified))}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () =>
+            openWithFeedback(context, () => actions.openFile(file.path)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                _getFileIcon(file.name),
+                size: 36,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      file.name,
+                      style: Theme.of(context).textTheme.titleSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${formatFileSize(file.size)}  •  ${l10n.modifiedDate(dateFormat.format(file.modified))}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (action) {
+                  switch (action) {
+                    case 'open':
+                      openWithFeedback(
+                          context, () => actions.openFile(file.path));
+                    case 'export':
+                      exportWithFeedback(
+                          context, () => actions.exportFile(file.path));
+                    case 'share':
+                      Share.shareXFiles([
+                        XFile(
+                          file.path,
+                          mimeType: FileActionsService.mimeTypeFor(file.path),
                         ),
-                  ),
+                      ]);
+                    case 'delete':
+                      _confirmDelete(context, ref);
+                  }
+                },
+                itemBuilder: (context) => [
+                  _menuItem('open', Icons.open_in_new, l10n.openFile),
+                  _menuItem('export', Icons.download, l10n.saveToDevice),
+                  _menuItem('share', Icons.share, l10n.shareFile),
+                  _menuItem('delete', Icons.delete_outline, l10n.deleteFile),
                 ],
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.share),
-              tooltip: l10n.shareFile,
-              onPressed: () {
-                                final mime = lookupMimeType(file.path) ?? 'application/octet-stream';
-                                Share.shareXFiles([XFile(file.path, mimeType: mime)]);
-                              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.deleteFile,
-              onPressed: () => _confirmDelete(context, ref),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _menuItem(String value, IconData icon, String label) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 12),
+          Text(label),
+        ],
       ),
     );
   }
