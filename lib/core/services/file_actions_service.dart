@@ -17,9 +17,10 @@ typedef FileOpener = Future<OpenResult> Function(String path, {String? type});
 
 /// Seam over `FilePicker.saveFile`. Resolves to null when the picker was
 /// dismissed.
-typedef FileSaver = Future<String?> Function({
-  String? fileName,
-  Uint8List? bytes,
+typedef FileSaver = Future<Uri?> Function({
+  required String fileName,
+  required Uint8List bytes,
+  required String mimeType,
 });
 
 /// Seam over `SharePlus.instance.share`.
@@ -49,8 +50,12 @@ class FileActionsService {
   static Future<OpenResult> _platformOpen(String path, {String? type}) =>
       OpenFilex.open(path, type: type);
 
-  static Future<String?> _platformSave({String? fileName, Uint8List? bytes}) =>
-      FilePicker.saveFile(fileName: fileName, bytes: bytes);
+  static Future<Uri?> _platformSave({
+    required String fileName,
+    required Uint8List bytes,
+    required String mimeType,
+  }) =>
+      FilePicker.saveFile(fileName: fileName, bytes: bytes, mimeType: mimeType);
 
   /// MIME type for [path] from its extension, `application/octet-stream`
   /// when the extension is unknown or missing.
@@ -82,6 +87,8 @@ class FileActionsService {
     final saved = await _saver(
       fileName: p.basename(filePath),
       bytes: await File(filePath).readAsBytes(),
+      // file_picker would otherwise default to application/octet-stream.
+      mimeType: mimeTypeFor(filePath),
     );
     return saved != null;
   }
