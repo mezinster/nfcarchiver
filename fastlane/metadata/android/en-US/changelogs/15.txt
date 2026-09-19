@@ -1,0 +1,7 @@
+Open and save restored files
+- New: open a restored file in another app, or save it to Downloads or any folder
+- New: file manager menu — Open, Save to device, Share, Delete
+- Fixed: a card already lying on the phone is now detected when writing
+- Fixed: the list of archives in progress scrolls instead of running off the screen
+- Fixed: Configure Archive stays reachable with the keyboard open
+- Updated: NFC, sharing and file picker libraries

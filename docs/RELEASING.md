@@ -106,10 +106,13 @@ in `commit:`, never a tag reference.
 
 ### Constraints that must not drift
 
-- **`compileSdk` stays 34.** F-Droid's build server hits a JDK 21
-  `jlink`/`JdkImageTransform` bug on SDK 35. Do not raise it because a plugin
-  warns; a warning is not a failure. `flutter_plugin_android_lifecycle` requests
-  35 and the release APK still builds.
+- **`compileSdk` is 36, and every plugin is forced to it.** It was pinned to 34
+  for a JDK 21 `jlink`/`JdkImageTransform` bug on F-Droid's builder; that went
+  away with `buildserver-trixie` + JDK 17 (see CLAUDE.md). `android/build.gradle`
+  forces plugin subprojects to the same level. The flip side: a plugin that
+  *requires* a newer SDK breaks the Android build while every Dart test stays
+  green — `permission_handler` 13 needs 37 and is held back for exactly that.
+  Judge dependency bumps by `flutter build apk`, not by `flutter test`.
 - **The Flutter version is pinned from the release workflow.** `prebuild`
   extracts `FLUTTER_VERSION` from `.github/workflows/release.yml` with `sed`.
   Renaming or restructuring that workflow breaks the F-Droid build.
@@ -133,8 +136,24 @@ flutter build apk --release
 ls -l build/app/outputs/flutter-apk/app-release.apk
 ```
 
-Record the size. The 1.1.0 APK is ~24.2 MB; adding Bluetooth support cost
-+322,841 bytes (+1.4%), measured rather than estimated.
+Record the size, and confirm the version that actually got embedded:
+
+```bash
+aapt2 dump badging build/app/outputs/flutter-apk/app-release.apk | head -1
+```
+
+| Version | Universal release APK |
+|---|---|
+| 1.1.1 (as shipped by F-Droid) | 56,405,032 bytes |
+| 1.2.0 | 56,823,146 bytes (+418 KB, +0.7 %) |
+
+(An earlier note here quoted ~24.2 MB for 1.1.0; that predates the Flutter 3.44
+upgrade and is no longer a useful baseline.)
+
+If a local build fails inside a plugin right after a dependency bump (e.g.
+`Unresolved reference 'SharePlusPendingIntent'` in share_plus), run
+`flutter clean` first — a stale `build/` from the previous plugin major, not an
+incompatibility. CI always builds clean.
 
 ## Known state at 1.1.0
 
@@ -142,3 +161,16 @@ Record the size. The 1.1.0 APK is ~24.2 MB; adding Bluetooth support cost
 - Chameleon support is validated on hardware for **Mifare Classic only**.
   Inspecting an NTAG over a Chameleon, and a foreign card surfacing without
   ending the session, are untested on a device.
+
+## Known state at 1.2.0
+
+- Verified on a Pixel 8 Pro (phone NFC, Mifare Classic 1K): writing with the card
+  already resting on the phone, reading a held card exactly once on the scan
+  screen, and the scrollable archives-in-progress list.
+- **Not verified on a device:** the share sheet after share_plus 7 → 13 (file
+  manager, restore result, card inspector), picking a file after file_picker
+  11 → 13, and Save to device producing a correctly typed file. Open and Save
+  did launch their system activities during the hardware session.
+- iOS: none of 1.2.0 has run on a device. The stale-tag release in
+  `NfcRepository` is Android-only by design.
+- `permission_handler` stays on 11.x until the app moves to compileSdk 37.

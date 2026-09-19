@@ -1,0 +1,7 @@
+Otwieranie i zapisywanie przywróconych plików
+- Nowość: otwórz przywrócony plik w innej aplikacji albo zapisz go w Pobranych
+- Nowość: menu w menedżerze plików — Otwórz, Zapisz na urządzeniu, Udostępnij, Usuń
+- Naprawiono: karta leżąca już na telefonie jest teraz wykrywana przy zapisie
+- Naprawiono: lista archiwów w toku przewija się, zamiast wychodzić poza ekran
+- Naprawiono: „Konfiguruj archiwum” jest dostępne przy otwartej klawiaturze
+- Zaktualizowano: biblioteki NFC i obsługi plików

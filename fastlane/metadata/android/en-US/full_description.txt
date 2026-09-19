@@ -6,6 +6,7 @@ Features:
 * File archiving — split any file into parts for writing to NFC tags
 * Text archiving — store text messages across NFC tags
 * Restoration — scan tags in any order and assemble the original file
+* Restored files — open them in another app, save them to Downloads or any folder, or share them
 * Compression — optional GZIP compression to reduce the number of tags needed
 * Encryption — AES-256-GCM encryption with password protection (PBKDF2 key derivation)
 * Offline operation — no network connection required

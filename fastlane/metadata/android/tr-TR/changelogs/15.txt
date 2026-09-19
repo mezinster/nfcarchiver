@@ -1,0 +1,7 @@
+Geri yüklenen dosyaları açma ve kaydetme
+- Yeni: geri yüklenen dosyayı başka bir uygulamada açın ya da İndirilenler'e veya istediğiniz klasöre kaydedin
+- Yeni: dosya yöneticisi menüsü — Aç, Cihaza kaydet, Paylaş, Sil
+- Düzeltildi: telefonun üzerinde zaten duran kart artık yazarken algılanıyor
+- Düzeltildi: devam eden arşivler listesi ekrandan taşmak yerine kaydırılıyor
+- Düzeltildi: Arşivi Yapılandır, klavye açıkken de erişilebilir
+- Güncellendi: NFC, paylaşım ve dosya seçici kitaplıkları
