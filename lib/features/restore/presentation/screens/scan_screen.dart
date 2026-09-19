@@ -214,16 +214,18 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     NfcSessionState nfcState,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
+    return LayoutBuilder(
+      builder: (context, constraints) => Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // NFC Animation/Status
+          // NFC Animation/Status. Takes whatever the banners and the sessions
+          // list leave, and scrolls rather than overflowing if that is little.
           Expanded(
-            flex: 2,
             child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: SingleChildScrollView(
+                child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   _NfcAnimatedIcon(isScanning: nfcState is NfcSessionWaiting),
                   const SizedBox(height: 24),
@@ -244,6 +246,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                         ),
                   ),
                 ],
+              ),
               ),
             ),
           ),
@@ -329,24 +332,42 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            ...state.sessions.map(
-              (session) => _SessionCard(
-                session: session,
-                onDelete: () => _confirmDeleteSession(context, session.archiveId),
-                onTap: session.isComplete
-                    ? () {
-                        final fullSession = ref
-                            .read(restoreProvider.notifier)
-                            .getSession(session.archiveId);
-                        if (fullSession != null) {
-                          ref.read(restoreProvider.notifier).selectSession(fullSession);
-                        }
-                      }
-                    : null,
+            // Its own scroll region, capped: any number of archives can be in
+            // progress, and spread into the Column they ran off the bottom of
+            // the screen. shrinkWrap keeps one or two cards compact.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: constraints.maxHeight * 0.45,
+              ),
+              child: ListView(
+                key: const Key('sessions-list'),
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                children: [
+                  for (final session in state.sessions)
+                    _SessionCard(
+                      session: session,
+                      onDelete: () =>
+                          _confirmDeleteSession(context, session.archiveId),
+                      onTap: session.isComplete
+                          ? () {
+                              final fullSession = ref
+                                  .read(restoreProvider.notifier)
+                                  .getSession(session.archiveId);
+                              if (fullSession != null) {
+                                ref
+                                    .read(restoreProvider.notifier)
+                                    .selectSession(fullSession);
+                              }
+                            }
+                          : null,
+                    ),
+                ],
               ),
             ),
           ],
         ],
+      ),
       ),
     );
   }

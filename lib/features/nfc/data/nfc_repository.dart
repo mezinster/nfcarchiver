@@ -17,6 +17,8 @@ import '../domain/ndef_io.dart';
 import '../domain/ndef_tag_codec.dart';
 import '../domain/tag_codec.dart';
 import 'nfc_capabilities.dart';
+import '../../../core/log/logger.dart';
+import '../domain/stale_tag_policy.dart';
 
 /// Whether a tapped tag's medium disagrees with [configuredMedium].
 ///
@@ -45,6 +47,34 @@ class NfcRepository {
   final _ndefFormatter = NdefFormatter.instance;
 
   bool _deviceSupportsMifare = false;
+
+  final _staleTagPolicy = StaleTagPolicy();
+
+  /// Drops whatever tag connection Android is still holding before a new
+  /// session is armed — unless [StaleTagPolicy] says the carry-over is
+  /// protecting us (see there for the two loops it prevents).
+  ///
+  /// While a card stays in the field NfcService keeps it "connected" through
+  /// background presence checks, and answers a fresh `enableReaderMode` with
+  /// `applyRouting: Not updating discovery parameters, tag connected` — the
+  /// new session is armed but never told about the card, so the UI spins until
+  /// the user happens to lift it. `disableReaderMode` is what makes the
+  /// service disconnect ("Tag lost, restarting polling loop") and rediscover,
+  /// so the card resting on the phone is delivered to the session about to
+  /// start. Seen on a Pixel 8 Pro: a 0.8 s write sat unstarted for 4 minutes.
+  ///
+  /// Android-only: Core NFC has no such carry-over, and its `stopSession`
+  /// would dismiss the system sheet.
+  Future<void> _releaseStaleTagConnection(SessionKind kind) async {
+    if (!_staleTagPolicy.shouldReleaseBefore(kind)) return;
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await NfcManager.instance.stopSession();
+      Logger.instance.debug('nfc', 'released stale tag connection');
+    } catch (e) {
+      Logger.instance.warn('nfc', 'release failed', {'error': e});
+    }
+  }
 
   /// Call once at startup, before any session.
   Future<void> initCapabilities() async {
@@ -124,6 +154,7 @@ class NfcRepository {
 
     final completer = Completer<void Function()>();
 
+    await _releaseStaleTagConnection(SessionKind.read);
     NfcManager.instance.startSession(
       // Required in v4. v3 defaulted to `NfcPollingOption.values.toSet()`, so
       // passing anything narrower here would silently stop discovering tags.
@@ -146,6 +177,10 @@ class NfcRepository {
           }
 
           final chunk = await codec.readChunk(tag);
+          // The card was read to the end, whatever it held: we are done with
+          // it, so the re-arm that follows must not rediscover it. A read that
+          // THROWS (tag lost, I/O) skips this and is retried in place.
+          _staleTagPolicy.succeeded(SessionKind.read);
 
           if (chunk == null) {
             onError('Tag does not contain valid archive data');
@@ -199,7 +234,14 @@ class NfcRepository {
     }
 
     final completer = Completer<void Function()>();
+    final log = Logger.instance;
+    log.info('nfc.write', 'session armed', {
+      'chunk': chunk.chunkIndex,
+      'bytes': chunk.totalSize,
+      'configured': configuredTagType.name,
+    });
 
+    await _releaseStaleTagConnection(SessionKind.write);
     NfcManager.instance.startSession(
       // Required in v4. v3 defaulted to `NfcPollingOption.values.toSet()`, so
       // passing anything narrower here would silently stop discovering tags.
@@ -207,8 +249,10 @@ class NfcRepository {
       alertMessageIos: alertMessage,
       onDiscovered: (tag) async {
         try {
+          log.info('nfc.write', 'tag discovered');
           final tagInfo = _extractTagInfo(tag);
           final codec = _codecFor(tag);
+          log.info('nfc.write', 'codec selected', {'codec': codec?.name});
 
           if (codec == null) {
             onError(messageFor(_ndefUnavailableReason(tag)));
@@ -305,10 +349,14 @@ class NfcRepository {
             }
           }
 
+          log.info('nfc.write', 'writeChunk start');
           await codec.writeChunk(tag, chunk);
+          log.info('nfc.write', 'writeChunk done');
           _recordWrite(); // Start cooldown to prevent immediate re-read
+          _staleTagPolicy.succeeded(SessionKind.write);
           onSuccess(tagInfo);
-        } catch (e) {
+        } catch (e, st) {
+          log.error('nfc.write', 'write failed', {'error': e, 'stack': st});
           onError('Failed to write tag: $e');
         }
       },
