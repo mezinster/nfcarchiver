@@ -6,6 +6,7 @@ Funkcje:
 * Archiwizacja plików — podział dowolnego pliku na części do zapisu na tagach NFC
 * Archiwizacja tekstu — przechowywanie wiadomości tekstowych na tagach NFC
 * Odtwarzanie — skanowanie tagów w dowolnej kolejności i składanie oryginalnego pliku
+* Przywrócone pliki — otwórz je w innej aplikacji, zapisz w Pobranych lub dowolnym folderze albo udostępnij
 * Kompresja — opcjonalna kompresja GZIP w celu zmniejszenia liczby tagów
 * Szyfrowanie — szyfrowanie AES-256-GCM z hasłem (PBKDF2 do klucza)
 * Praca offline — nie wymaga połączenia z siecią

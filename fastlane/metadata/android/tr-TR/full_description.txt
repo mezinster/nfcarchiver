@@ -6,6 +6,7 @@ Herhangi bir dosyayı parçalara bölün ve NFC etiketlerine yazın. Orijinal do
 * Dosya arşivleme — herhangi bir dosyayı NFC etiketlerine yazmak için parçalara bölme
 * Metin arşivleme — metin mesajlarını NFC etiketlerinde saklama
 * Geri yükleme — etiketleri herhangi bir sırada tarayarak orijinal dosyayı birleştirme
+* Geri yüklenen dosyalar — başka bir uygulamada açın, İndirilenler'e veya istediğiniz klasöre kaydedin ya da paylaşın
 * Sıkıştırma — gereken etiket sayısını azaltmak için isteğe bağlı GZIP sıkıştırma
 * Şifreleme — parola korumalı AES-256-GCM şifreleme (PBKDF2 anahtar türetme)
 * Çevrimdışı çalışma — ağ bağlantısı gerekmez
