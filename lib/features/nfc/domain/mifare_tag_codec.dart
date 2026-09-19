@@ -6,6 +6,7 @@ import '../../../core/mifare/card_layout.dart';
 import '../../../core/models/chunk.dart';
 import 'mifare_block_io.dart';
 import 'tag_codec.dart';
+import '../../../core/log/logger.dart';
 
 /// Mifare Classic 1K holding a raw NFAR chunk across its usable data blocks.
 ///
@@ -88,15 +89,23 @@ class MifareTagCodec implements TagCodec {
 
     // Authenticate every sector we are about to touch BEFORE writing anything,
     // so a non-factory-keyed card fails without leaving a half-written chunk.
+    final log = Logger.instance;
     final sectors = writes.map((w) => _sectorOf(w.block)).toSet();
+    log.info('mifare', 'pre-auth', {
+      'blocks': writes.length,
+      'sectors': sectors.length,
+    });
     for (final sector in sectors) {
+      log.debug('mifare', 'auth', {'sector': sector});
       if (!await io.authenticateSector(sector, factoryKeyA)) {
         throw MifareAuthException(sector);
       }
     }
+    log.info('mifare', 'pre-auth ok');
 
     int? sector;
     for (final write in writes) {
+      log.debug('mifare', 'write', {'block': write.block});
       await _ensureSector(io, write.block, sector);
       sector = _sectorOf(write.block);
       await io.writeBlock(write.block, write.data);
