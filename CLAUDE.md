@@ -160,18 +160,39 @@ It bypasses `nfc_manager` entirely (it uses `lib/core/chameleon/`), so it exerci
 
 - **Xcode 26 is the last version supporting Intel Macs**; macOS Tahoe 26 is the last macOS for Intel. Xcode 27 is Apple Silicon only. An Intel Mac works for now — don't plan around it long-term.
 - **Xcode is not installable from the App Store on Sequoia.** The App Store only ever offers the newest Xcode, and 26.4+ requires macOS Tahoe 26.2. On macOS 15.x get the `.xip` for **Xcode 26.3** from <https://developer.apple.com/download/all/?q=xcode> — a free Apple ID is enough, no paid membership.
-- Free Personal Team builds **expire after 7 days** and must be re-deployed from Xcode; 3 apps max; no TestFlight.
+- Free Personal Team builds **expire after 7 days** and must be re-installed (see *Installing on your own iPhone* below); 3 apps max; no TestFlight.
 - `IPHONEOS_DEPLOYMENT_TARGET` is `13.0`, matching the Flutter 3.44 template. It was `12.0`, which no longer builds: `pod install` fails against the Flutter podspec. If a Flutter upgrade raises the template's target again, this must follow.
 - Pin Flutter to the CI version by tag (see the version in `.github/workflows/ci.yml`), then `flutter pub get`. **Do not run `pod install` first** — `ios/Podfile` is generated, not tracked, and only `flutter build ios` / `flutter run` creates it. `flutter pub get` alone does not.
-- Enable Developer Mode on the iPhone (Settings → Privacy & Security) before the first `flutter run`.
+- Enable Developer Mode on the iPhone (Settings → Privacy & Security) before the first device install.
 
 ### Signing on a free Apple ID
 
 `Runner.entitlements` requests `com.apple.developer.nfc.readersession.formats`, and **a Personal Team cannot sign it** — Xcode refuses to create the provisioning profile, so a device build dies at signing before the app launches. Simulator builds are unaffected (they are not signed at all).
 
-`CODE_SIGN_ENTITLEMENTS` is therefore indirected through `$(NFAR_CODE_SIGN_ENTITLEMENTS)`, defaulted in `ios/Flutter/Debug.xcconfig` and `Release.xcconfig`. To build on a free account, create the gitignored `ios/Flutter/LocalOverrides.xcconfig` containing `NFAR_CODE_SIGN_ENTITLEMENTS =` (empty). You lose Core NFC and keep the Chameleon — which, per the table above, is the only path to Mifare Classic anyway.
+`CODE_SIGN_ENTITLEMENTS` is therefore indirected through `$(NFAR_CODE_SIGN_ENTITLEMENTS)`, defaulted in `ios/Flutter/Debug.xcconfig` and `Release.xcconfig`. To build on a free account, create the gitignored `ios/Flutter/LocalOverrides.xcconfig` containing `NFAR_CODE_SIGN_ENTITLEMENTS =` (empty), your `DEVELOPMENT_TEAM`, and an `NFAR_BUNDLE_ID` of your own (`com.nfcarchiver.nfcArchiver` is registered to another team, so a Personal Team cannot claim it). You lose Core NFC and keep the Chameleon — which, per the table above, is the only path to Mifare Classic anyway.
 
 **Only `Debug.xcconfig` includes that override.** `Release.xcconfig` (shared with Profile) hardcodes the entitlements path, so the workaround cannot leak into a shipped IPA. Keep it that way — an IPA that silently lost the entitlement ships an app whose NFC is dead, and nobody finds out until after App Review.
+
+### Installing on your own iPhone
+
+**Neither a plain Debug nor a plain Release build works on a free team**, for two different reasons:
+
+- **A Flutter Debug build doesn't start from the Home Screen.** `flutter run`, `flutter build ios --debug` and Xcode's Run all produce a JIT build (`App.framework/flutter_assets/kernel_blob.bin`, ~97 MB, and a ~35 KB `App` stub), which iOS 14+ only lets run while the Flutter tool or Xcode's debugger is attached. Installed with `devicectl` and tapped, it closes immediately — that's what "the app refuses to open" means here. Fine for a `flutter run` session, useless as an installed app.
+- **The Release configuration doesn't sign.** Xcode's automatic provisioning still asks for the NFC Tag Reading capability (`Personal development teams … do not support the NFC Tag Reading capability`) even with the entitlements blanked — through `LocalOverrides.xcconfig` passed as `-xcconfig`, through `NFAR_CODE_SIGN_ENTITLEMENTS= CODE_SIGN_ENTITLEMENTS=` on the command line, and with fresh derived data — although `-showBuildSettings` resolves the same signing settings as Debug. Observed with Xcode 26.3 on 2026-10-01; the cause wasn't found. Don't loosen `Release.xcconfig` to chase it (see above).
+
+What works is **the Debug configuration with Flutter's release build mode**: `xcode_backend` takes the mode from `FLUTTER_BUILD_MODE` when it is set, so this signs exactly like a Debug build but compiles the Dart code ahead of time:
+
+```bash
+cd ios
+xcodebuild -workspace Runner.xcworkspace -scheme Runner -configuration Debug \
+  -destination 'generic/platform=iOS' -allowProvisioningUpdates \
+  FLUTTER_BUILD_MODE=release -derivedDataPath ../build/ios_dd_aot build
+xcrun devicectl list devices      # the iPhone's identifier
+xcrun devicectl device install app --device <id> \
+  ../build/ios_dd_aot/Build/Products/Debug-iphoneos/Runner.app
+```
+
+Check the result before installing: `App.framework/App` is several MB (~8 MB) and `flutter_assets/` has **no** `kernel_blob.bin`. Re-run both commands every 7 days, when the free-team profile expires.
 
 ## F-Droid Build Notes
 
