@@ -163,6 +163,6 @@ test('the sticky action bar has an opaque backing', () => {
 });
 
 test('the file input stays inside its label card', () => {
-  assert.match(html, /<label id="file-pick"[^>]*>[\s\S]*?<input type="file" id="file"/,
+  assert.match(html, /<label id="file-pick"[^>]*>(?:(?!<\/label>)[\s\S])*<input type="file" id="file"/,
     '#file must be inside label#file-pick, or the whole card stops opening the picker');
 });
