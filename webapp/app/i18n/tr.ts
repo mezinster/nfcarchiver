@@ -17,8 +17,6 @@ export const tr: Messages = {
   language: 'Dil',
   statusConnected: 'bağlı',
   statusDisconnected: 'bağlı değil',
-  readerChameleon: 'Chameleon Ultra.',
-  readerPhoneNfc: 'Telefon NFC’si.',
   readerDisconnectedClickConnect: "Okuyucu bağlantısı kesildi — devam etmek için Bağlan'a tıklayın.",
   inspectNeedsChameleon: "Kart incelemesi için Chameleon gerekir — telefonun NFC'sinin ham karta erişimi yoktur.",
   readerBusyElsewhere: 'Okuyucu başka bir işlemle meşgul — önce onu bitirin veya durdurun.',
@@ -29,7 +27,6 @@ export const tr: Messages = {
   sectionLogOptions: 'Günlük seçenekleri',
   subChooseFile: 'Kartlara bölünecek herhangi bir dosya',
   subTypeText: 'text_note.txt olarak kaydedilir',
-  subTargetTag: 'Kart türü ve kapasitesi',
   subCompress: 'Yazmadan önce GZIP',
   subPassword: 'AES-256-GCM, isteğe bağlı',
   subSaveAs: 'Yalnızca arşivde dosya adı yoksa kullanılır',
@@ -45,20 +42,13 @@ export const tr: Messages = {
   // — archive tab —
   sourceFile: 'Dosya',
   sourceText: 'Metin',
-  orSeparator: 'veya',
   textPlaceholder: 'text_note.txt olarak arşivlenecek metni yazın',
-  targetTag: 'hedef etiket',
   targetAuto: 'Otomatik algıla (karta uyarlanır)',
   compress: 'sıkıştır',
-  password: 'şifre',
-  optionalPlaceholder: '(isteğe bağlı)',
   archiveToCards: 'Kartlara arşivle',
   archiveIdle: 'Bir Chameleon bağlayın, ardından dosya seçin veya metin yazın.',
   archiveReady: "Bir dosya seçin veya metin yazın, sonra Kartlara arşivle'ye basın.",
   archivePickFirst: 'Önce bir dosya seçin veya biraz metin yazın.',
-  cardEstimate: (n, isAuto) =>
-    `≈ ${n} ${pr(n, CARD)}${isAuto ? ' (tahmini) — okutulan karta uyarlanır' : ''}`,
-
   // — archive write loop —
   progressDone: (written, total) => `✓ ${total} karttan ${written} tanesi yazıldı ve doğrulandı`,
   progressWriting: (written, total) =>
@@ -87,15 +77,12 @@ export const tr: Messages = {
   // — restore tab —
   scanCards: 'Kartları tara',
   stop: 'Durdur',
-  saveAs: 'şu adla kaydet',
   restoreIdle: 'Bir Chameleon bağlayın, ardından bir deste kartı tarayın.',
   restoreReady: 'Arşivleri bulmak için bir deste kartı tarayın.',
   scanning: 'Taranıyor — kartları okuyucuya okutun…',
   tapMoreCards: 'Daha fazla kart okutun veya tamamlanmış bir arşivi geri yükleyin.',
   skippedCard: (message) => `Bir kart atlandı: ${message}`,
   restore: 'Geri yükle',
-  archiveRow: (shortId, isEncrypted, received, total, complete) =>
-    `Arşiv ${shortId}…  ${isEncrypted ? '🔒 şifreli' : 'şifresiz'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `${bytes} bayt geri yüklendi → ${name}.`,
 
   // — passwords —
@@ -114,9 +101,6 @@ export const tr: Messages = {
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · ${size} saklanıyor`,
   clearedFiles: (n) => `${n} ${pr(n, FILE)} silindi.`,
   downloadedTo: (size, name) => `${size} indirildi → ${name}.`,
-  fileRow: (name, size, when, isEncrypted, totalChunks) =>
-    `${name}  ·  ${size}  ·  ${when}  ·  ${isEncrypted ? '🔒 şifreli' : 'şifresiz'}  ·  ${totalChunks} ${pr(totalChunks, CARD)}`,
-
   // — log tab (controls only; log ENTRIES stay English) —
   logLevel: 'düzey',
   autoScroll: 'otomatik kaydır',
@@ -161,4 +145,34 @@ export const tr: Messages = {
   errUnsupportedTag: 'Desteklenmeyen etiket — Mifare Classic 1K veya NTAG213/215/216 kullanın.',
   errUnidentifiedTag: 'Kart kimliğini bildirmedi — kartı uzaklaştırıp yeniden okutun.',
   errNdefFormat: 'Bu etikette NFAR NDEF verisi yok.',
+
+  // — redesign 2026-10 —
+  encryptedLabel: 'Şifreli',
+  stopping: 'Durduruluyor…',
+  readerConnectTitle: 'Bir okuyucu bağlayın',
+  readerConnectBody: "Bluetooth üzerinden bir Chameleon Ultra ya da bu telefonun NFC'si (Android'de Chrome, yalnızca NTAG).",
+  readerNamePhone: "Telefonun NFC'si",
+  inspect: 'İncele',
+  connectReaderFirst: 'Önce bir okuyucu bağlayın',
+  sourceChooseFile: 'Dosya seçmek için dokunun',
+  sourceTapToChange: 'Değiştirmek için dokunun',
+  tagTypeLabel: 'Etiket türü',
+  passwordLabel: 'Şifre (isteğe bağlı)',
+  saveAsLabel: 'Şu adla kaydet',
+  cardsNeeded: (n) => `≈ ${n} ${pr(n, CARD)} gerekli`,
+  estimateAuto: 'Otomatik algılama · okutulan karta uyum sağlar',
+  slotCard: (n) => `Kart ${n}`,
+  slotWritten: 'Yazıldı',
+  slotWriting: 'Yazılıyor',
+  slotWaiting: 'Bekliyor',
+  slotHasData: 'Veri var',
+  cardOfTotal: (i, n) => `Kart ${i} / ${n}`,
+  archiveAgain: 'Yeni arşiv',
+  back: 'Geri',
+  archiveStoppedPartial: (written, total) => `Durduruldu — ${total} karttan ${written} tanesi yazıldı. Arşiv eksik.`,
+  scanStageTitle: 'Kartları istediğiniz sırayla okutun',
+  archiveRowStatus: (received, total, complete) => `${received}/${total} ${pr(total, CARD)}${complete ? ' · tamam' : ''}`,
+  fileRowMeta: (size, totalChunks, when) => `${size} · ${totalChunks} ${pr(totalChunks, CARD)} · ${when}`,
+  overwriteTitle: 'Kartta zaten veri var',
+  overwriteBody: 'Üzerine yazmak içeriğini siler.',
 };

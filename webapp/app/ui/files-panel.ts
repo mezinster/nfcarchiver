@@ -53,6 +53,7 @@ export function initFilesPanel(): void {
       });
       const info = await filesController.info();
       $('files-empty').hidden = info.count > 0;
+      $('files-clear').hidden = info.count === 0;
       $('files-info').textContent = info.count === 0 ? '' : t.filesInfo(info.count, humanSize(info.totalBytes));
     } catch (e) {
       setStatus(humanError(e));

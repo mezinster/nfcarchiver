@@ -17,8 +17,6 @@ export const ka: Messages = {
   language: 'ენა',
   statusConnected: 'დაკავშირებულია',
   statusDisconnected: 'გათიშულია',
-  readerChameleon: 'Chameleon Ultra.',
-  readerPhoneNfc: 'ტელეფონის NFC.',
   readerDisconnectedClickConnect: 'წამკითხველი გაითიშა — გასაგრძელებლად დააჭირეთ „დაკავშირებას“.',
   inspectNeedsChameleon: 'ბარათის დათვალიერებას სჭირდება Chameleon — ტელეფონის NFC-ს არ აქვს პირდაპირი წვდომა ბარათთან.',
   readerBusyElsewhere: 'წამკითხველი სხვა ოპერაციითაა დაკავებული — ჯერ დაასრულეთ ან შეაჩერეთ იგი.',
@@ -29,7 +27,6 @@ export const ka: Messages = {
   sectionLogOptions: 'ჟურნალის პარამეტრები',
   subChooseFile: 'ნებისმიერი ფაილი, დაყოფილი ბარათებზე',
   subTypeText: 'ინახება როგორც text_note.txt',
-  subTargetTag: 'ბარათის ტიპი და ტევადობა',
   subCompress: 'GZIP ჩაწერამდე',
   subPassword: 'AES-256-GCM, არასავალდებულო',
   subSaveAs: 'გამოიყენება მხოლოდ თუ არქივს არ აქვს ფაილის სახელი',
@@ -45,20 +42,13 @@ export const ka: Messages = {
   // — archive tab —
   sourceFile: 'ფაილი',
   sourceText: 'ტექსტი',
-  orSeparator: 'ან',
   textPlaceholder: 'აკრიფეთ ტექსტი text_note.txt-ად დასაარქივებლად',
-  targetTag: 'სამიზნე ტეგი',
   targetAuto: 'ავტომატური ამოცნობა (მოერგება ბარათს)',
   compress: 'შეკუმშვა',
-  password: 'პაროლი',
-  optionalPlaceholder: '(არასავალდებულო)',
   archiveToCards: 'ბარათებზე დაარქივება',
   archiveIdle: 'დააკავშირეთ Chameleon, შემდეგ აირჩიეთ ფაილი ან აკრიფეთ ტექსტი.',
   archiveReady: 'აირჩიეთ ფაილი ან აკრიფეთ ტექსტი, შემდეგ დააჭირეთ „ბარათებზე დაარქივებას“.',
   archivePickFirst: 'ჯერ აირჩიეთ ფაილი ან აკრიფეთ ტექსტი.',
-  cardEstimate: (n, isAuto) =>
-    `≈ ${n} ${pr(n, CARD)}${isAuto ? ' (სავარაუდო) — მოერგება მიდებულ ბარათს' : ''}`,
-
   // — archive write loop —
   progressDone: (written, total) => `✓ ჩაწერილი და შემოწმებულია ${written} ბარათი ${total}-დან`,
   progressWriting: (written, total) =>
@@ -87,15 +77,12 @@ export const ka: Messages = {
   // — restore tab —
   scanCards: 'ბარათების სკანირება',
   stop: 'გაჩერება',
-  saveAs: 'შენახვა როგორც',
   restoreIdle: 'დააკავშირეთ Chameleon, შემდეგ დაასკანირეთ ბარათების დასტა.',
   restoreReady: 'დაასკანირეთ ბარათების დასტა არქივების აღმოსაჩენად.',
   scanning: 'სკანირება — მიადეთ ბარათები წამკითხველს…',
   tapMoreCards: 'მიადეთ კიდევ ბარათები ან აღადგინეთ დასრულებული არქივი.',
   skippedCard: (message) => `ბარათი გამოტოვდა: ${message}`,
   restore: 'აღდგენა',
-  archiveRow: (shortId, isEncrypted, received, total, complete) =>
-    `არქივი ${shortId}…  ${isEncrypted ? '🔒 დაშიფრული' : 'დაუშიფრავი'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `აღდგენილია ${bytes} ბაიტი → ${name}.`,
 
   // — passwords —
@@ -114,9 +101,6 @@ export const ka: Messages = {
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · შენახულია ${size}`,
   clearedFiles: (n) => `წაიშალა ${n} ${pr(n, FILE)}.`,
   downloadedTo: (size, name) => `ჩამოიტვირთა ${size} → ${name}.`,
-  fileRow: (name, size, when, isEncrypted, totalChunks) =>
-    `${name}  ·  ${size}  ·  ${when}  ·  ${isEncrypted ? '🔒 დაშიფრული' : 'დაუშიფრავი'}  ·  ${totalChunks} ${pr(totalChunks, CARD)}`,
-
   // — log tab (controls only; log ENTRIES stay English) —
   logLevel: 'დონე',
   autoScroll: 'ავტოგადახვევა',
@@ -161,4 +145,34 @@ export const ka: Messages = {
   errUnsupportedTag: 'ტეგი მხარდაუჭერელია — გამოიყენეთ Mifare Classic 1K ან NTAG213/215/216.',
   errUnidentifiedTag: 'ბარათმა იდენტიფიკატორი არ გადმოსცა — მოაშორეთ და ხელახლა მიადეთ.',
   errNdefFormat: 'ამ ტეგზე NFAR NDEF მონაცემები არ არის.',
+
+  // — redesign 2026-10 —
+  encryptedLabel: 'დაშიფრულია',
+  stopping: 'ჩერდება…',
+  readerConnectTitle: 'დააკავშირეთ წამკითხველი',
+  readerConnectBody: 'Chameleon Ultra Bluetooth-ით, ან ამ ტელეფონის NFC (Chrome Android-ზე, მხოლოდ NTAG).',
+  readerNamePhone: 'ტელეფონის NFC',
+  inspect: 'დათვალიერება',
+  connectReaderFirst: 'ჯერ დააკავშირეთ წამკითხველი',
+  sourceChooseFile: 'შეეხეთ ფაილის ასარჩევად',
+  sourceTapToChange: 'შეეხეთ შესაცვლელად',
+  tagTypeLabel: 'ტეგის ტიპი',
+  passwordLabel: 'პაროლი (არასავალდებულო)',
+  saveAsLabel: 'შენახვა როგორც',
+  cardsNeeded: (n) => `საჭიროა ≈ ${n} ${pr(n, CARD)}`,
+  estimateAuto: 'ავტოამოცნობა · მოერგება მიდებულ ბარათს',
+  slotCard: (n) => `ბარათი ${n}`,
+  slotWritten: 'ჩაწერილია',
+  slotWriting: 'იწერება',
+  slotWaiting: 'ელოდება',
+  slotHasData: 'შეიცავს მონაცემებს',
+  cardOfTotal: (i, n) => `ბარათი ${i} / ${n}`,
+  archiveAgain: 'ახალი არქივი',
+  back: 'უკან',
+  archiveStoppedPartial: (written, total) => `შეჩერდა — ჩაწერილია ${written} / ${total}. არქივი არასრულია.`,
+  scanStageTitle: 'შეახეთ ბარათები ნებისმიერი თანმიმდევრობით',
+  archiveRowStatus: (received, total, complete) => `${received}/${total} ${pr(total, CARD)}${complete ? ' · სრულია' : ''}`,
+  fileRowMeta: (size, totalChunks, when) => `${size} · ${totalChunks} ${pr(totalChunks, CARD)} · ${when}`,
+  overwriteTitle: 'ბარათი უკვე შეიცავს მონაცემებს',
+  overwriteBody: 'გადაწერა წაშლის მის შიგთავსს.',
 };

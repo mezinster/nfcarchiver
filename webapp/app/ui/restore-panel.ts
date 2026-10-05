@@ -42,6 +42,8 @@ export function initRestorePanel(): void {
   // synchronously on acquire and release.
   const syncButtons = (): void => {
     const owner = readerLock.current();
+    // The pulsing stage replaces the Scan button only while THIS loop scans.
+    $('panel-restore').toggleAttribute('data-scanning', owner === 'scan');
     const scan = $('scan') as HTMLButtonElement;
     scan.disabled = !isConnected() || owner !== null;
     scan.title = owner !== null && owner !== 'scan' ? t.readerBusyElsewhere : '';
@@ -68,6 +70,8 @@ export function initRestorePanel(): void {
     scanAbort = new AbortController();
     setStatus(t.scanning);
     log.info('scan', 'Scan started');
+    // The Scan button is hidden by data-scanning; keep focus in the panel.
+    $('stop-scan').focus();
     const breaker = new FailureBreaker();
     try {
       for (;;) {
@@ -112,6 +116,7 @@ export function initRestorePanel(): void {
     } finally {
       readerLock.release('scan');
       log.info('scan', 'Scan stopped');
+      $('scan').focus();
     }
   });
 

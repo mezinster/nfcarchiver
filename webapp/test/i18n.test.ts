@@ -38,10 +38,20 @@ test('English catalogue has no empty values', () => {
 test('English catalogue function entries render', () => {
   setPluralLocale('en');
   assert.equal(en.tapCardOf(1, 8), 'Tap card 1 of 8 on the reader…');
-  assert.equal(en.cardEstimate(1, false), '≈ 1 card');
-  assert.equal(en.cardEstimate(3, true), '≈ 3 cards (est.) — adapts to the tapped card');
   assert.equal(en.archiveDone(1), 'Done — wrote and verified 1 card.');
   assert.equal(en.clearedFiles(2), 'Cleared 2 files.');
+});
+
+test('redesign entries render in English', () => {
+  setPluralLocale('en');
+  assert.equal(en.cardsNeeded(1), '≈ 1 card needed');
+  assert.equal(en.cardsNeeded(3), '≈ 3 cards needed');
+  assert.equal(en.slotCard(2), 'Card 2');
+  assert.equal(en.cardOfTotal(2, 5), 'Card 2 of 5');
+  assert.equal(en.archiveStoppedPartial(2, 5), 'Stopped — 2 of 5 cards written. The archive is incomplete.');
+  assert.equal(en.archiveRowStatus(3, 3, true), '3/3 cards · complete');
+  assert.equal(en.archiveRowStatus(1, 1, false), '1/1 card');
+  assert.equal(en.fileRowMeta('2.4 KB', 1, 'today'), '2.4 KB · 1 card · today');
 });
 
 import { pickLocale, SUPPORTED, getLocale, setLocale, onLocaleChange, t } from '../app/i18n/index.js';
@@ -160,8 +170,8 @@ test('Slavic plurals select the right form at the boundaries', () => {
   // FILE, CARD (nominative) and CARD_ACC (accusative, via archiveDone).
   const entries: Array<[string, (cat: Messages, n: number) => string]> = [
     ['clearedFiles', (cat, n) => cat.clearedFiles(n)],
-    ['cardEstimate', (cat, n) => cat.cardEstimate(n, false)],
     ['archiveDone', (cat, n) => cat.archiveDone(n)],
+    ['cardsNeeded', (cat, n) => cat.cardsNeeded(n)],
   ];
   for (const [locale, cat, categories] of SLAVIC) {
     setPluralLocale(locale);
@@ -207,4 +217,13 @@ test('Turkish and Georgian use one noun form for every count', () => {
       assert.equal(cat.clearedFiles(n), one.replace('1', String(n)), `${name} varies the noun at n=${n}`);
     }
   }
+});
+
+// Like #conn: #reader-name shows the live reader, so applyStaticText() must
+// never rewrite it — device.ts owns it.
+test('the reader-name span is not statically translated', () => {
+  const html = readFileSync(fileURLToPath(new URL('../../app/index.html', import.meta.url)), 'utf8');
+  const el = /<span id="reader-name"[^>]*>/.exec(html);
+  assert.ok(el, 'no #reader-name span in index.html');
+  assert.ok(!el[0].includes('data-i18n'), `#reader-name must not be statically translated: ${el[0]}`);
 });

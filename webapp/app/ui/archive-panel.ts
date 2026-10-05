@@ -1,5 +1,6 @@
 /** Archive tab: file/text source, live card counter, write-and-verify with progress. */
-import { ArchiveOrchestrator, type ArchiveIO, type OverwriteChoice } from './archive-orchestrator.js';
+import { ArchiveOrchestrator, type ArchiveIO, type ArchiveOutcome, type OverwriteChoice } from './archive-orchestrator.js';
+import { renderSlots } from './stage-view.js';
 import type { Transport } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize, webNfcChunkPayload } from '../../src/nfc/type2.js';
@@ -8,6 +9,8 @@ import { activeReaderName, currentTransport, isConnected, onConnectionChange } f
 import { readerLock } from './reader-lock.js';
 import { humanError } from './errors.js';
 import { t, onLocaleChange } from '../i18n/index.js';
+import { pickSource, type SourceMode } from '../source.js';
+import { humanSize } from './files-view.js';
 import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -56,22 +59,46 @@ function syncTargetTagForReader(): boolean {
 }
 
 export function initArchivePanel(): void {
-  const setStatus = (msg: string) => { $('archive-status').textContent = msg; };
+  const setStatus = (msg: string, tone: 'info' | 'error' = 'info'): void => {
+    const el = $('archive-status');
+    el.textContent = msg;
+    if (tone === 'error') el.setAttribute('data-tone', 'error');
+    else el.removeAttribute('data-tone');
+    $('stage-headline').textContent = msg;
+  };
   const bar = $('archive-bar') as HTMLProgressElement;
-  const showProgress = (label: string, value: number | null, max: number) => {
-    $('archive-progress-row').hidden = false;
+  let slotsWritten = 0;
+  let slotsTotal = 0;
+  let slotWarning = false;
+  const drawSlots = (): void => {
+    renderSlots($('archive-slots'), slotsWritten, slotsTotal, { warning: slotWarning });
+  };
+  const showProgress = (label: string, value: number | null, max: number): void => {
+    $('archive-progress').hidden = false;
     bar.max = max;
     if (value === null) bar.removeAttribute('value'); else bar.value = value;
-    $('archive-progress-label').textContent = label;
+    const done = value !== null && value >= max;
+    // The orchestrator's label is a sentence; the stage shows "Card n of N"
+    // while writing and keeps the sentence ("✓ 3 of 3 … verified") once done.
+    $('archive-progress-label').textContent = done ? label : t.cardOfTotal(Math.min((value ?? 0) + 1, max), max);
+    $('archive-progress-pct').textContent = value === null || max === 0 ? '' : `${Math.round((value / max) * 100)}%`;
+    // max changes mid-write when Auto-detect re-chunks, so redraw on every call.
+    slotsWritten = value ?? 0;
+    slotsTotal = max;
+    drawSlots();
   };
-  const hideProgress = () => { $('archive-progress-row').hidden = true; };
+  const hideProgress = (): void => { $('archive-progress').hidden = true; };
 
   // Native <dialog> confirm with three choices. Resolves 'once' | 'all' | 'skip'
   // ('skip' if dismissed via Esc, so an accidental dismiss never overwrites).
   const overwriteDialog = $('overwrite-dialog') as HTMLDialogElement;
   const confirmOverwrite = (): Promise<OverwriteChoice> => new Promise((resolve) => {
     overwriteDialog.returnValue = '';
+    slotWarning = true;
+    drawSlots();
     overwriteDialog.addEventListener('close', () => {
+      slotWarning = false;
+      drawSlots();
       const v = overwriteDialog.returnValue;
       resolve(v === 'all' ? 'all' : v === 'once' ? 'once' : 'skip');
     }, { once: true });
@@ -86,23 +113,32 @@ export function initArchivePanel(): void {
 
   let fileBytes: Uint8Array | null = null;
   let fileName = '';
-  const currentSource = (): { data: Uint8Array; fileName: string } | null => {
-    if (fileBytes) return { data: fileBytes, fileName };
-    const text = ($('text') as HTMLTextAreaElement).value;
-    if (text.length > 0) return { data: new TextEncoder().encode(text), fileName: 'text_note.txt' };
-    return null;
-  };
+  let mode: SourceMode = 'file';
+  const currentSource = () => pickSource(
+    mode,
+    fileBytes ? { bytes: fileBytes, name: fileName } : null,
+    ($('text') as HTMLTextAreaElement).value,
+  );
 
   let counterTimer: ReturnType<typeof setTimeout> | undefined;
+  let estimateGen = 0;
   const updateCounter = async (): Promise<void> => {
+    const gen = ++estimateGen;
     const src = currentSource();
     const el = $('cardcount');
-    if (!src) { el.textContent = ''; return; }
+    if (!src) { el.replaceChildren(); return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const encrypted = ($('apass') as HTMLInputElement).value.length > 0;
     const count = await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: selectedPayloadSize() });
-    const isAuto = ($('target-tag') as HTMLSelectElement).value === 'auto';
-    el.textContent = t.cardEstimate(count, isAuto);
+    if (gen !== estimateGen) return; // a newer call started while we awaited
+    const sel = $('target-tag') as HTMLSelectElement;
+    const title = document.createElement('div');
+    title.className = 'estimate-title';
+    title.textContent = t.cardsNeeded(count);
+    const sub = document.createElement('div');
+    sub.className = 'estimate-sub';
+    sub.textContent = sel.value === 'auto' ? t.estimateAuto : (sel.selectedOptions[0]?.textContent ?? '');
+    el.replaceChildren(title, sub);
   };
   const scheduleCounter = () => { clearTimeout(counterTimer); counterTimer = setTimeout(updateCounter, 200); };
 
@@ -110,8 +146,24 @@ export function initArchivePanel(): void {
     const f = ($('file') as HTMLInputElement).files?.[0];
     fileBytes = f ? new Uint8Array(await f.arrayBuffer()) : null;
     fileName = f?.name ?? '';
-    updateCounter();
+    $('file-pick').toggleAttribute('data-has-file', f !== undefined);
+    $('file-name').textContent = fileName;
+    $('file-size').textContent = f ? humanSize(f.size) : '';
+    void updateCounter();
   });
+
+  const setMode = (m: SourceMode): void => {
+    mode = m;
+    $('source-file-btn').setAttribute('aria-pressed', String(m === 'file'));
+    $('source-text-btn').setAttribute('aria-pressed', String(m === 'text'));
+    $('file-pick').hidden = m !== 'file';
+    $('text-source').hidden = m !== 'text';
+    void updateCounter();
+  };
+  $('source-file-btn').addEventListener('click', () => setMode('file'));
+  $('source-text-btn').addEventListener('click', () => setMode('text'));
+  // The estimate's words come from `t`; re-render them on a language switch.
+  onLocaleChange(() => { void updateCounter(); });
   for (const id of ['text', 'compress', 'apass']) $(id).addEventListener('input', scheduleCounter);
   $('target-tag').addEventListener('change', scheduleCounter);
 
@@ -120,11 +172,16 @@ export function initArchivePanel(): void {
     const btn = $('archive') as HTMLButtonElement;
     btn.disabled = !isConnected() || owner !== null;
     btn.title = owner !== null && owner !== 'archive' ? t.readerBusyElsewhere : '';
+    $('archive-hint').textContent = isConnected() ? '' : t.connectReaderFirst;
   };
   readerLock.onChange(syncArchiveButton);
   // Same reason as restore-panel's: a `t`-derived title is invisible to
   // applyStaticText(), so it must be re-derived on a locale change.
   onLocaleChange(syncArchiveButton);
+  syncArchiveButton();
+
+  const idleStatus = (): string =>
+    !isConnected() ? t.archiveIdle : activeReaderName() === 'web-nfc' ? t.autoDetectNeedsChameleon : t.archiveReady;
 
   onConnectionChange((connected) => {
     syncArchiveButton();
@@ -136,9 +193,68 @@ export function initArchivePanel(): void {
     // write is in progress, this element carries live progress/error text
     // (see ArchiveOrchestrator's io.setStatus calls) that a reader hand-off
     // must not stomp.
-    if (connected && !archivingNow()) {
-      setStatus(activeReaderName() === 'web-nfc' ? t.autoDetectNeedsChameleon : t.archiveReady);
+    // Also skipped while the stage is showing (data-state set): after a run the
+    // lock is released, but setStatus mirrors into #stage-headline, so this write
+    // would overwrite the terminal "Done"/"Stopped" message. The form's status is
+    // set by the Archive another / Back handler instead.
+    if (connected && !archivingNow() && !$('panel-archive').hasAttribute('data-state')) {
+      setStatus(idleStatus());
     }
+  });
+
+  let runAbort: AbortController | null = null;
+  let lastOutcome: ArchiveOutcome | null = null;
+
+  const againLabel = (): string => (lastOutcome === 'done' ? t.archiveAgain : t.back);
+
+  const enterStage = (src: { data: Uint8Array; fileName: string }, compress: boolean, encrypted: boolean): void => {
+    lastOutcome = null;
+    $('panel-archive').setAttribute('data-state', 'writing');
+    slotsWritten = 0; slotsTotal = 0; slotWarning = false;
+    drawSlots();
+    $('summary-name').textContent = src.fileName;
+    const tag = ($('target-tag') as HTMLSelectElement).selectedOptions[0]?.textContent ?? '';
+    $('summary-meta').textContent =
+      [humanSize(src.data.length), compress ? 'GZIP' : '', encrypted ? 'AES-256' : '', tag].filter((x) => x !== '').join(' · ');
+    // Reset the previous run's progress; indeterminate reads as "preparing".
+    $('archive-progress').hidden = false;
+    $('archive-progress-label').textContent = '';
+    $('archive-progress-pct').textContent = '';
+    bar.max = 1;
+    bar.removeAttribute('value');
+    $('archive-stop').hidden = false;
+    ($('archive-stop') as HTMLButtonElement).disabled = false;
+    $('stage-headline').removeAttribute('data-tone');
+    $('archive-again').hidden = true;
+    $('archive-stop').focus();
+  };
+
+  const leaveStage = (outcome: ArchiveOutcome): void => {
+    lastOutcome = outcome;
+    $('panel-archive').setAttribute('data-state', outcome);
+    $('archive-stop').hidden = true;
+    const again = $('archive-again');
+    again.textContent = againLabel();
+    again.hidden = false;
+    if (outcome === 'failed') $('stage-headline').setAttribute('data-tone', 'error');
+    again.focus();
+  };
+
+  $('archive-stop').addEventListener('click', () => {
+    runAbort?.abort();
+    ($('archive-stop') as HTMLButtonElement).disabled = true;
+    $('stage-headline').textContent = t.stopping;
+  });
+  $('archive-again').addEventListener('click', () => {
+    lastOutcome = null;
+    $('panel-archive').removeAttribute('data-state');
+    setStatus(idleStatus());
+    const go = $('archive') as HTMLButtonElement;
+    (go.disabled ? $(mode === 'file' ? 'source-file-btn' : 'source-text-btn') : go).focus();
+  });
+  onLocaleChange(() => {
+    if (slotsTotal > 0) drawSlots();
+    if (lastOutcome !== null) $('archive-again').textContent = againLabel();
   });
 
   $('archive').addEventListener('click', async () => {
@@ -163,28 +279,35 @@ export function initArchivePanel(): void {
       // phone NFC, or a target-tag change under phone NFC) installs the new
       // transport before the write loop gets to look, so waiting for a further
       // connection event would wait forever.
-      awaitReconnect: () => new Promise<Transport>((resolve) => {
+      awaitReconnect: (signal) => new Promise<Transport>((resolve, reject) => {
+        if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return; }
         const live = currentTransport();
         if (isConnected() && live) { resolve(live); return; }
         const off = onConnectionChange(() => {
           const next = currentTransport();
           if (isConnected() && next) { off(); resolve(next); }
         });
+        signal?.addEventListener('abort', () => { off(); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
       }),
       log,
     };
 
-    if (!readerLock.acquire('archive')) { setStatus(t.readerBusyElsewhere); return; }
+    if (!readerLock.acquire('archive')) { setStatus(t.readerBusyElsewhere, 'error'); return; }
+    runAbort = new AbortController();
+    enterStage(src, compress, pass.length > 0);
+    let outcome: ArchiveOutcome = 'failed';
     try {
-      await new ArchiveOrchestrator(io).run(transport, {
+      outcome = await new ArchiveOrchestrator(io).run(transport, {
         data: src.data, fileName: src.fileName, compress,
         password: pass || undefined, payloadSize: selectedPayloadSize(),
-      });
+      }, runAbort.signal);
     } catch (e) {
       hideProgress();
-      setStatus(humanError(e));
+      setStatus(humanError(e), 'error');
     } finally {
+      runAbort = null;
       readerLock.release('archive');
+      leaveStage(outcome);
     }
   });
 }
