@@ -44,6 +44,18 @@ test('English catalogue function entries render', () => {
   assert.equal(en.clearedFiles(2), 'Cleared 2 files.');
 });
 
+test('redesign entries render in English', () => {
+  setPluralLocale('en');
+  assert.equal(en.cardsNeeded(1), '≈ 1 card needed');
+  assert.equal(en.cardsNeeded(3), '≈ 3 cards needed');
+  assert.equal(en.slotCard(2), 'Card 2');
+  assert.equal(en.cardOfTotal(2, 5), 'Card 2 of 5');
+  assert.equal(en.archiveStoppedPartial(2, 5), 'Stopped — 2 of 5 cards written. The archive is incomplete.');
+  assert.equal(en.archiveRowStatus(3, 3, true), '3/3 cards · complete');
+  assert.equal(en.archiveRowStatus(1, 1, false), '1/1 card');
+  assert.equal(en.fileRowMeta('2.4 KB', 1, 'today'), '2.4 KB · 1 card · today');
+});
+
 import { pickLocale, SUPPORTED, getLocale, setLocale, onLocaleChange, t } from '../app/i18n/index.js';
 
 test('pickLocale matches primary subtags, case-insensitively', () => {
@@ -162,6 +174,7 @@ test('Slavic plurals select the right form at the boundaries', () => {
     ['clearedFiles', (cat, n) => cat.clearedFiles(n)],
     ['cardEstimate', (cat, n) => cat.cardEstimate(n, false)],
     ['archiveDone', (cat, n) => cat.archiveDone(n)],
+    ['cardsNeeded', (cat, n) => cat.cardsNeeded(n)],
   ];
   for (const [locale, cat, categories] of SLAVIC) {
     setPluralLocale(locale);
