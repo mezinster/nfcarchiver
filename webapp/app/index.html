@@ -5,286 +5,449 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>NFC Archiver</title>
     <style>
-      /* ---------- tokens: light ---------- */
+      /* ---------- tokens ----------
+         Material 3 roles from the Flutter app's seed #1976D2 (ColorScheme.fromSeed,
+         tonal-spot) — see lib/shared/theme/app_theme.dart. Four colour blocks as
+         before: light default, dark by media query, then the two manual overrides
+         last so the toggle beats the media query. Non-colour tokens (icon masks,
+         --nav-h) live only in the first block. */
       :root {
-        --bg: #eef1f7; --surface: #ffffff;
-        --primary: #0061a4; --on-primary: #ffffff;
-        --primary-light: #d1e4ff; --on-primary-light: #001d36;
-        --primary-icon-bg: #c5dcfa;
-        --text: #1a1c1e; --text-secondary: #5b5f67; --border: #dfe2eb;
-        --error: #ba1a1a; --error-bg: #ffdad6; --on-error-bg: #410002;
-        --success: #2e7d52; --success-bg: #e6f4ed; --warning: #b76e00;
-        --radius: 18px; --radius-sm: 12px;
-        --shadow: 0 2px 14px rgba(16, 42, 71, 0.07);
-        --shadow-md: 0 4px 22px rgba(16, 42, 71, 0.13);
+        --primary: #415F91; --on-primary: #FFFFFF;
+        --primary-container: #D6E3FF; --on-primary-container: #001B3E;
+        --secondary-container: #DAE2F9; --on-secondary-container: #121C2B;
+        --surface: #F9F9FF; --surface-container-low: #F3F3FA;
+        --surface-container: #EDEDF4; --surface-container-high: #E7E8EE;
+        --on-surface: #191C20; --on-surface-variant: #44474E;
+        --outline: #74777F; --outline-variant: #C4C6D0;
+        --error: #BA1A1A; --error-container: #FFDAD6; --on-error-container: #410002;
+        --success: #2E7D52; --success-container: #E6F4ED; --warning: #B76E00;
+        --elev-1: 0 1px 2px rgba(0, 0, 0, 0.12), 0 1px 3px 1px rgba(0, 0, 0, 0.06);
+        --scrim: rgba(0, 0, 0, 0.32);
+        color-scheme: light;
+
+        --nav-h: 80px;
+        /* Glyphs for .btn-icon. A mask (not an <svg> child) keeps the button's
+           textContent exactly its translated label — the view tests assert it,
+           and it is the accessible name. */
+        --icon-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+        --icon-download: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3Cpath d='M12 15V3'/%3E%3C/svg%3E");
+        --icon-trash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16'/%3E%3Cpath d='M10 11v6'/%3E%3Cpath d='M14 11v6'/%3E%3Cpath d='M6 7l1 13h10l1-13'/%3E%3Cpath d='M9 7V4h6v3'/%3E%3C/svg%3E");
+        --icon-link-off: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 17H7a5 5 0 0 1 0-10h2'/%3E%3Cpath d='M15 7h2a5 5 0 0 1 3.5 8.5'/%3E%3Cpath d='M8 12h2'/%3E%3Cpath d='M3 3l18 18'/%3E%3C/svg%3E");
+        --icon-close: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12'/%3E%3Cpath d='M18 6L6 18'/%3E%3C/svg%3E");
+        --icon-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E");
       }
-      /* ---------- tokens: dark ----------
-         In dark mode a shadow separates almost nothing, so --surface sits
-         tonally ABOVE --bg and carries the separation itself (the Material 3
-         elevation-tint approach). The shadow tokens stay defined so one rule
-         set serves both themes without branching. */
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg: #111417; --surface: #1c1f22;
-          --primary: #9ecaff; --on-primary: #003258;
-          --primary-light: #00497d; --on-primary-light: #d1e4ff;
-          --primary-icon-bg: #0d3c66;
-          --text: #e3e2e6; --text-secondary: #a9adb5; --border: #2c3034;
-          --error: #ffb4ab; --error-bg: #93000a; --on-error-bg: #ffdad6;
-          --success: #7fd8a4; --success-bg: #10331f; --warning: #f0b357;
-          --shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
-          --shadow-md: 0 4px 22px rgba(0, 0, 0, 0.5);
+          --primary: #AAC7FF; --on-primary: #0A305F;
+          --primary-container: #284777; --on-primary-container: #D6E3FF;
+          --secondary-container: #3E4759; --on-secondary-container: #DAE2F9;
+          --surface: #111318; --surface-container-low: #191C20;
+          --surface-container: #1D2024; --surface-container-high: #282A2F;
+          --on-surface: #E2E2E9; --on-surface-variant: #C4C6D0;
+          --outline: #8E9099; --outline-variant: #44474E;
+          --error: #FFB4AB; --error-container: #93000A; --on-error-container: #FFDAD6;
+          --success: #7FD8A4; --success-container: #10331F; --warning: #F0B357;
+          --elev-1: none;
+          --scrim: rgba(0, 0, 0, 0.5);
+          color-scheme: dark;
         }
       }
-      /* The manual toggle must beat the media query, so these come last. */
       :root[data-theme="light"] {
-        --bg: #eef1f7; --surface: #ffffff;
-        --primary: #0061a4; --on-primary: #ffffff;
-        --primary-light: #d1e4ff; --on-primary-light: #001d36;
-        --primary-icon-bg: #c5dcfa;
-        --text: #1a1c1e; --text-secondary: #5b5f67; --border: #dfe2eb;
-        --error: #ba1a1a; --error-bg: #ffdad6; --on-error-bg: #410002;
-        --success: #2e7d52; --success-bg: #e6f4ed; --warning: #b76e00;
-        --shadow: 0 2px 14px rgba(16, 42, 71, 0.07);
-        --shadow-md: 0 4px 22px rgba(16, 42, 71, 0.13);
+        --primary: #415F91; --on-primary: #FFFFFF;
+        --primary-container: #D6E3FF; --on-primary-container: #001B3E;
+        --secondary-container: #DAE2F9; --on-secondary-container: #121C2B;
+        --surface: #F9F9FF; --surface-container-low: #F3F3FA;
+        --surface-container: #EDEDF4; --surface-container-high: #E7E8EE;
+        --on-surface: #191C20; --on-surface-variant: #44474E;
+        --outline: #74777F; --outline-variant: #C4C6D0;
+        --error: #BA1A1A; --error-container: #FFDAD6; --on-error-container: #410002;
+        --success: #2E7D52; --success-container: #E6F4ED; --warning: #B76E00;
+        --elev-1: 0 1px 2px rgba(0, 0, 0, 0.12), 0 1px 3px 1px rgba(0, 0, 0, 0.06);
+        --scrim: rgba(0, 0, 0, 0.32);
+        color-scheme: light;
       }
       :root[data-theme="dark"] {
-        --bg: #111417; --surface: #1c1f22;
-        --primary: #9ecaff; --on-primary: #003258;
-        --primary-light: #00497d; --on-primary-light: #d1e4ff;
-        --primary-icon-bg: #0d3c66;
-        --text: #e3e2e6; --text-secondary: #a9adb5; --border: #2c3034;
-        --error: #ffb4ab; --error-bg: #93000a; --on-error-bg: #ffdad6;
-        --success: #7fd8a4; --success-bg: #10331f; --warning: #f0b357;
-        --shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
-        --shadow-md: 0 4px 22px rgba(0, 0, 0, 0.5);
+        --primary: #AAC7FF; --on-primary: #0A305F;
+        --primary-container: #284777; --on-primary-container: #D6E3FF;
+        --secondary-container: #3E4759; --on-secondary-container: #DAE2F9;
+        --surface: #111318; --surface-container-low: #191C20;
+        --surface-container: #1D2024; --surface-container-high: #282A2F;
+        --on-surface: #E2E2E9; --on-surface-variant: #C4C6D0;
+        --outline: #8E9099; --outline-variant: #44474E;
+        --error: #FFB4AB; --error-container: #93000A; --on-error-container: #FFDAD6;
+        --success: #7FD8A4; --success-container: #10331F; --warning: #F0B357;
+        --elev-1: none;
+        --scrim: rgba(0, 0, 0, 0.5);
+        color-scheme: dark;
       }
+
       /* ---------- base ---------- */
       * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
       body {
-        margin: 0; font: 14px/1.5 system-ui, sans-serif;
-        background: var(--bg); color: var(--text);
+        margin: 0; background: var(--surface); color: var(--on-surface);
+        font: 14px/20px Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
         -webkit-font-smoothing: antialiased;
       }
-      main { max-width: 36rem; margin: 0 auto; padding: 0 1rem 3rem; }
-      button { font: inherit; }
+      button, input, select, textarea { font-family: inherit; }
       h1, h2, h3, h4 { margin: 0; }
-      .muted { color: var(--text-secondary); }
-      input[type="text"], input[type="password"], textarea, select {
-        background: var(--surface); color: var(--text);
-        border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-        padding: 0.45rem 0.6rem; font: inherit; outline: none;
-        transition: border-color 0.15s;
+      [hidden] { display: none !important; }
+      :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .muted { color: var(--on-surface-variant); }
+      .mono { font-family: ui-monospace, "Roboto Mono", monospace; }
+      .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
       }
-      input[type="text"]:focus, input[type="password"]:focus,
-      textarea:focus, select:focus { border-color: var(--primary); }
-      textarea { width: 100%; resize: vertical; }
-      section[role="tabpanel"] { padding-top: 0.25rem; }
-      section[hidden] { display: none; }
-
-      /* ---------- components ---------- */
-      .section-label {
-        display: block; font-size: 12px; font-weight: 600;
-        text-transform: uppercase; letter-spacing: 0.09em;
-        color: var(--text-secondary); padding: 0 4px 6px; margin-top: 1.25rem;
-      }
-      .card {
-        background: var(--surface); border-radius: var(--radius);
-        box-shadow: var(--shadow); overflow: hidden;
-      }
-      /* Rows own their padding; .card has none. */
-      .row {
-        display: flex; align-items: center; gap: 14px;
-        padding: 15px 18px; border-bottom: 1px solid var(--border);
-      }
-      .row:last-child { border-bottom: none; }
-      /* The row above an .or-divider drops its own rule — the divider draws
-         its own, and two hairlines a few pixels apart read as a mistake. */
-      .row-flush { border-bottom: none; }
-      .or-divider {
-        display: flex; align-items: center; gap: 10px; padding: 2px 18px 6px;
-        font-size: 12px; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.09em; color: var(--text-secondary);
-      }
-      .or-divider::before, .or-divider::after {
-        content: ""; flex: 1; height: 1px; background: var(--border);
-      }
-      /* Deliberate exception for full-width controls (the textarea): label
-         above, control stretched beneath, not the fixed-height row shape. */
-      .row-col { flex-direction: column; align-items: stretch; gap: 8px; }
-      .row-col-head { display: flex; align-items: center; gap: 14px; }
-      .icon-tile {
-        width: 38px; height: 38px; flex-shrink: 0;
-        background: var(--primary-icon-bg); border-radius: 11px;
-        display: flex; align-items: center; justify-content: center;
-      }
+      .sprite { display: none; }
       .ico {
-        width: 18px; height: 18px; stroke: var(--primary); fill: none;
+        width: 24px; height: 24px; flex-shrink: 0; stroke: currentColor; fill: none;
         stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
       }
-      .row-text { flex: 1; min-width: 0; }
-      .row-name { font-size: 14px; font-weight: 500; color: var(--text); }
-      .row-sub { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
-      .row-control { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
-      .row-control input[type="text"], .row-control input[type="password"] { width: 9rem; }
-      .row-control input[type="file"] { max-width: 11rem; font-size: 12px; }
+      .brand-ico { fill: currentColor; stroke: none; }
+      /* Static labels are lowercase in some catalogues (settings-list era);
+         Flutter capitalises. Only static (data-i18n) text — never a filename. */
+      .row-name[data-i18n]::first-letter, .field-label::first-letter, #conn::first-letter { text-transform: uppercase; }
+
+      /* ---------- app bar ---------- */
+      .app-bar {
+        display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+        max-width: 36rem; margin: 0 auto; padding: 8px 4px;
+      }
+      .app-bar h1 { font-size: 22px; line-height: 28px; font-weight: 400; text-align: center; white-space: nowrap; }
+      .lang-picker { justify-self: start; position: relative; display: inline-flex; align-items: center; color: var(--on-surface-variant); }
+      .lang-picker .ico { position: absolute; left: 12px; pointer-events: none; }
+      #lang {
+        appearance: none; -webkit-appearance: none; height: 48px; max-width: 9rem;
+        padding: 0 12px 0 44px; border: none; border-radius: 24px;
+        background: transparent; color: inherit; font-size: 13px; cursor: pointer;
+        text-overflow: ellipsis;
+      }
+      #lang:hover { background: color-mix(in srgb, var(--on-surface) 8%, transparent); }
+      .icon-btn {
+        width: 48px; height: 48px; display: inline-flex; align-items: center; justify-content: center;
+        border: none; border-radius: 24px; background: none; color: var(--on-surface-variant); cursor: pointer;
+      }
+      .icon-btn:hover { background: color-mix(in srgb, var(--on-surface) 8%, transparent); }
+      #theme-toggle { justify-self: end; }
+
+      /* ---------- reader card ----------
+         Which half shows is decided by the data-connected attribute device.ts
+         already maintains — no extra TS state. */
+      #device-bar { max-width: 36rem; margin: 0 auto; padding: 0 16px; }
+      .reader-card {
+        display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
+        padding: 12px 12px 12px 16px; border-radius: 16px;
+        background: var(--surface-container-high); color: var(--on-surface);
+      }
+      .reader-card[data-connected="true"] { background: var(--primary-container); color: var(--on-primary-container); }
+      .reader-card .icon-tile { width: 40px; height: 40px; }
+      .reader-card[data-connected="true"] .icon-tile { background: transparent; }
+      .reader-title { font-size: 16px; line-height: 24px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .reader-sub { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; }
+      #conn { display: inline-block; }
+      .reader-body, .reader-status { font-size: 12px; line-height: 16px; color: var(--on-surface-variant); }
+      .reader-card[data-connected="true"] .reader-status { color: inherit; }
+      .reader-status:empty { display: none; }
+      .reader-actions { display: flex; align-items: center; gap: 4px; }
+      .reader-card[data-connected="true"] .btn-icon { color: inherit; }
+      .reader-connect { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+      .reader-connect .btn { flex: 1 1 12rem; }
+      .reader-card[data-connected="true"] :is(.reader-cta, .reader-body, .reader-connect) { display: none; }
+      .reader-card[data-connected="false"] :is(#reader-name, .reader-sub, .reader-actions) { display: none; }
+      .reader-card .glyph-nfc { display: none; }
+      .reader-card[data-reader="web-nfc"] .glyph-nfc { display: block; }
+      .reader-card[data-reader="web-nfc"] .glyph-bt { display: none; }
+      .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--outline); }
+      .reader-card[data-connected="true"] .status-dot { background: var(--success); }
+
+      /* ---------- navigation ----------
+         Bottom bar on phones; at >= 840px the same markup becomes a tab row above
+         the panels. #tabs must stay a <div> with <span>s inside (markup-ids test). */
+      .nav {
+        position: fixed; z-index: 10; left: 0; right: 0; bottom: 0;
+        height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+        display: flex; justify-content: center; align-items: flex-start;
+        padding: 12px 8px env(safe-area-inset-bottom); background: var(--surface-container);
+      }
+      .nav-btn {
+        flex: 1 1 0; max-width: 7rem; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+        padding: 0 2px; border: none; background: none; cursor: pointer; color: var(--on-surface-variant);
+      }
+      .nav-ind { width: 64px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; }
+      .nav-label { max-width: 100%; font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .nav-btn[aria-selected="true"] { color: var(--on-surface); }
+      .nav-btn[aria-selected="true"] .nav-ind { background: var(--secondary-container); color: var(--on-secondary-container); }
+      .nav-btn[aria-selected="true"] .nav-label { font-weight: 700; }
+      @media (min-width: 840px) {
+        :root { --nav-h: 0px; }
+        .nav {
+          position: static; height: auto; padding: 0; margin: 8px 0 0; background: none;
+          border-bottom: 1px solid var(--outline-variant);
+        }
+        .nav-btn { flex-direction: row; justify-content: center; gap: 8px; max-width: none; padding: 12px 8px; border-bottom: 3px solid transparent; }
+        .nav-ind { width: auto; height: auto; background: none !important; }
+        .nav-btn[aria-selected="true"] { color: var(--primary); border-bottom-color: var(--primary); }
+      }
+
+      /* ---------- layout ---------- */
+      main { max-width: 36rem; margin: 0 auto; padding: 8px 16px calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px); }
+      section[role="tabpanel"] { padding-top: 8px; }
+      .section-label {
+        display: block; margin: 24px 4px 8px;
+        font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.08em;
+        text-transform: uppercase; color: var(--on-surface-variant);
+      }
+
+      /* ---------- cards & rows ---------- */
+      .card { background: var(--surface-container-low); border-radius: 16px; box-shadow: var(--elev-1); overflow: hidden; }
+      .card:has(> :is(#files, #archives):empty) { display: none; }
+      .row {
+        display: flex; align-items: center; gap: 16px; min-height: 64px;
+        padding: 12px 16px; border-bottom: 1px solid var(--outline-variant);
+      }
+      .row:last-child { border-bottom: none; }
+      .row-stack { flex-direction: column; align-items: stretch; gap: 0; }
+      .icon-tile {
+        width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--primary-container); color: var(--on-primary-container);
+      }
+      .row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .row-name { font-size: 16px; line-height: 24px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .row-sub { font-size: 12px; line-height: 16px; color: var(--on-surface-variant); }
+      .row-control { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+      .row[data-encrypted="true"] .row-name::after {
+        content: ""; display: inline-block; width: 16px; height: 16px; margin-left: 6px; vertical-align: -2px;
+        background: currentColor; -webkit-mask: var(--icon-lock) center / 16px no-repeat; mask: var(--icon-lock) center / 16px no-repeat;
+      }
+      .row[data-complete="true"] .row-status { color: var(--success); }
+      .dots { display: inline-flex; gap: 3px; margin-right: 6px; vertical-align: middle; }
+      .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--outline-variant); }
+      .dot.on { background: var(--primary); }
+
+      /* ---------- fields ---------- */
+      .field { display: flex; flex-direction: column; gap: 6px; }
+      .field-label, .field-help { font-size: 12px; line-height: 16px; color: var(--on-surface-variant); }
+      .field :is(input[type="text"], input[type="password"], textarea, select), select.compact {
+        width: 100%; min-height: 48px; padding: 12px 14px;
+        background: var(--surface-container-high); color: var(--on-surface);
+        border: 1px solid var(--outline); border-radius: 12px; outline: none;
+        font-size: 16px; line-height: 24px; transition: border-color 0.15s, box-shadow 0.15s;
+      }
+      .field :is(input, textarea, select):focus, select.compact:focus { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+      .field textarea { min-height: 96px; resize: vertical; }
+      select.compact { width: auto; min-height: 40px; padding: 8px 12px; font-size: 14px; line-height: 20px; }
+      .with-icon { position: relative; display: block; }
+      .with-icon > .ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--on-surface-variant); pointer-events: none; }
+      .with-icon > input { padding-left: 46px !important; }
 
       /* Switch: wraps a real checkbox, so focus, form semantics and
          screen-reader behaviour come for free. */
-      .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+      .switch { position: relative; display: inline-block; width: 52px; height: 32px; flex-shrink: 0; }
       .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
       .switch-track {
-        position: absolute; inset: 0; cursor: pointer;
-        background: var(--border); border-radius: 24px; transition: background 0.2s;
+        position: absolute; inset: 0; cursor: pointer; border-radius: 16px;
+        background: var(--surface-container-high); border: 2px solid var(--outline);
+        transition: background-color 0.2s, border-color 0.2s;
       }
       .switch-track::before {
-        content: ""; position: absolute; height: 18px; width: 18px;
-        left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
-        transition: transform 0.2s;
+        content: ""; position: absolute; width: 16px; height: 16px; left: 6px; top: 6px; border-radius: 50%;
+        background: var(--outline); transition: transform 0.2s, width 0.2s, height 0.2s, left 0.2s, top 0.2s;
       }
-      .switch input:checked + .switch-track { background: var(--primary); }
-      .switch input:checked + .switch-track::before { transform: translateX(20px); }
+      .switch input:checked + .switch-track { background: var(--primary); border-color: var(--primary); }
+      .switch input:checked + .switch-track::before { width: 24px; height: 24px; left: 2px; top: 2px; transform: translateX(20px); background: var(--on-primary); }
       .switch input:focus-visible + .switch-track { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-      /* Segmented control — also the tab strip. Scrolls rather than
-         overflowing: five labels in RU/KA do not fit a 360px viewport. */
-      .seg {
-        display: flex; gap: 2px; background: var(--bg);
-        border-radius: 10px; padding: 3px;
-        overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+      /* M3 segmented button (File | Text). */
+      .seg-button { display: flex; margin-top: 16px; min-height: 40px; border: 1px solid var(--outline); border-radius: 20px; overflow: hidden; }
+      .seg-button button {
+        flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 0 12px; border: none; background: none; color: var(--on-surface); font-size: 14px; font-weight: 500; cursor: pointer;
       }
-      .seg::-webkit-scrollbar { display: none; }
-      .seg-btn {
-        flex: 1 0 auto; padding: 7px 14px; border: none; background: transparent;
-        border-radius: 8px; white-space: nowrap;
-        font-size: 12px; font-weight: 600; color: var(--text-secondary);
-        cursor: pointer; transition: background 0.15s, color 0.15s;
-      }
-      .seg-btn[aria-selected="true"] {
-        background: var(--surface); color: var(--primary);
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      .seg-button button + button { border-left: 1px solid var(--outline); }
+      .seg-button button[aria-pressed="true"] { background: var(--secondary-container); color: var(--on-secondary-container); }
+      .seg-button button[aria-pressed="true"]::before {
+        content: ""; width: 18px; height: 18px; flex-shrink: 0; background: currentColor;
+        -webkit-mask: var(--icon-check) center / 18px no-repeat; mask: var(--icon-check) center / 18px no-repeat;
       }
 
-      .status-pill {
-        display: flex; align-items: center; gap: 12px;
-        background: var(--primary-light); color: var(--on-primary-light);
-        border-radius: 50px; padding: 11px 18px;
-        font-size: 13px; font-weight: 500;
-      }
-      .status-dot {
-        width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
-        background: var(--text-secondary);
-      }
-      .status-pill[data-connected="true"] .status-dot { background: var(--success); }
+      /* ---------- archive: source & estimate ---------- */
+      .file-pick { display: block; margin-top: 12px; cursor: pointer; }
+      .file-pick:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
+      .file-empty { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 28px 16px; text-align: center; }
+      .file-empty .ico { width: 40px; height: 40px; margin-bottom: 8px; color: var(--primary); }
+      .file-chosen { border-bottom: none; }
+      .file-chosen .ok { color: var(--success); }
+      .file-change { display: block; padding: 0 16px 14px; text-align: center; font-size: 14px; font-weight: 500; color: var(--primary); }
+      .file-pick:not([data-has-file]) :is(.file-chosen, .file-change) { display: none; }
+      .file-pick[data-has-file] .file-empty { display: none; }
+      .text-source { margin-top: 12px; padding: 16px; }
+      .estimate { margin: 0 16px 16px; padding: 12px 16px; border-radius: 12px; background: var(--primary-container); color: var(--on-primary-container); }
+      .estimate:empty { display: none; }
+      .estimate-title { font-size: 16px; line-height: 24px; font-weight: 500; }
+      .estimate-sub { font-size: 12px; line-height: 16px; }
 
+      /* The backing is OPAQUE on purpose: a disabled filled button is a
+         12%-alpha fill by M3 spec, so a translucent bar scrolling over the form
+         shows the content through the button (Superdesign draft 8 defect). */
+      .sticky-action {
+        position: sticky; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); z-index: 5;
+        margin: 16px -16px 0; padding: 12px 16px; background: var(--surface);
+      }
+      .action-hint { margin: 8px 4px 0; font-size: 12px; line-height: 16px; text-align: center; color: var(--on-surface-variant); }
+      .action-hint:empty { display: none; }
+      .status { margin: 8px 4px 0; font-size: 13px; line-height: 18px; text-align: center; color: var(--on-surface-variant); white-space: pre-wrap; }
+      .status:empty { display: none; }
+      .status[data-tone="error"] { padding: 10px 12px; border-radius: 12px; text-align: left; background: var(--error-container); color: var(--on-error-container); }
+
+      /* ---------- buttons ---------- */
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        border: none; cursor: pointer; font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.1px;
+        transition: background-color 0.15s, box-shadow 0.15s, filter 0.15s; -webkit-tap-highlight-color: transparent;
+      }
+      .btn:disabled { cursor: default; }
       .btn-primary {
-        display: block; width: 100%; padding: 17px;
-        border: none; border-radius: var(--radius);
-        background: var(--primary); color: var(--on-primary);
-        font-size: 16px; font-weight: 600; cursor: pointer;
-        box-shadow: var(--shadow-md); transition: opacity 0.15s, transform 0.1s;
+        display: flex; width: 100%; min-height: 56px; padding: 0 24px; border-radius: 16px;
+        background: var(--primary); color: var(--on-primary); font-size: 16px; box-shadow: var(--elev-1);
       }
-      .btn-primary:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-      .btn-primary:disabled { opacity: 0.45; cursor: default; box-shadow: none; transform: none; }
-      .btn-tonal {
-        padding: 8px 16px; border: none; border-radius: var(--radius-sm);
-        background: var(--primary-light); color: var(--on-primary-light);
-        font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+      .btn-primary:hover:not(:disabled), .btn-filled:hover:not(:disabled) { filter: brightness(1.08); }
+      .btn-outlined {
+        display: flex; width: 100%; min-height: 56px; padding: 0 24px; border-radius: 16px;
+        border: 1px solid var(--outline); background: transparent; color: var(--primary); font-size: 16px;
       }
-      .btn-tonal:hover:not(:disabled) { opacity: 0.85; }
-      .btn-tonal:disabled { opacity: 0.45; cursor: default; }
-      .btn-text {
-        padding: 6px 10px; border: none; background: none; border-radius: 8px;
-        color: var(--text-secondary); font-size: 13px; font-weight: 600;
-        cursor: pointer; transition: color 0.15s;
+      .btn-filled { min-height: 40px; padding: 0 20px; border-radius: 20px; background: var(--primary); color: var(--on-primary); }
+      .btn-outlined-sm { min-height: 40px; padding: 0 20px; border-radius: 20px; border: 1px solid var(--outline); background: transparent; color: var(--primary); }
+      .btn-tonal { min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--secondary-container); color: var(--on-secondary-container); }
+      .btn-tonal-wide { display: flex; width: 100%; min-height: 48px; border-radius: 24px; background: var(--secondary-container); color: var(--on-secondary-container); }
+      .btn-text { min-height: 40px; padding: 0 12px; border-radius: 20px; background: none; color: var(--primary); }
+      .btn-text-wide { display: flex; width: 100%; min-height: 48px; border-radius: 24px; background: none; color: var(--primary); }
+      .btn-danger { color: var(--error); }
+      .btn-tonal:hover:not(:disabled), .btn-tonal-wide:hover:not(:disabled) { filter: brightness(0.96); }
+      :is(.btn-outlined, .btn-outlined-sm, .btn-text, .btn-text-wide):hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 8%, transparent); }
+      .btn:disabled, .btn-icon:disabled { color: color-mix(in srgb, var(--on-surface) 38%, transparent); box-shadow: none; filter: none; }
+      :is(.btn-primary, .btn-filled, .btn-tonal, .btn-tonal-wide):disabled { background: color-mix(in srgb, var(--on-surface) 12%, transparent); }
+      :is(.btn-outlined, .btn-outlined-sm):disabled { border-color: color-mix(in srgb, var(--on-surface) 12%, transparent); }
+      .btn .ico { width: 20px; height: 20px; }
+      /* Icon buttons with a real text label: font-size 0 hides the text but
+         keeps it as the accessible name; the glyph is a mask on ::before. */
+      .btn-icon {
+        position: relative; flex-shrink: 0; width: 48px; height: 48px; padding: 0;
+        border: none; border-radius: 24px; background: none; color: var(--on-surface-variant);
+        cursor: pointer; font-size: 0; overflow: hidden;
       }
-      .btn-text:hover:not(:disabled) { color: var(--text); }
-      .btn-text:disabled { opacity: 0.45; cursor: default; }
+      .btn-icon::before {
+        content: ""; position: absolute; inset: 12px; background: currentColor;
+        -webkit-mask: var(--icon) center / 24px no-repeat; mask: var(--icon) center / 24px no-repeat;
+      }
+      .btn-icon:hover:not(:disabled) { background: color-mix(in srgb, var(--on-surface) 8%, transparent); }
+      .btn-icon.tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
+      .icon-download { --icon: var(--icon-download); }
+      .icon-trash { --icon: var(--icon-trash); }
+      .icon-link-off { --icon: var(--icon-link-off); }
+      .icon-close { --icon: var(--icon-close); }
 
-      .status {
-        padding: 12px 16px; margin-top: 0.75rem;
-        background: var(--surface); border-radius: var(--radius-sm);
-        box-shadow: var(--shadow); font-size: 13px; color: var(--text-secondary);
-        min-height: 1.4rem; white-space: pre-wrap;
+      /* ---------- stage (archive writing / restore scanning) ---------- */
+      #panel-archive:not([data-state]) #archive-stage { display: none; }
+      #panel-archive[data-state] :is(.archive-form, .sticky-action) { display: none; }
+      #panel-restore:not([data-scanning]) #restore-stage { display: none; }
+      #panel-restore[data-scanning] .restore-idle { display: none; }
+      #archives-section:has(#archives:empty) { display: none; }
+      .stage { padding-top: 16px; }
+      .stage > .btn { margin-top: 8px; }
+      .slots { display: flex; justify-content: center; gap: 12px; margin: 8px 0 20px; }
+      .slots[data-dense] { gap: 6px; }
+      .slot {
+        flex: 0 1 84px; min-width: 0; height: 112px; padding: 6px 4px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+        border: 2px dashed var(--outline); border-radius: 12px; color: var(--on-surface-variant); text-align: center;
+      }
+      .slots[data-dense] .slot { height: 64px; }
+      .slots[data-dense] :is(.slot-name, .slot-state) { display: none; }
+      .slot[data-state="written"] { border: 2px solid var(--primary); background: var(--primary); color: var(--on-primary); }
+      .slot[data-state="current"] {
+        border: 2px solid var(--primary); background: var(--primary-container); color: var(--on-primary-container);
+        animation: slot-pulse 1.6s ease-in-out infinite;
+      }
+      .slot[data-state="warning"] { border: 2px solid var(--error); background: var(--error-container); color: var(--on-error-container); }
+      .slot-glyph { display: flex; }
+      .slot-glyph .ico { width: 28px; height: 28px; }
+      .slot-name { font-size: 12px; line-height: 16px; font-weight: 500; }
+      .slot-state { max-width: 100%; font-size: 11px; line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .slot-counter { font-size: 32px; line-height: 40px; color: var(--primary); text-align: center; }
+      @keyframes slot-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 18%, transparent); } }
+      .stage-headline { margin: 0 0 16px; font-size: 22px; line-height: 28px; font-weight: 400; text-align: center; }
+      .stage-progress { margin-bottom: 16px; }
+      .progress-meta { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; line-height: 16px; color: var(--on-surface-variant); }
+      /* Kept as a native <progress>: indeterminate state is expressed by removing
+         the value attribute, which a div cannot. */
+      progress { display: block; width: 100%; height: 4px; border: none; border-radius: 2px; background: var(--secondary-container); -webkit-appearance: none; appearance: none; }
+      progress::-webkit-progress-bar { background: var(--secondary-container); border-radius: 2px; }
+      progress::-webkit-progress-value { background: var(--primary); border-radius: 2px; transition: width 0.2s; }
+      progress::-moz-progress-bar { background: var(--primary); border-radius: 2px; }
+      .summary { margin-bottom: 8px; }
+      .pulse { position: relative; width: 120px; height: 120px; margin: 8px auto 16px; display: flex; align-items: center; justify-content: center; }
+      .pulse::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--primary); opacity: 0; animation: ring 2s ease-out infinite; }
+      .pulse-core { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--primary-container); color: var(--on-primary-container); }
+      .pulse-core .ico { width: 36px; height: 36px; }
+      @keyframes ring { from { transform: scale(0.7); opacity: 0.8; } to { transform: scale(1.1); opacity: 0; } }
+      .restore-idle { margin-top: 16px; }
+      @media (prefers-reduced-motion: reduce) {
+        .slot, .pulse::before { animation: none !important; }
+        progress::-webkit-progress-value { transition: none; }
       }
 
-      /* Kept as a native <progress>: archive-panel.ts drives indeterminate
-         state by removing the value attribute, which a div cannot express. */
-      progress { width: 100%; height: 6px; border: none; background: var(--border); border-radius: 3px; }
-      progress::-webkit-progress-bar { background: var(--border); border-radius: 3px; }
-      progress::-webkit-progress-value { background: var(--primary); border-radius: 3px; }
-      progress::-moz-progress-bar { background: var(--primary); border-radius: 3px; }
-      .progress-label { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
-      .cardcount { font-size: 13px; color: var(--text-secondary); text-align: right; padding: 12px 18px; }
-      .sprite { display: none; }
-
-      /* ---------- shell ---------- */
-      header {
-        display: flex; align-items: center; gap: 0.6rem;
-        max-width: 36rem; margin: 0 auto; padding: 22px 1rem 10px;
-      }
-      header h1 { flex: 1; font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
-      header .brand { width: 26px; height: 26px; fill: var(--primary); flex-shrink: 0; }
-      #lang, #theme-toggle {
-        height: 30px; border-radius: 15px;
-        border: 1.5px solid var(--border); background: var(--surface);
-        color: var(--text-secondary); cursor: pointer; padding: 0 0.6rem;
-        font-size: 13px; transition: background 0.15s, color 0.15s;
-      }
-      #lang:hover, #theme-toggle:hover { background: var(--primary-light); color: var(--primary); }
-      #device-bar { max-width: 36rem; margin: 0 auto; padding: 0 1rem; }
-      #device-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
-      #device-status {
-        margin: 0.6rem 0 0; white-space: pre-wrap;
-        font: 13px/1.4 ui-monospace, monospace; color: var(--text-secondary);
-      }
-
-      /* ---------- log / about ---------- */
+      /* ---------- files / log / about ---------- */
+      .empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px 16px; text-align: center; color: var(--on-surface-variant); }
+      .empty-state .ico { width: 40px; height: 40px; }
+      .empty-state p { margin: 0; }
+      .files-footer { display: flex; align-items: center; gap: 8px; margin: 8px 4px 0; }
+      #files-info { flex: 1; font-size: 13px; color: var(--on-surface-variant); }
+      .log-actions { justify-content: flex-end; gap: 4px; min-height: 56px; }
       #log {
-        margin-top: 0.75rem; padding: 12px 14px;
-        background: var(--surface); border-radius: var(--radius-sm);
-        box-shadow: var(--shadow); font: 12px/1.45 ui-monospace, monospace;
-        max-height: 60vh; overflow: auto; white-space: pre-wrap;
+        margin-top: 16px; padding: 12px; border-radius: 12px; background: var(--surface-container-high);
+        font: 12px/1.5 ui-monospace, "Roboto Mono", monospace; max-height: 60vh; overflow: auto; white-space: pre-wrap;
       }
-      #about-content { padding-top: 0.5rem; }
-      .about-card { padding: 14px 18px; }
-      .about-card p { margin: 0 0 0.6rem; color: var(--text-secondary); font-size: 13px; }
+      #log [data-level="debug"] { color: var(--on-surface-variant); }
+      #log [data-level="warn"] { color: var(--warning); }
+      #log [data-level="error"] { color: var(--error); }
+      .about-head { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 8px 8px; text-align: center; }
+      .about-logo { width: 64px; height: 64px; border-radius: 16px; }
+      .about-logo .brand-ico { width: 36px; height: 36px; }
+      .about-head h2 { font-size: 22px; line-height: 28px; font-weight: 400; }
+      .about-head p { margin: 0; font-size: 13px; line-height: 18px; color: var(--on-surface-variant); }
+      .about-card { padding: 16px; }
+      .about-card p { margin: 0 0 8px; font-size: 14px; line-height: 20px; }
       .about-card p:last-child { margin-bottom: 0; }
 
       /* ---------- dialogs ---------- */
       dialog {
-        border: none; border-radius: var(--radius);
-        background: var(--surface); color: var(--text);
-        box-shadow: var(--shadow-md); padding: 1.25rem;
-        max-width: 22rem; width: calc(100% - 2rem);
+        border: none; border-radius: 28px; padding: 24px; width: calc(100% - 48px); max-width: 22rem;
+        background: var(--surface-container-high); color: var(--on-surface); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
       }
-      dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
+      dialog::backdrop { background: var(--scrim); }
       dialog p { margin: 0; }
-      .dialog-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-      /* The dialog MUST NOT be the scroll container. A rounded box cannot clip
-         its own scrollbar — Chromium paints the gutter outside the border-radius
-         clip — so a scrolling dialog goes square down its right edge as soon as
-         the dump is tall enough. The dialog stays overflow:hidden (its radius
-         then clips everything inside) and .inspect-body scrolls instead.
-         overflow-x also stays hidden there: the hex dump grows wider as pages
-         are read, and each <pre> scrolls internally, which is what keeps the
-         dump readable. */
-      /* NEVER set `display` on a dialog here. Author CSS beats the UA sheet
-         whatever the specificity, so a `display:` on `dialog.inspect` also
-         overrides the UA's `dialog:not([open]) { display: none }` — the closed
-         dialog then renders permanently in the page as a ghost copy, and Close
-         appears dead because it shuts a modal that a twin is still standing in
-         for. The height cap therefore lives on .inspect-body, not on a flex
-         parent: the dialog is fit-content around it either way. */
-      dialog.inspect { max-width: min(96vw, 62rem); overflow: hidden; padding: 0; }
-      .inspect-body { max-height: 88vh; overflow-y: auto; overflow-x: hidden; padding: 1.25rem; }
-      .inspect-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
-      .inspect-actions { margin-left: auto; display: flex; gap: 0.4rem; }
-      dialog.inspect pre {
-        max-width: 100%; overflow-x: auto; margin: 0.2rem 0 0.8rem;
-        font: 12px/1.35 ui-monospace, monospace;
+      .dialog-title { margin: 0 0 12px; font-size: 24px; line-height: 32px; font-weight: 400; }
+      .dialog-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
+      /* The dialog MUST NOT be the scroll container: a rounded box cannot clip
+         its own scrollbar (Chromium paints the gutter outside the radius clip).
+         The dialog stays overflow:hidden and .inspect-body scrolls.
+         NEVER set `display` on a dialog here: author CSS beats the UA's
+         `dialog:not([open]) { display: none }`, and the closed dialog then
+         renders permanently as a ghost (PR #61). Both are enforced by
+         test/markup-ids.test.ts. */
+      dialog.inspect { width: calc(100% - 32px); max-width: min(96vw, 62rem); overflow: hidden; padding: 0; }
+      .inspect-body { max-height: 88vh; overflow-y: auto; overflow-x: hidden; padding: 0 16px 16px; }
+      .inspect-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 4px; padding: 8px 0; background: var(--surface-container-high); }
+      .inspect-head strong { flex: 1; min-width: 0; font-size: 20px; line-height: 28px; font-weight: 400; }
+      .inspect-meta { margin: 0 0 4px; font-size: 13px; color: var(--on-surface-variant); }
+      .inspect-card { padding: 12px 16px; }
+      dialog.inspect pre { margin: 0; max-width: 100%; overflow-x: auto; white-space: pre; font: 12px/1.45 ui-monospace, "Roboto Mono", monospace; }
+      @media (max-width: 599px) {
+        dialog.inspect { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }
+        .inspect-body { max-height: 100dvh; }
       }
-      dialog.inspect h4 { margin: 0.6rem 0 0.1rem; font-size: 13px; }
     </style>
   </head>
   <body>
@@ -297,13 +460,28 @@
       <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></symbol>
       <symbol id="i-folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
       <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15l3-3 3 3"/></symbol>
+      <symbol id="i-nfc" viewBox="0 0 24 24"><path d="M6.5 8.5a5 5 0 0 1 0 7"/><path d="M10 6a9 9 0 0 1 0 12"/><path d="M13.5 3.5a13 13 0 0 1 0 17"/></symbol>
+      <symbol id="i-bluetooth" viewBox="0 0 24 24"><path d="M7 7l10 10-5 5V2l5 5L7 17"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+      <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 16.5v.5"/></symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-restore" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5v.5"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/></symbol>
+      <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></symbol>
+      <symbol id="i-brand" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-1 14H5V6h14v12zM7.5 9.5A1.5 1.5 0 0 1 9 8h6a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 15 16H9a1.5 1.5 0 0 1-1.5-1.5v-5zM9 9.5v5h6v-5H9z"/></symbol>
     </svg>
 
-    <header>
-      <svg class="brand" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-1 14H5V6h14v12zM7.5 9.5A1.5 1.5 0 0 1 9 8h6a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 15 16H9a1.5 1.5 0 0 1-1.5-1.5v-5zM9 9.5v5h6v-5H9z"/></svg>
+    <header class="app-bar">
+      <label class="lang-picker">
+        <svg class="ico" aria-hidden="true"><use href="#i-globe"/></svg>
+        <select id="lang" data-i18n-title="language" title="Language"></select>
+      </label>
       <h1>NFC Archiver</h1>
-      <select id="lang" data-i18n-title="language" title="Language"></select>
-      <button id="theme-toggle" data-i18n-title="themeToggle" title="Toggle light/dark">◑</button>
+      <button id="theme-toggle" class="icon-btn" type="button" data-i18n-title="themeToggle" title="Toggle light/dark"><svg class="ico" aria-hidden="true"><use href="#i-theme"/></svg></button>
     </header>
 
     <div id="device-bar">
@@ -324,12 +502,12 @@
     </div>
 
     <main>
-      <div id="tabs" class="seg" role="tablist">
-        <button class="seg-btn" role="tab" data-tab="archive" aria-selected="true" data-i18n="tabArchive">Archive</button>
-        <button class="seg-btn" role="tab" data-tab="restore" aria-selected="false" data-i18n="tabRestore">Restore</button>
-        <button class="seg-btn" role="tab" data-tab="files" aria-selected="false" data-i18n="tabFiles">Files</button>
-        <button class="seg-btn" role="tab" data-tab="log" aria-selected="false" data-i18n="tabLog">Log</button>
-        <button class="seg-btn" role="tab" data-tab="about" aria-selected="false" data-i18n="tabAbout">About</button>
+      <div id="tabs" class="nav" role="tablist">
+        <button class="nav-btn" role="tab" data-tab="archive" aria-selected="true"><span class="nav-ind"><svg class="ico" aria-hidden="true"><use href="#i-archive"/></svg></span><span class="nav-label" data-i18n="tabArchive">Archive</span></button>
+        <button class="nav-btn" role="tab" data-tab="restore" aria-selected="false"><span class="nav-ind"><svg class="ico" aria-hidden="true"><use href="#i-restore"/></svg></span><span class="nav-label" data-i18n="tabRestore">Restore</span></button>
+        <button class="nav-btn" role="tab" data-tab="files" aria-selected="false"><span class="nav-ind"><svg class="ico" aria-hidden="true"><use href="#i-folder"/></svg></span><span class="nav-label" data-i18n="tabFiles">Files</span></button>
+        <button class="nav-btn" role="tab" data-tab="log" aria-selected="false"><span class="nav-ind"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg></span><span class="nav-label" data-i18n="tabLog">Log</span></button>
+        <button class="nav-btn" role="tab" data-tab="about" aria-selected="false"><span class="nav-ind"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg></span><span class="nav-label" data-i18n="tabAbout">About</span></button>
       </div>
 
       <section id="panel-archive" role="tabpanel">

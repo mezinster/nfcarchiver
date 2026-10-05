@@ -119,3 +119,36 @@ test('every icon referenced by <use> is defined in the sprite', () => {
   const undefinedIcons = [...referenced].filter((id) => !defined.has(id)).sort();
   assert.deepEqual(undefinedIcons, [], `<use> references undefined symbol(s): ${undefinedIcons.join(', ')}`);
 });
+
+function stylesheet(): string {
+  const style = /<style>([\s\S]*?)<\/style>/.exec(html);
+  assert.ok(style, 'no <style> block in index.html');
+  return style[1]!;
+}
+
+test('every CSS custom property the stylesheet uses is defined', () => {
+  const css = stylesheet();
+  const defined = new Set([...css.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]!));
+  const used = new Set([...css.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]!));
+  const missing = [...used].filter((v) => !defined.has(v)).sort();
+  assert.deepEqual(missing, [], `used but never defined: ${missing.join(', ')}`);
+});
+
+test('the manual dark theme redefines every token the manual light theme defines', () => {
+  const css = stylesheet();
+  const names = (sel: string): string[] => {
+    const m = new RegExp(`:root\\[data-theme="${sel}"\\]\\s*\\{([^}]*)\\}`).exec(css);
+    assert.ok(m, `no :root[data-theme="${sel}"] block`);
+    return [...m[1]!.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((x) => x[1]!).sort();
+  };
+  assert.deepEqual(names('dark'), names('light'));
+});
+
+test('nav labels never wrap under their icon', () => {
+  // RU/KA tab labels are ~40% longer than English; at 360px a wrapped label
+  // pushes the bar's height past --nav-h and the sticky Archive bar under it.
+  const rule = /\.nav-label\s*\{([^}]*)\}/.exec(stylesheet());
+  assert.ok(rule, 'no .nav-label rule');
+  assert.match(rule[1]!, /white-space:\s*nowrap/);
+  assert.match(rule[1]!, /text-overflow:\s*ellipsis/);
+});
