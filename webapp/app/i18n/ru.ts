@@ -36,11 +36,11 @@ export const ru: Messages = {
   autoDetectNeedsChameleon: 'Выберите тип метки: NFC телефона не может определить ёмкость карты.',
 
   // — tabs —
-  tabArchive: 'Архивировать',
-  tabRestore: 'Восстановить',
+  tabArchive: 'Запись',
+  tabRestore: 'Чтение',
   tabFiles: 'Файлы',
   tabLog: 'Журнал',
-  tabAbout: 'О программе',
+  tabAbout: 'Сведения',
 
   // — archive tab —
   sourceFile: 'Файл',

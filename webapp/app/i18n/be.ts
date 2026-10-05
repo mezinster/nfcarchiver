@@ -36,11 +36,11 @@ export const be: Messages = {
   autoDetectNeedsChameleon: 'Абярыце тып меткі: NFC тэлефона не можа вызначыць ёмістасць карты.',
 
   // — tabs —
-  tabArchive: 'Архіваваць',
-  tabRestore: 'Аднавіць',
+  tabArchive: 'Запіс',
+  tabRestore: 'Чытанне',
   tabFiles: 'Файлы',
   tabLog: 'Журнал',
-  tabAbout: 'Пра праграму',
+  tabAbout: 'Даведка',
 
   // — archive tab —
   sourceFile: 'Файл',
