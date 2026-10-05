@@ -322,8 +322,11 @@ test('re-tapping an already-written card says so instead of silently skipping', 
   // ensureMinInterval. Unpaced, a card left on the reader is an unthrottled
   // poll that renders no change and logs nothing — indistinguishable from a
   // hang, and the exact shape loop-guards.ts exists to prevent. Two skips must
-  // therefore cost at least two intervals.
-  assert.ok(elapsed >= 500, `two skips must be paced at 250 ms each; took ${elapsed} ms`);
+  // therefore cost at least two intervals. The bound allows a few ms of slack:
+  // Node schedules setTimeout on a monotonic clock, so measured with Date.now()
+  // a 250 ms wait can read as 249 ms (two waits read 499 ms on a CI runner).
+  // An unpaced loop measures ~0 ms, so the slack cannot hide the bug.
+  assert.ok(elapsed >= 2 * 250 - 10, `two skips must be paced at 250 ms each; took ${elapsed} ms`);
 });
 
 test('each card is logged at every boundary so a stall can be located', async () => {
