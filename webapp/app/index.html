@@ -521,81 +521,76 @@
       </div>
 
       <section id="panel-archive" role="tabpanel">
-        <span class="section-label" data-i18n="sectionSource">Source</span>
-        <div class="card">
-          <div class="row row-flush">
-            <span class="icon-tile"><svg class="ico"><use href="#i-file"/></svg></span>
-            <div class="row-text">
-              <div class="row-name" data-i18n="sourceFile">File</div>
-              <div class="row-sub" data-i18n="subChooseFile">Any file, split across cards</div>
-            </div>
-            <div class="row-control"><input type="file" id="file" /></div>
+        <div class="archive-form">
+          <div class="seg-button" role="group" data-i18n-title="sectionSource" title="Source">
+            <button id="source-file-btn" type="button" aria-pressed="true"><span data-i18n="sourceFile">File</span></button>
+            <button id="source-text-btn" type="button" aria-pressed="false"><span data-i18n="sourceText">Text</span></button>
           </div>
-          <!-- The two sources are alternatives, not a sequence: an "or" rule
-               reading between them says so far better than a plain divider. -->
-          <div class="or-divider"><span data-i18n="orSeparator">or</span></div>
-          <div class="row row-col">
-            <div class="row-col-head">
-              <span class="icon-tile"><svg class="ico"><use href="#i-pencil"/></svg></span>
-              <div class="row-text">
-                <div class="row-name" data-i18n="sourceText">Text</div>
-                <div class="row-sub" data-i18n="subTypeText">Saved as text_note.txt</div>
-              </div>
-            </div>
-            <textarea id="text" rows="3" data-i18n-placeholder="textPlaceholder" placeholder="Type text to archive as text_note.txt"></textarea>
-          </div>
-        </div>
 
-        <span class="section-label" data-i18n="sectionSettings">Settings</span>
-        <div class="card">
-          <div class="row">
-            <span class="icon-tile"><svg class="ico"><use href="#i-card"/></svg></span>
-            <div class="row-text">
-              <div class="row-name" data-i18n="targetTag">target tag</div>
-              <div class="row-sub" data-i18n="subTargetTag">Card type and capacity</div>
-            </div>
-            <div class="row-control">
-              <select id="target-tag">
-                <option value="auto" selected data-i18n="targetAuto">Auto-detect (adapts to the card)</option>
-                <option value="720">Mifare Classic 1K — 752 B</option>
-                <option value="NTAG213">NTAG213 — 144 B</option>
-                <option value="NTAG215">NTAG215 — 504 B</option>
-                <option value="NTAG216">NTAG216 — 888 B</option>
-              </select>
-            </div>
+          <label id="file-pick" class="card file-pick">
+            <input type="file" id="file" class="sr-only" />
+            <span class="file-empty">
+              <svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg>
+              <span class="row-name" data-i18n="sourceChooseFile">Tap to choose a file</span>
+              <span class="row-sub" data-i18n="subChooseFile">Any file, split across cards</span>
+            </span>
+            <span class="row file-chosen">
+              <span class="icon-tile"><svg class="ico" aria-hidden="true"><use href="#i-file"/></svg></span>
+              <span class="row-text"><span id="file-name" class="row-name"></span><span id="file-size" class="row-sub"></span></span>
+              <svg class="ico ok" aria-hidden="true"><use href="#i-check-circle"/></svg>
+            </span>
+            <span class="file-change" data-i18n="sourceTapToChange">Tap to change</span>
+          </label>
+
+          <div id="text-source" class="card text-source" hidden>
+            <label class="field">
+              <textarea id="text" rows="4" data-i18n-placeholder="textPlaceholder" placeholder="Type text to archive as text_note.txt"></textarea>
+              <span class="field-help" data-i18n="subTypeText">Saved as text_note.txt</span>
+            </label>
           </div>
-          <div class="row">
-            <span class="icon-tile"><svg class="ico"><use href="#i-archive"/></svg></span>
-            <div class="row-text">
-              <div class="row-name" data-i18n="compress">compress</div>
-              <div class="row-sub" data-i18n="subCompress">GZIP before writing</div>
+
+          <span class="section-label" data-i18n="sectionSettings">Settings</span>
+          <div class="card">
+            <div class="row row-stack">
+              <label class="field">
+                <span class="field-label" data-i18n="tagTypeLabel">Tag type</span>
+                <select id="target-tag">
+                  <option value="auto" selected data-i18n="targetAuto">Auto-detect (adapts to the card)</option>
+                  <option value="720">Mifare Classic 1K — 752 B</option>
+                  <option value="NTAG213">NTAG213 — 144 B</option>
+                  <option value="NTAG215">NTAG215 — 504 B</option>
+                  <option value="NTAG216">NTAG216 — 888 B</option>
+                </select>
+              </label>
             </div>
-            <div class="row-control">
+            <div class="row">
+              <div class="row-text">
+                <div class="row-name" data-i18n="compress">compress</div>
+                <div class="row-sub" data-i18n="subCompress">GZIP before writing</div>
+              </div>
               <label class="switch"><input type="checkbox" id="compress" checked /><span class="switch-track"></span></label>
             </div>
-          </div>
-          <div class="row">
-            <span class="icon-tile"><svg class="ico"><use href="#i-lock"/></svg></span>
-            <div class="row-text">
-              <div class="row-name" data-i18n="password">password</div>
-              <div class="row-sub" data-i18n="subPassword">AES-256-GCM, optional</div>
+            <div class="row row-stack">
+              <label class="field">
+                <span class="field-label" data-i18n="passwordLabel">Password (optional)</span>
+                <span class="with-icon"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg><input type="password" id="apass" autocomplete="new-password" data-i18n-placeholder="subPassword" placeholder="AES-256-GCM, optional" /></span>
+              </label>
             </div>
-            <div class="row-control">
-              <input type="password" id="apass" data-i18n-placeholder="optionalPlaceholder" placeholder="(optional)" />
-            </div>
+            <div id="cardcount" class="estimate" aria-live="polite"></div>
           </div>
-          <div id="cardcount" class="cardcount"></div>
         </div>
 
-        <div style="margin-top:1.25rem">
-          <button id="archive" class="btn-primary" disabled data-i18n="archiveToCards">Archive to cards</button>
-        </div>
-
-        <div class="card" id="archive-progress-row" hidden style="margin-top:0.75rem;padding:16px 18px">
+        <!-- Replaced by #archive-stage in the next task; kept so writing still works. -->
+        <div class="card" id="archive-progress-row" hidden style="margin-top:12px;padding:16px">
           <progress id="archive-bar"></progress>
-          <span id="archive-progress-label" class="progress-label"></span>
+          <span id="archive-progress-label" class="row-sub"></span>
         </div>
-        <div class="status" id="archive-status" data-i18n="archiveIdle">Connect a Chameleon, then choose a file or type text.</div>
+
+        <div class="sticky-action">
+          <button id="archive" class="btn btn-primary" type="button" disabled><svg class="ico" aria-hidden="true"><use href="#i-nfc"/></svg><span data-i18n="archiveToCards">Archive to cards</span></button>
+          <p id="archive-hint" class="action-hint"></p>
+          <div class="status" id="archive-status" role="status" data-i18n="archiveIdle">Connect a Chameleon, then choose a file or type text.</div>
+        </div>
       </section>
 
       <section id="panel-restore" role="tabpanel" hidden>

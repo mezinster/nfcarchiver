@@ -152,3 +152,17 @@ test('nav labels never wrap under their icon', () => {
   assert.match(rule[1]!, /white-space:\s*nowrap/);
   assert.match(rule[1]!, /text-overflow:\s*ellipsis/);
 });
+
+test('the sticky action bar has an opaque backing', () => {
+  // A disabled filled button is a 12%-alpha fill; over a translucent bar the
+  // form shows through it (Superdesign draft 8). The backing must be --surface.
+  const css = /<style>([\s\S]*?)<\/style>/.exec(html)![1]!;
+  const rule = /\.sticky-action\s*\{([^}]*)\}/.exec(css);
+  assert.ok(rule, 'no .sticky-action rule');
+  assert.match(rule[1]!, /background:\s*var\(--surface\)/);
+});
+
+test('the file input stays inside its label card', () => {
+  assert.match(html, /<label id="file-pick"[^>]*>[\s\S]*?<input type="file" id="file"/,
+    '#file must be inside label#file-pick, or the whole card stops opening the picker');
+});
