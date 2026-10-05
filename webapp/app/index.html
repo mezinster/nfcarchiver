@@ -580,10 +580,21 @@
           </div>
         </div>
 
-        <!-- Replaced by #archive-stage in the next task; kept so writing still works. -->
-        <div class="card" id="archive-progress-row" hidden style="margin-top:12px;padding:16px">
-          <progress id="archive-bar"></progress>
-          <span id="archive-progress-label" class="row-sub"></span>
+        <div id="archive-stage" class="stage">
+          <div id="archive-slots" class="slots" aria-hidden="true"></div>
+          <h2 id="stage-headline" class="stage-headline" aria-live="polite"></h2>
+          <div id="archive-progress" class="stage-progress">
+            <div class="progress-meta"><span id="archive-progress-label"></span><span id="archive-progress-pct"></span></div>
+            <progress id="archive-bar"></progress>
+          </div>
+          <div class="card summary">
+            <div class="row">
+              <span class="icon-tile"><svg class="ico" aria-hidden="true"><use href="#i-file"/></svg></span>
+              <div class="row-text"><div id="summary-name" class="row-name"></div><div id="summary-meta" class="row-sub"></div></div>
+            </div>
+          </div>
+          <button id="archive-stop" class="btn btn-outlined" type="button"><svg class="ico" aria-hidden="true"><use href="#i-stop"/></svg><span data-i18n="stop">Stop</span></button>
+          <button id="archive-again" class="btn btn-primary" type="button" hidden></button>
         </div>
 
         <div class="sticky-action">
@@ -671,11 +682,12 @@
     </main>
 
     <dialog id="overwrite-dialog">
-      <p id="overwrite-message" data-i18n="errOverwriteRequired">This card already holds data.</p>
+      <h2 class="dialog-title" data-i18n="overwriteTitle">Card already holds data</h2>
+      <p id="overwrite-message" data-i18n="overwriteBody">Overwriting erases what is on it.</p>
       <form method="dialog" class="dialog-actions">
-        <button value="once" class="btn-primary" data-i18n="overwrite">Overwrite</button>
-        <button value="all" class="btn-primary" data-i18n="overwriteAll">Overwrite all remaining</button>
-        <button id="overwrite-skip" class="btn-tonal" value="skip" style="width:100%;padding:14px" data-i18n="skip">Skip</button>
+        <button value="once" class="btn btn-primary" data-i18n="overwrite">Overwrite</button>
+        <button value="all" class="btn btn-tonal-wide" data-i18n="overwriteAll">Overwrite all remaining</button>
+        <button id="overwrite-skip" class="btn btn-text-wide" value="skip" data-i18n="skip">Skip</button>
       </form>
     </dialog>
 

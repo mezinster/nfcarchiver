@@ -1,5 +1,6 @@
 /** Archive tab: file/text source, live card counter, write-and-verify with progress. */
-import { ArchiveOrchestrator, type ArchiveIO, type OverwriteChoice } from './archive-orchestrator.js';
+import { ArchiveOrchestrator, type ArchiveIO, type ArchiveOutcome, type OverwriteChoice } from './archive-orchestrator.js';
+import { renderSlots } from './stage-view.js';
 import type { Transport } from '../../src/transport/transport.js';
 import { estimateCardCount } from '../estimate.js';
 import { NtagType, ntagChunkPayloadSize, webNfcChunkPayload } from '../../src/nfc/type2.js';
@@ -63,22 +64,41 @@ export function initArchivePanel(): void {
     el.textContent = msg;
     if (tone === 'error') el.setAttribute('data-tone', 'error');
     else el.removeAttribute('data-tone');
+    $('stage-headline').textContent = msg;
   };
   const bar = $('archive-bar') as HTMLProgressElement;
-  const showProgress = (label: string, value: number | null, max: number) => {
-    $('archive-progress-row').hidden = false;
+  let slotsWritten = 0;
+  let slotsTotal = 0;
+  let slotWarning = false;
+  const drawSlots = (): void => {
+    renderSlots($('archive-slots'), slotsWritten, slotsTotal, { warning: slotWarning });
+  };
+  const showProgress = (label: string, value: number | null, max: number): void => {
+    $('archive-progress').hidden = false;
     bar.max = max;
     if (value === null) bar.removeAttribute('value'); else bar.value = value;
-    $('archive-progress-label').textContent = label;
+    const done = value !== null && value >= max;
+    // The orchestrator's label is a sentence; the stage shows "Card n of N"
+    // while writing and keeps the sentence ("✓ 3 of 3 … verified") once done.
+    $('archive-progress-label').textContent = done ? label : t.cardOfTotal(Math.min((value ?? 0) + 1, max), max);
+    $('archive-progress-pct').textContent = value === null || max === 0 ? '' : `${Math.round((value / max) * 100)}%`;
+    // max changes mid-write when Auto-detect re-chunks, so redraw on every call.
+    slotsWritten = value ?? 0;
+    slotsTotal = max;
+    drawSlots();
   };
-  const hideProgress = () => { $('archive-progress-row').hidden = true; };
+  const hideProgress = (): void => { $('archive-progress').hidden = true; };
 
   // Native <dialog> confirm with three choices. Resolves 'once' | 'all' | 'skip'
   // ('skip' if dismissed via Esc, so an accidental dismiss never overwrites).
   const overwriteDialog = $('overwrite-dialog') as HTMLDialogElement;
   const confirmOverwrite = (): Promise<OverwriteChoice> => new Promise((resolve) => {
     overwriteDialog.returnValue = '';
+    slotWarning = true;
+    drawSlots();
     overwriteDialog.addEventListener('close', () => {
+      slotWarning = false;
+      drawSlots();
       const v = overwriteDialog.returnValue;
       resolve(v === 'all' ? 'all' : v === 'once' ? 'once' : 'skip');
     }, { once: true });
@@ -172,6 +192,44 @@ export function initArchivePanel(): void {
     }
   });
 
+  let runAbort: AbortController | null = null;
+  let lastOutcome: ArchiveOutcome | null = null;
+
+  const againLabel = (): string => (lastOutcome === 'done' ? t.archiveAgain : t.back);
+
+  const enterStage = (src: { data: Uint8Array; fileName: string }, compress: boolean, encrypted: boolean): void => {
+    lastOutcome = null;
+    $('panel-archive').setAttribute('data-state', 'writing');
+    slotsWritten = 0; slotsTotal = 0; slotWarning = false;
+    drawSlots();
+    $('summary-name').textContent = src.fileName;
+    const tag = ($('target-tag') as HTMLSelectElement).selectedOptions[0]?.textContent ?? '';
+    $('summary-meta').textContent =
+      [humanSize(src.data.length), compress ? 'GZIP' : '', encrypted ? 'AES-256' : '', tag].filter((x) => x !== '').join(' · ');
+    $('archive-stop').hidden = false;
+    $('archive-again').hidden = true;
+  };
+
+  const leaveStage = (outcome: ArchiveOutcome): void => {
+    lastOutcome = outcome;
+    $('panel-archive').setAttribute('data-state', outcome);
+    $('archive-stop').hidden = true;
+    const again = $('archive-again');
+    again.textContent = againLabel();
+    again.hidden = false;
+  };
+
+  $('archive-stop').addEventListener('click', () => { runAbort?.abort(); });
+  $('archive-again').addEventListener('click', () => {
+    lastOutcome = null;
+    $('panel-archive').removeAttribute('data-state');
+    setStatus(isConnected() ? t.archiveReady : t.archiveIdle);
+  });
+  onLocaleChange(() => {
+    if (slotsTotal > 0) drawSlots();
+    if (lastOutcome !== null) $('archive-again').textContent = againLabel();
+  });
+
   $('archive').addEventListener('click', async () => {
     const transport = currentTransport();
     if (!transport) return;
@@ -194,28 +252,35 @@ export function initArchivePanel(): void {
       // phone NFC, or a target-tag change under phone NFC) installs the new
       // transport before the write loop gets to look, so waiting for a further
       // connection event would wait forever.
-      awaitReconnect: () => new Promise<Transport>((resolve) => {
+      awaitReconnect: (signal) => new Promise<Transport>((resolve, reject) => {
+        if (signal?.aborted) { reject(new DOMException('Aborted', 'AbortError')); return; }
         const live = currentTransport();
         if (isConnected() && live) { resolve(live); return; }
         const off = onConnectionChange(() => {
           const next = currentTransport();
           if (isConnected() && next) { off(); resolve(next); }
         });
+        signal?.addEventListener('abort', () => { off(); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
       }),
       log,
     };
 
     if (!readerLock.acquire('archive')) { setStatus(t.readerBusyElsewhere, 'error'); return; }
+    runAbort = new AbortController();
+    enterStage(src, compress, pass.length > 0);
+    let outcome: ArchiveOutcome = 'failed';
     try {
-      await new ArchiveOrchestrator(io).run(transport, {
+      outcome = await new ArchiveOrchestrator(io).run(transport, {
         data: src.data, fileName: src.fileName, compress,
         password: pass || undefined, payloadSize: selectedPayloadSize(),
-      });
+      }, runAbort.signal);
     } catch (e) {
       hideProgress();
       setStatus(humanError(e), 'error');
     } finally {
+      runAbort = null;
       readerLock.release('archive');
+      leaveStage(outcome);
     }
   });
 }

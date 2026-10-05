@@ -166,3 +166,12 @@ test('the file input stays inside its label card', () => {
   assert.match(html, /<label id="file-pick"[^>]*>(?:(?!<\/label>)[\s\S])*<input type="file" id="file"/,
     '#file must be inside label#file-pick, or the whole card stops opening the picker');
 });
+
+test('the write stage holds its own controls and progress', () => {
+  const stage = /<div id="archive-stage"[^>]*>([\s\S]*?)<\/section>/.exec(html);
+  assert.ok(stage, 'no #archive-stage inside the archive panel');
+  for (const id of ['archive-slots', 'stage-headline', 'archive-bar', 'archive-progress-label', 'archive-stop', 'archive-again']) {
+    assert.ok(stage[1]!.includes(`id="${id}"`), `#${id} must live inside #archive-stage`);
+  }
+  assert.ok(!html.includes('id="archive-progress-row"'), 'the old progress card is gone');
+});
