@@ -188,3 +188,15 @@ test('restore tells phone-NFC users that Mifare Classic cards never reach the br
   assert.match(css, /:has\(#device-pill\[data-reader="web-nfc"\]\)\s*#restore-webnfc-note\s*\{[^}]*display:\s*flex/,
     'the note shows exactly when device.ts marks the reader as web-nfc');
 });
+
+test('the selected nav label is not bolded', () => {
+  // Material 3's navigation bar marks the active destination with the
+  // indicator pill, not a heavier label. Bolding widened the selected label
+  // by 3-6 px, which alone pushed Georgian Files/Log and Ukrainian Archive past
+  // the 62 px a label gets at 360px (measured in Chrome, 2026-10-05).
+  const rules = [...stylesheet().matchAll(/([^{}]*\.nav-btn\[aria-selected="true"\][^{}]*\.nav-label[^{}]*)\{([^}]*)\}/g)];
+  for (const [, selector, body] of rules) {
+    assert.doesNotMatch(body!, /font-weight:\s*(6|7|8|9)00|font-weight:\s*bold/,
+      `${selector!.trim()} must not bold the active label`);
+  }
+});

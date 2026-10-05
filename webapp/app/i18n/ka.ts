@@ -33,7 +33,7 @@ export const ka: Messages = {
   autoDetectNeedsChameleon: 'აირჩიეთ ბარათის ტიპი: ტელეფონის NFC ვერ ამოიცნობს ბარათის ტევადობას.',
 
   // — tabs —
-  tabArchive: 'არქივაცია',
+  tabArchive: 'არქივი',
   tabRestore: 'აღდგენა',
   tabFiles: 'ფაილები',
   tabLog: 'ჟურნალი',

@@ -36,11 +36,11 @@ export const uk: Messages = {
   autoDetectNeedsChameleon: 'Виберіть тип мітки: NFC телефону не може визначити ємність картки.',
 
   // — tabs —
-  tabArchive: 'Архівувати',
-  tabRestore: 'Відновити',
+  tabArchive: 'Запис',
+  tabRestore: 'Читання',
   tabFiles: 'Файли',
   tabLog: 'Журнал',
-  tabAbout: 'Про програму',
+  tabAbout: 'Довідка',
 
   // — archive tab —
   sourceFile: 'Файл',
