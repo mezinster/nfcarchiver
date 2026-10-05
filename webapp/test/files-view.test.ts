@@ -104,3 +104,16 @@ test('renderFileList drops rows for files no longer present', () => {
   assert.equal((container as unknown as StubEl).children.length, 1);
   assert.equal((container as unknown as StubEl).children[0]!.getAttribute('data-file-id'), 'a');
 });
+
+test('renderFileList shows the name, meta line and encrypted flag', () => {
+  setLocale('en');
+  const doc = makeDoc();
+  const container = doc.createElement('div') as unknown as HTMLElement;
+  renderFileList(container, [item({ name: 'keys.txt', size: 2048, totalChunks: 3, isEncrypted: true })],
+    { onDownload: () => {}, onDelete: () => {} });
+  const row = (container as unknown as StubEl).children[0]!;
+  assert.equal(row.children[1]!.children[0]!.textContent, 'keys.txt');
+  assert.ok(row.children[1]!.children[1]!.textContent.startsWith('2.0 KB · 3 cards · '));
+  assert.equal(row.getAttribute('data-encrypted'), 'true');
+  assert.equal(row.children[2]!.children[0]!.getAttribute('title'), en.download);
+});

@@ -12,11 +12,6 @@ export function humanSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function label(f: FileListItem): string {
-  const when = new Date(f.createdAt).toLocaleString();
-  return t.fileRow(f.name, humanSize(f.size), when, f.isEncrypted, f.totalChunks);
-}
-
 export function renderFileList(
   container: HTMLElement,
   files: FileListItem[],
@@ -40,21 +35,23 @@ export function renderFileList(
 
       const tile = doc.createElement('span');
       tile.className = 'icon-tile';
-      tile.innerHTML = '<svg class="ico"><use href="#i-folder"/></svg>';
+      tile.innerHTML = '<svg class="ico"><use href="#i-file"/></svg>';
 
       const text = doc.createElement('div');
       text.className = 'row-text';
       const name = doc.createElement('div');
       name.className = 'row-name';
-      text.append(name);
+      const meta = doc.createElement('div');
+      meta.className = 'row-sub';
+      text.append(name, meta);
 
       const control = doc.createElement('div');
       control.className = 'row-control';
       const dl = doc.createElement('button');
-      dl.className = 'btn-tonal';
+      dl.className = 'btn-icon tonal icon-download';
       dl.addEventListener('click', () => handlers.onDownload(f.id));
       const del = doc.createElement('button');
-      del.className = 'btn-text';
+      del.className = 'btn-icon icon-trash';
       del.addEventListener('click', () => handlers.onDelete(f.id));
       control.append(dl, del);
 
@@ -62,12 +59,20 @@ export function renderFileList(
       container.appendChild(row);
       existing.set(f.id, row);
     }
-    // Every label is rewritten on each render, not just at row creation: the
-    // rows outlive a language switch, so button text would otherwise stay
-    // frozen in the boot language forever.
+    // Every label is rewritten on each render, not just at row creation: rows
+    // outlive a language switch. Button textContent stays the plain label — it
+    // is the accessible name, the glyph is a CSS mask (see .btn-icon).
+    const text = row.children[1] as HTMLElement;
     const controls = row.children[2] as HTMLElement;
-    ((row.children[1] as HTMLElement).children[0] as HTMLElement).textContent = label(f);
-    (controls.children[0] as HTMLElement).textContent = t.download;
-    (controls.children[1] as HTMLElement).textContent = t.deleteBtn;
+    (text.children[0] as HTMLElement).textContent = f.name;
+    (text.children[1] as HTMLElement).textContent =
+      t.fileRowMeta(humanSize(f.size), f.totalChunks, new Date(f.createdAt).toLocaleString());
+    row.setAttribute('data-encrypted', String(f.isEncrypted));
+    const dlBtn = controls.children[0] as HTMLElement;
+    const delBtn = controls.children[1] as HTMLElement;
+    dlBtn.textContent = t.download;
+    dlBtn.setAttribute('title', t.download);
+    delBtn.textContent = t.deleteBtn;
+    delBtn.setAttribute('title', t.deleteBtn);
   }
 }

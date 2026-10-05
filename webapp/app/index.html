@@ -636,12 +636,15 @@
       <section id="panel-files" role="tabpanel" hidden>
         <span class="section-label" data-i18n="sectionRestoredFiles">Restored files</span>
         <div class="card"><div id="files"></div></div>
-        <p id="files-empty" class="muted" style="padding:0 4px;font-size:13px" data-i18n="filesEmpty">No restored files yet. Restore an archive and it'll appear here.</p>
-        <div style="display:flex;align-items:center;gap:0.6rem;padding:0 4px;margin-top:0.6rem">
-          <span id="files-info" class="muted" style="flex:1;font-size:13px"></span>
-          <button id="files-clear" class="btn-text" data-i18n="clearAll">Clear all</button>
+        <div id="files-empty" class="card empty-state">
+          <svg class="ico" aria-hidden="true"><use href="#i-folder"/></svg>
+          <p data-i18n="filesEmpty">No restored files yet. Restore an archive and it'll appear here.</p>
         </div>
-        <p id="files-status" class="muted" style="padding:0 4px;font-size:13px"></p>
+        <div class="files-footer">
+          <span id="files-info"></span>
+          <button id="files-clear" class="btn btn-text btn-danger" type="button" data-i18n="clearAll">Clear all</button>
+        </div>
+        <p id="files-status" class="status"></p>
       </section>
 
       <section id="panel-log" role="tabpanel" hidden>
