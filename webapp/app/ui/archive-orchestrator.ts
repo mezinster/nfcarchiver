@@ -19,6 +19,10 @@ import type { Logger } from '../../src/log/logger.js';
  *  remaining card without asking again, 'skip' = leave it and tap another. */
 export type OverwriteChoice = 'once' | 'all' | 'skip';
 
+/** How a run ended: every card written, the user pressed Stop, or it gave up
+ *  (prepare failed, or the failure breaker tripped). */
+export type ArchiveOutcome = 'done' | 'stopped' | 'failed';
+
 export interface ArchiveIO {
   setStatus(msg: string): void;
   showProgress(label: string, value: number | null, max: number): void;
@@ -32,7 +36,7 @@ export interface ArchiveIO {
   /** Resolves with the transport to resume on — immediately if one is already
    *  live (a hand-off completes before the loop notices, so no further
    *  connection event is coming). */
-  awaitReconnect(): Promise<Transport>;
+  awaitReconnect(signal?: AbortSignal): Promise<Transport>;
   log: Logger;
 }
 
@@ -47,7 +51,7 @@ export class ArchiveOrchestrator {
     this.io.setStatus(done ? t.archiveDone(written) : t.tapCardOf(written + 1, total));
   }
 
-  async run(transport: Transport, req: ArchiveRequest): Promise<void> {
+  async run(transport: Transport, req: ArchiveRequest, signal?: AbortSignal): Promise<ArchiveOutcome> {
     const ctrl = new ArchiveController(transport);
     let total: number;
     try {
@@ -56,12 +60,21 @@ export class ArchiveOrchestrator {
       this.io.hideProgress();
       this.io.setStatus(humanError(e));
       this.io.log.error('archive', 'Prepare failed', { error: String(e) });
-      return;
+      return 'failed';
     }
     this.render(0, total, false);
     this.io.log.info('archive', 'Prepared', { cards: total });
 
     let done = false;
+    let written = 0;
+    // Stop is decided by the signal, never by an error's type: tearing down a
+    // Web NFC reader rejects the pending tap with its own AbortError, and that
+    // must still take the reconnect path below.
+    const stopped = (): ArchiveOutcome => {
+      this.io.setStatus(t.archiveStoppedPartial(written, total));
+      this.io.log.info('archive', 'Write cancelled', { written, total });
+      return 'stopped';
+    };
     // Once the user picks "overwrite all remaining", every subsequent already-
     // NFAR card is overwritten without prompting (passed straight into
     // writeNextCard so it never even throws OverwriteRequiredError).
@@ -106,19 +119,26 @@ export class ArchiveOrchestrator {
       }
     };
     while (!done) {
+      if (signal?.aborted) return stopped();
       const iterationStart = Date.now();
       if (!usable()) {
         const swapped = this.io.isConnected();
         this.io.setStatus(swapped ? t.readerSwitchedResume : t.readerDisconnectedResume);
         this.io.log.warn('archive', swapped ? 'Reader swapped — adopting the new transport' : 'Reader disconnected — awaiting reconnect');
-        inUse = await this.io.awaitReconnect();
+        try {
+          inUse = await this.io.awaitReconnect(signal);
+        } catch (e) {
+          if (signal?.aborted) return stopped();
+          throw e;
+        }
         ctrl.setTransport(inUse);
         this.io.log.info('archive', 'Resuming on the live transport');
         continue;
       }
       try {
-        const res = await ctrl.writeNextCard(undefined, overwriteAll, onEvent);
+        const res = await ctrl.writeNextCard(signal, overwriteAll, onEvent);
         total = res.progress.total;
+        written = res.progress.written;
         done = res.done;
         if (res.skipped === 'already-written') {
           // Not a failure and not progress: a card the user already wrote is
@@ -137,17 +157,11 @@ export class ArchiveOrchestrator {
         }
         breaker.reset();
       } catch (e) {
+        if (signal?.aborted) return stopped();
         if (!usable()) continue; // disconnect or reader swap — handled at the loop top
-        // Stopping must be immediate — checked before pacing, mirroring the
-        // restore loop's ordering exactly. Unreachable today (writeNextCard is
-        // always called with an undefined signal; no Stop control is wired to
-        // archive writes), but the moment one is, this keeps it from being
-        // delayed by ensureMinInterval and then swallowed into a retry.
-        if (e instanceof DOMException && e.name === 'AbortError') {
-          this.io.setStatus(t.cancelled);
-          this.io.log.info('archive', 'Write cancelled');
-          return;
-        }
+        // An AbortError the user did not ask for, on a reader that is still
+        // live: nothing will ever resume it, so end the run instead of spinning.
+        if (e instanceof DOMException && e.name === 'AbortError') return stopped();
         await ensureMinInterval(iterationStart, 250);
         if (e instanceof TagTimeoutError) { this.io.setStatus(t.noCardTapHold); continue; }
         if (e instanceof OverwriteRequiredError) {
@@ -159,15 +173,18 @@ export class ArchiveOrchestrator {
           this.io.log.info('archive', 'Overwrite prompt opened — awaiting the answer');
           const choice = await this.io.confirmOverwrite();
           this.io.log.info('archive', 'Overwrite prompt answered', { choice });
+          if (signal?.aborted) return stopped();
           if (choice === 'skip') { this.io.setStatus(t.skippedTapDifferent); continue; }
           if (choice === 'all') { overwriteAll = true; this.io.log.info('archive', 'Overwrite all remaining'); }
           try {
-            const res = await ctrl.writeNextCard(undefined, true, onEvent);
+            const res = await ctrl.writeNextCard(signal, true, onEvent);
             total = res.progress.total;
+            written = res.progress.written;
             done = res.done;
             this.render(res.progress.written, total, done);
             breaker.reset();
           } catch (e2) {
+            if (signal?.aborted) return stopped();
             if (!usable()) continue;
             this.io.setStatus(t.retryAfter(humanError(e2)));
             this.io.log.warn('archive', 'Overwrite write failed — will retry', { error: String(e2) });
@@ -194,7 +211,7 @@ export class ArchiveOrchestrator {
           this.io.hideProgress();
           this.io.setStatus(t.scanGaveUp(humanError(e)));
           this.io.log.error('archive', 'Stopped after repeated failures', { error: String(e) });
-          return;
+          return 'failed';
         }
         // Any other per-card failure (verify/auth/capacity/mid-write I-O): retry, never abort.
         this.io.setStatus(t.retryAfter(humanError(e)));
@@ -203,5 +220,6 @@ export class ArchiveOrchestrator {
       }
     }
     this.io.log.info('archive', 'Write complete', { cards: total });
+    return 'done';
   }
 }

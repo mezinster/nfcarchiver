@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
 import { CardReadError, UnsupportedTagError, WriteVerifyError, type PresentedTag, type Transport } from '../src/transport/transport.js';
 import { ArchiveOrchestrator, type ArchiveIO } from '../app/ui/archive-orchestrator.js';
+import { en } from '../app/i18n/en.js';
 import { RestoreController } from '../app/controller.js';
 import { decodeChunk, encodeChunk } from '../src/chunk.js';
 import { Logger } from '../src/log/logger.js';
@@ -384,4 +385,108 @@ test('the overwrite prompt announces itself, so an unanswered dialog is traceabl
     'opening the prompt must be logged — a dialog nobody answers is otherwise a silent hang');
   assert.ok(statuses.some((s) => /waiting for your answer/i.test(s)),
     `the status line must say a prompt is open; got ${JSON.stringify(statuses)}`);
+});
+
+/** A tap that never comes — until the signal aborts. Without a signal it fails
+ *  loudly after 200 ms instead of hanging the suite. */
+class NeverTapTransport extends MockTransport {
+  seenSignal: AbortSignal | undefined;
+  override async awaitTag(opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<PresentedTag> {
+    this.seenSignal = opts?.signal;
+    return new Promise((_, reject) => {
+      const s = opts?.signal;
+      if (!s) { setTimeout(() => reject(new Error('run() did not pass an AbortSignal')), 200); return; }
+      s.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+    });
+  }
+}
+
+/** Phone NFC's stop() rejects the pending tap with its OWN AbortError when the
+ *  reader is torn down. The user never pressed Stop. */
+class TornDownTransport extends MockTransport {
+  constructor(private readonly onTap: () => void) { super(); }
+  override async awaitTag(): Promise<PresentedTag> {
+    this.onTap();
+    throw new DOMException('Aborted', 'AbortError');
+  }
+}
+
+const threeCards = () => ({ data: multiCardData, fileName: 'blob.bin', compress: false, payloadSize: 720 });
+
+test('Stop while waiting for a tap ends the run as stopped', async () => {
+  const tr = new NeverTapTransport();
+  const ac = new AbortController();
+  const { io, statuses } = makeIO(tr);
+  setTimeout(() => ac.abort(), 20);
+  const outcome = await new ArchiveOrchestrator(io).run(tr, threeCards(), ac.signal);
+  assert.equal(outcome, 'stopped');
+  assert.equal(tr.seenSignal, ac.signal, 'the tap wait received the Stop signal');
+  assert.equal(statuses.at(-1), en.archiveStoppedPartial(0, 3));
+});
+
+test('Stop during the overwrite prompt never writes the card', async () => {
+  const inner = new MockTransport();
+  const ac = new AbortController();
+  const existing = encodeChunk({
+    archiveId: new Uint8Array(16).fill(9), totalChunks: 1, chunkIndex: 0,
+    payload: new Uint8Array([1]), crc32: 0, flags: 0,
+  });
+  inner.enqueueTag(uid(0), existing); // tap → OverwriteRequiredError → prompt
+  inner.enqueueTag(uid(0), existing); // a re-tap an "overwrite" would consume
+  const { io } = makeIO(inner, { confirmOverwrite: async () => { ac.abort(); return 'once'; } });
+  const outcome = await new ArchiveOrchestrator(io).run(inner, threeCards(), ac.signal);
+  assert.equal(outcome, 'stopped');
+  await inner.awaitTag(); // presents the queued re-tap of uid(0)
+  const onCard = await inner.readChunk();
+  assert.deepEqual(Array.from(onCard.subarray(0, existing.length)), Array.from(existing), 'the old data is untouched');
+});
+
+test('Stop while waiting for the reader to reconnect ends the run', async () => {
+  const tr = new MockTransport();
+  const ac = new AbortController();
+  let seen: AbortSignal | undefined;
+  const { io } = makeIO(tr, {
+    isConnected: () => false,
+    activeTransport: () => null,
+    awaitReconnect: (signal) => new Promise((_, reject) => {
+      seen = signal;
+      if (!signal) { setTimeout(() => reject(new Error('awaitReconnect got no AbortSignal')), 200); return; }
+      signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+    }),
+  });
+  setTimeout(() => ac.abort(), 20);
+  const outcome = await new ArchiveOrchestrator(io).run(tr, threeCards(), ac.signal);
+  assert.equal(outcome, 'stopped');
+  assert.equal(seen, ac.signal);
+});
+
+test('a reader teardown AbortError is not mistaken for Stop', async () => {
+  let connected = true;
+  const tA = new TornDownTransport(() => { connected = false; });
+  const tB = new MockTransport();
+  let active: Transport = tA;
+  tB.enqueueTag(uid(0)); tB.enqueueTag(uid(1)); tB.enqueueTag(uid(2));
+  const { io } = makeIO(tA, {
+    isConnected: () => connected,
+    activeTransport: () => (connected ? active : null),
+    awaitReconnect: async () => { connected = true; active = tB; return tB; },
+  });
+  const outcome = await new ArchiveOrchestrator(io).run(tA, threeCards(), new AbortController().signal);
+  assert.equal(outcome, 'done', 'the write resumed on the new reader and finished');
+});
+
+test('run reports done and failed outcomes', async () => {
+  const inner = new MockTransport();
+  for (let i = 0; i < 3; i++) inner.enqueueTag(uid(i));
+  assert.equal(await new ArchiveOrchestrator(makeIO(inner).io).run(inner, threeCards()), 'done');
+
+  const failing = {
+    ...new MockTransport(),
+    name: 'always-fails',
+    async awaitTag() { throw new CardReadError('boom'); },
+  } as unknown as Transport;
+  const outcome = await new ArchiveOrchestrator(makeIO(failing).io).run(failing, {
+    data: new Uint8Array(50), fileName: 'x.bin', compress: false, payloadSize: 100,
+  });
+  assert.equal(outcome, 'failed');
 });
