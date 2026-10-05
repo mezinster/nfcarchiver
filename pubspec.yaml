@@ -51,7 +51,7 @@ dependencies:
 
   # Utils
   uuid: ^4.6.0
-  permission_handler: ^11.1.0
+  permission_handler: ^13.0.2
   equatable: ^3.0.0
   collection: ^1.18.0
   open_filex: ^4.7.0
