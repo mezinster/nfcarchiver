@@ -605,29 +605,31 @@
       </section>
 
       <section id="panel-restore" role="tabpanel" hidden>
-        <div style="margin-top:1.25rem">
-          <button id="scan" class="btn-primary" disabled data-i18n="scanCards">Scan cards</button>
+        <div class="restore-idle">
+          <button id="scan" class="btn btn-primary" type="button" disabled><svg class="ico" aria-hidden="true"><use href="#i-nfc"/></svg><span data-i18n="scanCards">Scan cards</span></button>
         </div>
-        <div style="margin-top:0.5rem">
-          <button id="stop-scan" class="btn-tonal" disabled style="width:100%;padding:14px" data-i18n="stop">Stop</button>
+        <div id="restore-stage" class="stage">
+          <div class="pulse" aria-hidden="true"><span class="pulse-core"><svg class="ico"><use href="#i-nfc"/></svg></span></div>
+          <h2 class="stage-headline" data-i18n="scanStageTitle">Tap cards in any order</h2>
+          <button id="stop-scan" class="btn btn-outlined" type="button" disabled><svg class="ico" aria-hidden="true"><use href="#i-stop"/></svg><span data-i18n="stop">Stop</span></button>
         </div>
+        <p class="status" id="restore-status" role="status" data-i18n="restoreIdle">Connect a Chameleon, then scan a pile of cards.</p>
 
-        <span class="section-label" data-i18n="sectionArchives">Detected archives</span>
-        <div class="card"><div id="archives"></div></div>
+        <div id="archives-section">
+          <span class="section-label" data-i18n="sectionArchives">Detected archives</span>
+          <div class="card"><div id="archives"></div></div>
+        </div>
 
         <span class="section-label" data-i18n="sectionSettings">Settings</span>
         <div class="card">
-          <div class="row">
-            <span class="icon-tile"><svg class="ico"><use href="#i-save"/></svg></span>
-            <div class="row-text">
-              <div class="row-name" data-i18n="saveAs">save as</div>
-              <div class="row-sub" data-i18n="subSaveAs">Only used if the archive carries no filename</div>
-            </div>
-            <div class="row-control"><input type="text" id="fname" value="restored.bin" /></div>
+          <div class="row row-stack">
+            <label class="field">
+              <span class="field-label" data-i18n="saveAsLabel">Save as</span>
+              <input type="text" id="fname" value="restored.bin" />
+              <span class="field-help" data-i18n="subSaveAs">Only used if the archive carries no filename</span>
+            </label>
           </div>
         </div>
-
-        <div class="status" id="restore-status" data-i18n="restoreIdle">Connect a Chameleon, then scan a pile of cards.</div>
       </section>
 
       <section id="panel-files" role="tabpanel" hidden>

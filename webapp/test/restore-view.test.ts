@@ -127,3 +127,27 @@ test('restore view drops rows for archives no longer in the list', () => {
   assert.equal((container as unknown as StubEl).children.length, 1);
   assert.equal((container as unknown as StubEl).children[0]!.getAttribute('data-archive-id'), 'aaaa');
 });
+
+test('restore view renders the id, slot dots, status and flags', () => {
+  setLocale('en');
+  const doc = makeDoc();
+  const container = doc.createElement('div') as unknown as HTMLElement;
+  renderArchiveList(container, [archive({ totalChunks: 5, received: 2, complete: false, isEncrypted: true })], () => {});
+  const row = (container as unknown as StubEl).children[0]!;
+  const text = row.children[1]!;
+  assert.equal(text.children[0]!.textContent, '#16312c0b');
+  const dots = text.children[1]!.children[0]!.innerHTML;
+  assert.equal(dots.match(/class="dot/g)?.length, 5);
+  assert.equal(dots.match(/class="dot on"/g)?.length, 2);
+  assert.equal(text.children[1]!.children[1]!.textContent, en.archiveRowStatus(2, 5, false));
+  assert.equal(row.getAttribute('data-encrypted'), 'true');
+  assert.equal(row.getAttribute('data-complete'), 'false');
+});
+
+test('restore view omits dots for archives too long to draw', () => {
+  const doc = makeDoc();
+  const container = doc.createElement('div') as unknown as HTMLElement;
+  renderArchiveList(container, [archive({ totalChunks: 40, received: 3, complete: false })], () => {});
+  const row = (container as unknown as StubEl).children[0]!;
+  assert.equal(row.children[1]!.children[1]!.children[0]!.innerHTML, '');
+});

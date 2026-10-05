@@ -42,6 +42,8 @@ export function initRestorePanel(): void {
   // synchronously on acquire and release.
   const syncButtons = (): void => {
     const owner = readerLock.current();
+    // The pulsing stage replaces the Scan button only while THIS loop scans.
+    $('panel-restore').toggleAttribute('data-scanning', owner === 'scan');
     const scan = $('scan') as HTMLButtonElement;
     scan.disabled = !isConnected() || owner !== null;
     scan.title = owner !== null && owner !== 'scan' ? t.readerBusyElsewhere : '';

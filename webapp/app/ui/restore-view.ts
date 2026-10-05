@@ -8,8 +8,14 @@
 import type { DetectedArchive } from '../controller.js';
 import { t } from '../i18n/index.js';
 
-function label(a: DetectedArchive): string {
-  return t.archiveRow(a.shortId, a.isEncrypted, a.received, a.totalChunks, a.complete);
+/** Above this many cards the dot row would not fit; the "k/N" text remains. */
+export const MAX_DOTS = 10;
+
+function dots(received: number, total: number): string {
+  if (total > MAX_DOTS) return '';
+  let html = '';
+  for (let i = 0; i < total; i++) html += i < received ? '<i class="dot on"></i>' : '<i class="dot"></i>';
+  return html;
 }
 
 export function renderArchiveList(
@@ -40,13 +46,20 @@ export function renderArchiveList(
       const text = doc.createElement('div');
       text.className = 'row-text';
       const name = doc.createElement('div');
-      name.className = 'row-name';
-      text.append(name);
+      name.className = 'row-name mono';
+      const sub = doc.createElement('div');
+      sub.className = 'row-sub';
+      const dotsEl = doc.createElement('span');
+      dotsEl.className = 'dots';
+      const status = doc.createElement('span');
+      status.className = 'row-status';
+      sub.append(dotsEl, status);
+      text.append(name, sub);
 
       const control = doc.createElement('div');
       control.className = 'row-control';
       const newBtn = doc.createElement('button');
-      newBtn.className = 'btn-tonal';
+      newBtn.className = 'btn btn-tonal';
       // The row's archive id never changes, so binding it once is safe and keeps
       // the listener stable across updates.
       newBtn.addEventListener('click', () => onPick(a.archiveId));
@@ -56,12 +69,16 @@ export function renderArchiveList(
       container.appendChild(row);
       existing.set(a.archiveId, row);
     }
-    const span = (row.children[1] as HTMLElement).children[0] as HTMLElement;
+    const text = row.children[1] as HTMLElement;
+    const sub = text.children[1] as HTMLElement;
     const btn = (row.children[2] as HTMLElement).children[0] as HTMLButtonElement;
-    // Both labels are rewritten on each render, not just at row creation: rows
-    // outlive a language switch, so the button text would otherwise stay frozen
-    // in the boot language forever.
-    span.textContent = label(a);
+    // Labels are rewritten on every render, not only at creation: rows outlive
+    // a language switch, so text would otherwise stay in the boot language.
+    (text.children[0] as HTMLElement).textContent = `#${a.shortId}`;
+    (sub.children[0] as HTMLElement).innerHTML = dots(a.received, a.totalChunks);
+    (sub.children[1] as HTMLElement).textContent = t.archiveRowStatus(a.received, a.totalChunks, a.complete);
+    row.setAttribute('data-encrypted', String(a.isEncrypted));
+    row.setAttribute('data-complete', String(a.complete));
     btn.textContent = t.restore;
     btn.disabled = !a.complete;
   }
