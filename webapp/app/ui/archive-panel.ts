@@ -187,7 +187,11 @@ export function initArchivePanel(): void {
     // write is in progress, this element carries live progress/error text
     // (see ArchiveOrchestrator's io.setStatus calls) that a reader hand-off
     // must not stomp.
-    if (connected && !archivingNow()) {
+    // Also skipped while the stage is showing (data-state set): after a run the
+    // lock is released, but setStatus mirrors into #stage-headline, so this write
+    // would overwrite the terminal "Done"/"Stopped" message. The form's status is
+    // set by the Archive another / Back handler instead.
+    if (connected && !archivingNow() && !$('panel-archive').hasAttribute('data-state')) {
       setStatus(activeReaderName() === 'web-nfc' ? t.autoDetectNeedsChameleon : t.archiveReady);
     }
   });
@@ -206,6 +210,12 @@ export function initArchivePanel(): void {
     const tag = ($('target-tag') as HTMLSelectElement).selectedOptions[0]?.textContent ?? '';
     $('summary-meta').textContent =
       [humanSize(src.data.length), compress ? 'GZIP' : '', encrypted ? 'AES-256' : '', tag].filter((x) => x !== '').join(' · ');
+    // Reset the previous run's progress; indeterminate reads as "preparing".
+    $('archive-progress').hidden = false;
+    $('archive-progress-label').textContent = '';
+    $('archive-progress-pct').textContent = '';
+    bar.max = 1;
+    bar.removeAttribute('value');
     $('archive-stop').hidden = false;
     $('archive-again').hidden = true;
   };
