@@ -20,8 +20,6 @@ export const pl: Messages = {
   language: 'Język',
   statusConnected: 'połączono',
   statusDisconnected: 'rozłączono',
-  readerChameleon: 'Chameleon Ultra.',
-  readerPhoneNfc: 'NFC telefonu.',
   readerDisconnectedClickConnect: 'Czytnik rozłączony — kliknij „Połącz”, aby kontynuować.',
   inspectNeedsChameleon: 'Zbadanie karty wymaga Chameleona — NFC telefonu nie ma bezpośredniego dostępu do karty.',
   readerBusyElsewhere: 'Czytnik jest zajęty inną operacją — najpierw ją zakończ lub zatrzymaj.',
@@ -32,7 +30,6 @@ export const pl: Messages = {
   sectionLogOptions: 'Opcje dziennika',
   subChooseFile: 'Dowolny plik, podzielony na karty',
   subTypeText: 'Zapisywane jako text_note.txt',
-  subTargetTag: 'Typ karty i pojemność',
   subCompress: 'GZIP przed zapisem',
   subPassword: 'AES-256-GCM, opcjonalnie',
   subSaveAs: 'Używane tylko wtedy, gdy archiwum nie zawiera nazwy pliku',
@@ -48,20 +45,13 @@ export const pl: Messages = {
   // — archive tab —
   sourceFile: 'Plik',
   sourceText: 'Tekst',
-  orSeparator: 'lub',
   textPlaceholder: 'Wpisz tekst do zarchiwizowania jako text_note.txt',
-  targetTag: 'typ tagu',
   targetAuto: 'Wykryj automatycznie (dopasuje się do karty)',
   compress: 'kompresja',
-  password: 'hasło',
-  optionalPlaceholder: '(opcjonalnie)',
   archiveToCards: 'Archiwizuj na karty',
   archiveIdle: 'Podłącz Chameleon, a następnie wybierz plik lub wpisz tekst.',
   archiveReady: 'Wybierz plik lub wpisz tekst, a następnie kliknij „Archiwizuj na karty”.',
   archivePickFirst: 'Najpierw wybierz plik lub wpisz tekst.',
-  cardEstimate: (n, isAuto) =>
-    `≈ ${n} ${pr(n, CARD)}${isAuto ? ' (szac.) — dopasuje się do przyłożonej karty' : ''}`,
-
   // — archive write loop —
   progressDone: (written, total) => `✓ zapisano i zweryfikowano ${written} z ${total} ${pr(total, CARD_GEN)}`,
   progressWriting: (written, total) =>
@@ -90,15 +80,12 @@ export const pl: Messages = {
   // — restore tab —
   scanCards: 'Skanuj karty',
   stop: 'Zatrzymaj',
-  saveAs: 'zapisz jako',
   restoreIdle: 'Podłącz Chameleon, a następnie zeskanuj stos kart.',
   restoreReady: 'Zeskanuj stos kart, aby wykryć archiwa.',
   scanning: 'Skanowanie — przykładaj karty do czytnika…',
   tapMoreCards: 'Przyłóż więcej kart lub przywróć kompletne archiwum.',
   skippedCard: (message) => `Pominięto kartę: ${message}`,
   restore: 'Przywróć',
-  archiveRow: (shortId, isEncrypted, received, total, complete) =>
-    `Archiwum ${shortId}…  ${isEncrypted ? '🔒 zaszyfrowane' : 'niezaszyfrowane'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `Przywrócono ${bytes} ${pr(bytes, BYTE)} → ${name}.`,
 
   // — passwords —
@@ -117,9 +104,6 @@ export const pl: Messages = {
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · zapisano ${size}`,
   clearedFiles: (n) => `Usunięto ${n} ${pr(n, FILE)}.`,
   downloadedTo: (size, name) => `Pobrano ${size} → ${name}.`,
-  fileRow: (name, size, when, isEncrypted, totalChunks) =>
-    `${name}  ·  ${size}  ·  ${when}  ·  ${isEncrypted ? '🔒 zaszyfrowane' : 'bez szyfrowania'}  ·  ${totalChunks} ${pr(totalChunks, CARD)}`,
-
   // — log tab (controls only; log ENTRIES stay English) —
   logLevel: 'poziom',
   autoScroll: 'autoprzewijanie',

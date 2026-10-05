@@ -20,8 +20,6 @@ export const be: Messages = {
   language: 'Мова',
   statusConnected: 'падключана',
   statusDisconnected: 'адключана',
-  readerChameleon: 'Chameleon Ultra.',
-  readerPhoneNfc: 'NFC тэлефона.',
   readerDisconnectedClickConnect: 'Счытвальнік адключаны — націсніце «Падключыць», каб працягнуць.',
   inspectNeedsChameleon: 'Для агляду карты патрэбны Chameleon — NFC тэлефона не мае прамога доступу да карты.',
   readerBusyElsewhere: 'Счытвальнік заняты іншай аперацыяй — спачатку завяршыце або спыніце яе.',
@@ -32,7 +30,6 @@ export const be: Messages = {
   sectionLogOptions: 'Параметры журнала',
   subChooseFile: 'Любы файл, падзелены па картах',
   subTypeText: 'Захоўваецца як text_note.txt',
-  subTargetTag: 'Тып карты і ёмістасць',
   subCompress: 'GZIP перад запісам',
   subPassword: 'AES-256-GCM, неабавязкова',
   subSaveAs: 'Выкарыстоўваецца, толькі калі ў архіве няма імя файла',
@@ -48,20 +45,13 @@ export const be: Messages = {
   // — archive tab —
   sourceFile: 'Файл',
   sourceText: 'Тэкст',
-  orSeparator: 'або',
   textPlaceholder: 'Увядзіце тэкст для архівацыі ў text_note.txt',
-  targetTag: 'тып меткі',
   targetAuto: 'Аўтавызначэнне (падладзіцца пад карту)',
   compress: 'сціск',
-  password: 'пароль',
-  optionalPlaceholder: '(неабавязкова)',
   archiveToCards: 'Архіваваць на карты',
   archiveIdle: 'Падключыце Chameleon, потым выберыце файл або ўвядзіце тэкст.',
   archiveReady: 'Выберыце файл або ўвядзіце тэкст, потым націсніце «Архіваваць на карты».',
   archivePickFirst: 'Спачатку выберыце файл або ўвядзіце тэкст.',
-  cardEstimate: (n, isAuto) =>
-    `≈ ${n} ${pr(n, CARD)}${isAuto ? ' (прыблізна) — падладзіцца пад карту' : ''}`,
-
   // — archive write loop —
   progressDone: (written, total) => `✓ запісана і праверана ${written} з ${total} ${pr(total, CARD_GEN)}`,
   progressWriting: (written, total) =>
@@ -90,15 +80,12 @@ export const be: Messages = {
   // — restore tab —
   scanCards: 'Сканаваць карты',
   stop: 'Спыніць',
-  saveAs: 'захаваць як',
   restoreIdle: 'Падключыце Chameleon, потым адсканіруйце стос карт.',
   restoreReady: 'Адсканіруйце стос карт, каб знайсці архівы.',
   scanning: 'Сканаванне — прыкладайце карты да счытвальніка…',
   tapMoreCards: 'Прыкладзіце яшчэ карты або аднавіце гатовы архіў.',
   skippedCard: (message) => `Карта прапушчана: ${message}`,
   restore: 'Аднавіць',
-  archiveRow: (shortId, isEncrypted, received, total, complete) =>
-    `Архіў ${shortId}…  ${isEncrypted ? '🔒 зашыфравана' : 'без шыфравання'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `Адноўлена ${bytes} ${pr(bytes, BYTE)} → ${name}.`,
 
   // — passwords —
@@ -117,9 +104,6 @@ export const be: Messages = {
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · захавана ${size}`,
   clearedFiles: (n) => `Выдалена ${n} ${pr(n, FILE)}.`,
   downloadedTo: (size, name) => `Спампавана ${size} → ${name}.`,
-  fileRow: (name, size, when, isEncrypted, totalChunks) =>
-    `${name}  ·  ${size}  ·  ${when}  ·  ${isEncrypted ? '🔒 зашыфравана' : 'без шыфравання'}  ·  ${totalChunks} ${pr(totalChunks, CARD)}`,
-
   // — log tab (controls only; log ENTRIES stay English) —
   logLevel: 'узровень',
   autoScroll: 'аўтапракрутка',

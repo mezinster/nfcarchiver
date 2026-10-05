@@ -38,8 +38,6 @@ test('English catalogue has no empty values', () => {
 test('English catalogue function entries render', () => {
   setPluralLocale('en');
   assert.equal(en.tapCardOf(1, 8), 'Tap card 1 of 8 on the reader…');
-  assert.equal(en.cardEstimate(1, false), '≈ 1 card');
-  assert.equal(en.cardEstimate(3, true), '≈ 3 cards (est.) — adapts to the tapped card');
   assert.equal(en.archiveDone(1), 'Done — wrote and verified 1 card.');
   assert.equal(en.clearedFiles(2), 'Cleared 2 files.');
 });
@@ -172,7 +170,6 @@ test('Slavic plurals select the right form at the boundaries', () => {
   // FILE, CARD (nominative) and CARD_ACC (accusative, via archiveDone).
   const entries: Array<[string, (cat: Messages, n: number) => string]> = [
     ['clearedFiles', (cat, n) => cat.clearedFiles(n)],
-    ['cardEstimate', (cat, n) => cat.cardEstimate(n, false)],
     ['archiveDone', (cat, n) => cat.archiveDone(n)],
     ['cardsNeeded', (cat, n) => cat.cardsNeeded(n)],
   ];

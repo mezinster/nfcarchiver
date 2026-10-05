@@ -17,8 +17,6 @@ export const ka: Messages = {
   language: 'ენა',
   statusConnected: 'დაკავშირებულია',
   statusDisconnected: 'გათიშულია',
-  readerChameleon: 'Chameleon Ultra.',
-  readerPhoneNfc: 'ტელეფონის NFC.',
   readerDisconnectedClickConnect: 'წამკითხველი გაითიშა — გასაგრძელებლად დააჭირეთ „დაკავშირებას“.',
   inspectNeedsChameleon: 'ბარათის დათვალიერებას სჭირდება Chameleon — ტელეფონის NFC-ს არ აქვს პირდაპირი წვდომა ბარათთან.',
   readerBusyElsewhere: 'წამკითხველი სხვა ოპერაციითაა დაკავებული — ჯერ დაასრულეთ ან შეაჩერეთ იგი.',
@@ -29,7 +27,6 @@ export const ka: Messages = {
   sectionLogOptions: 'ჟურნალის პარამეტრები',
   subChooseFile: 'ნებისმიერი ფაილი, დაყოფილი ბარათებზე',
   subTypeText: 'ინახება როგორც text_note.txt',
-  subTargetTag: 'ბარათის ტიპი და ტევადობა',
   subCompress: 'GZIP ჩაწერამდე',
   subPassword: 'AES-256-GCM, არასავალდებულო',
   subSaveAs: 'გამოიყენება მხოლოდ თუ არქივს არ აქვს ფაილის სახელი',
@@ -45,20 +42,13 @@ export const ka: Messages = {
   // — archive tab —
   sourceFile: 'ფაილი',
   sourceText: 'ტექსტი',
-  orSeparator: 'ან',
   textPlaceholder: 'აკრიფეთ ტექსტი text_note.txt-ად დასაარქივებლად',
-  targetTag: 'სამიზნე ტეგი',
   targetAuto: 'ავტომატური ამოცნობა (მოერგება ბარათს)',
   compress: 'შეკუმშვა',
-  password: 'პაროლი',
-  optionalPlaceholder: '(არასავალდებულო)',
   archiveToCards: 'ბარათებზე დაარქივება',
   archiveIdle: 'დააკავშირეთ Chameleon, შემდეგ აირჩიეთ ფაილი ან აკრიფეთ ტექსტი.',
   archiveReady: 'აირჩიეთ ფაილი ან აკრიფეთ ტექსტი, შემდეგ დააჭირეთ „ბარათებზე დაარქივებას“.',
   archivePickFirst: 'ჯერ აირჩიეთ ფაილი ან აკრიფეთ ტექსტი.',
-  cardEstimate: (n, isAuto) =>
-    `≈ ${n} ${pr(n, CARD)}${isAuto ? ' (სავარაუდო) — მოერგება მიდებულ ბარათს' : ''}`,
-
   // — archive write loop —
   progressDone: (written, total) => `✓ ჩაწერილი და შემოწმებულია ${written} ბარათი ${total}-დან`,
   progressWriting: (written, total) =>
@@ -87,15 +77,12 @@ export const ka: Messages = {
   // — restore tab —
   scanCards: 'ბარათების სკანირება',
   stop: 'გაჩერება',
-  saveAs: 'შენახვა როგორც',
   restoreIdle: 'დააკავშირეთ Chameleon, შემდეგ დაასკანირეთ ბარათების დასტა.',
   restoreReady: 'დაასკანირეთ ბარათების დასტა არქივების აღმოსაჩენად.',
   scanning: 'სკანირება — მიადეთ ბარათები წამკითხველს…',
   tapMoreCards: 'მიადეთ კიდევ ბარათები ან აღადგინეთ დასრულებული არქივი.',
   skippedCard: (message) => `ბარათი გამოტოვდა: ${message}`,
   restore: 'აღდგენა',
-  archiveRow: (shortId, isEncrypted, received, total, complete) =>
-    `არქივი ${shortId}…  ${isEncrypted ? '🔒 დაშიფრული' : 'დაუშიფრავი'}  ·  ${received} / ${total} ${pr(total, CARD)}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes, name) => `აღდგენილია ${bytes} ბაიტი → ${name}.`,
 
   // — passwords —
@@ -114,9 +101,6 @@ export const ka: Messages = {
   filesInfo: (count, size) => `${count} ${pr(count, FILE)} · შენახულია ${size}`,
   clearedFiles: (n) => `წაიშალა ${n} ${pr(n, FILE)}.`,
   downloadedTo: (size, name) => `ჩამოიტვირთა ${size} → ${name}.`,
-  fileRow: (name, size, when, isEncrypted, totalChunks) =>
-    `${name}  ·  ${size}  ·  ${when}  ·  ${isEncrypted ? '🔒 დაშიფრული' : 'დაუშიფრავი'}  ·  ${totalChunks} ${pr(totalChunks, CARD)}`,
-
   // — log tab (controls only; log ENTRIES stay English) —
   logLevel: 'დონე',
   autoScroll: 'ავტოგადახვევა',

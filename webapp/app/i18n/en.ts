@@ -19,8 +19,6 @@ export const en = {
   language: 'Language',
   statusConnected: 'connected',
   statusDisconnected: 'disconnected',
-  readerChameleon: 'Chameleon Ultra.',
-  readerPhoneNfc: 'Phone NFC.',
   readerDisconnectedClickConnect: 'Reader disconnected — click Connect to resume.',
   inspectNeedsChameleon: 'Card inspection needs a Chameleon — phone NFC has no raw card access.',
   readerBusyElsewhere: 'The reader is busy with another operation — finish or stop it first.',
@@ -31,7 +29,6 @@ export const en = {
   sectionLogOptions: 'Log options',
   subChooseFile: 'Any file, split across cards',
   subTypeText: 'Saved as text_note.txt',
-  subTargetTag: 'Card type and capacity',
   subCompress: 'GZIP before writing',
   subPassword: 'AES-256-GCM, optional',
   subSaveAs: 'Only used if the archive carries no filename',
@@ -47,20 +44,13 @@ export const en = {
   // — archive tab —
   sourceFile: 'File',
   sourceText: 'Text',
-  orSeparator: 'or',
   textPlaceholder: 'Type text to archive as text_note.txt',
-  targetTag: 'target tag',
   targetAuto: 'Auto-detect (adapts to the card)',
   compress: 'compress',
-  password: 'password',
-  optionalPlaceholder: '(optional)',
   archiveToCards: 'Archive to cards',
   archiveIdle: 'Connect a Chameleon, then choose a file or type text.',
   archiveReady: 'Choose a file or type text, then Archive to cards.',
   archivePickFirst: 'Pick a file or type some text first.',
-  cardEstimate: (n: number, isAuto: boolean) =>
-    `≈ ${n} ${pr(n, { one: 'card', other: 'cards' })}${isAuto ? ' (est.) — adapts to the tapped card' : ''}`,
-
   // — archive write loop —
   progressDone: (written: number, total: number) => `✓ ${written} of ${total} cards written & verified`,
   progressWriting: (written: number, total: number) => `✓ ${written} of ${total} written & verified — tap the next card`,
@@ -88,15 +78,12 @@ export const en = {
   // — restore tab —
   scanCards: 'Scan cards',
   stop: 'Stop',
-  saveAs: 'save as',
   restoreIdle: 'Connect a Chameleon, then scan a pile of cards.',
   restoreReady: 'Scan a pile of cards to detect archives.',
   scanning: 'Scanning — tap cards on the reader…',
   tapMoreCards: 'Tap more cards, or Restore a complete one.',
   skippedCard: (message: string) => `Skipped a card: ${message}`,
   restore: 'Restore',
-  archiveRow: (shortId: string, isEncrypted: boolean, received: number, total: number, complete: boolean) =>
-    `Archive ${shortId}…  ${isEncrypted ? '🔒 encrypted' : 'unencrypted'}  ·  ${received} / ${total} ${pr(total, { one: 'card', other: 'cards' })}${complete ? ' ✓' : ''}`,
   restoredBytes: (bytes: number, name: string) => `Restored ${bytes} bytes → ${name}.`,
 
   // — passwords —
@@ -116,9 +103,6 @@ export const en = {
     `${count} ${pr(count, { one: 'file', other: 'files' })} · ${size} stored`,
   clearedFiles: (n: number) => `Cleared ${n} ${pr(n, { one: 'file', other: 'files' })}.`,
   downloadedTo: (size: string, name: string) => `Downloaded ${size} → ${name}.`,
-  fileRow: (name: string, size: string, when: string, isEncrypted: boolean, totalChunks: number) =>
-    `${name}  ·  ${size}  ·  ${when}  ·  ${isEncrypted ? '🔒 encrypted' : 'plain'}  ·  ${totalChunks} ${pr(totalChunks, { one: 'card', other: 'cards' })}`,
-
   // — log tab (controls only; log ENTRIES stay English) —
   logLevel: 'level',
   autoScroll: 'auto-scroll',
