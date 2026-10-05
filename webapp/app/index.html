@@ -149,7 +149,9 @@
       .reader-body, .reader-status { font-size: 12px; line-height: 16px; color: var(--on-surface-variant); }
       .reader-card[data-connected="true"] .reader-status { color: inherit; }
       .reader-status:empty { display: none; }
-      .reader-actions { display: flex; align-items: center; gap: 4px; }
+      .reader-text { min-width: 0; }
+      .reader-actions { display: flex; align-items: center; gap: 4px; min-width: 0; }
+      .reader-actions .btn { display: block; max-width: 6.5rem; padding: 0 12px; line-height: 40px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .reader-card[data-connected="true"] .btn-icon { color: inherit; }
       .reader-connect { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
       .reader-connect .btn { flex: 1 1 12rem; }
@@ -405,7 +407,7 @@
       .empty-state p { margin: 0; }
       .files-footer { display: flex; align-items: center; gap: 8px; margin: 8px 4px 0; }
       #files-info { flex: 1; font-size: 13px; color: var(--on-surface-variant); }
-      .log-actions { justify-content: flex-end; gap: 4px; min-height: 56px; }
+      .log-actions { justify-content: flex-end; flex-wrap: wrap; gap: 4px; min-height: 56px; }
       #log {
         margin-top: 16px; padding: 12px; border-radius: 12px; background: var(--surface-container-high);
         font: 12px/1.5 ui-monospace, "Roboto Mono", monospace; max-height: 60vh; overflow: auto; white-space: pre-wrap;
@@ -440,8 +442,9 @@
          test/markup-ids.test.ts. */
       dialog.inspect { width: calc(100% - 32px); max-width: min(96vw, 62rem); overflow: hidden; padding: 0; }
       .inspect-body { max-height: 88vh; overflow-y: auto; overflow-x: hidden; padding: 0 16px 16px; }
-      .inspect-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 4px; padding: 8px 0; background: var(--surface-container-high); }
-      .inspect-head strong { flex: 1; min-width: 0; font-size: 20px; line-height: 28px; font-weight: 400; }
+      .inspect-head { position: sticky; top: 0; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 0; background: var(--surface-container-high); }
+      .inspect-head .btn, .inspect-head .btn-icon { flex-shrink: 0; }
+      .inspect-head strong { flex: 1 1 6rem; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 20px; line-height: 28px; font-weight: 400; }
       .inspect-meta { margin: 0 0 4px; font-size: 13px; color: var(--on-surface-variant); }
       .inspect-card { padding: 12px 16px; }
       dialog.inspect pre { margin: 0; max-width: 100%; overflow-x: auto; white-space: pre; font: 12px/1.45 ui-monospace, "Roboto Mono", monospace; }
