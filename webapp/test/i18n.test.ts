@@ -221,3 +221,12 @@ test('Turkish and Georgian use one noun form for every count', () => {
     }
   }
 });
+
+// Like #conn: #reader-name shows the live reader, so applyStaticText() must
+// never rewrite it — device.ts owns it.
+test('the reader-name span is not statically translated', () => {
+  const html = readFileSync(fileURLToPath(new URL('../../app/index.html', import.meta.url)), 'utf8');
+  const el = /<span id="reader-name"[^>]*>/.exec(html);
+  assert.ok(el, 'no #reader-name span in index.html');
+  assert.ok(!el[0].includes('data-i18n'), `#reader-name must not be statically translated: ${el[0]}`);
+});

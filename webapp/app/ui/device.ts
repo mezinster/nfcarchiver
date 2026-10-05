@@ -83,9 +83,14 @@ function updateDeviceButtons(): void {
  *  locale change. This module owns it and re-derives it from `connected`. */
 function renderConn(): void {
   $('conn').textContent = connected ? t.statusConnected : t.statusDisconnected;
-  // Drives the pill's dot colour in CSS, so connection state reads at a glance
-  // rather than only from the text.
-  $('device-pill').setAttribute('data-connected', String(connected));
+  // The reader card's CSS keys off both attributes: data-connected picks the
+  // connected/CTA half, data-reader picks the Bluetooth or NFC glyph.
+  const card = $('device-pill');
+  card.setAttribute('data-connected', String(connected));
+  card.setAttribute('data-reader', reader ?? '');
+  // "Chameleon Ultra" is a product name — only the phone reader is translated.
+  $('reader-name').textContent =
+    reader === 'chameleon' ? 'Chameleon Ultra' : reader === 'web-nfc' ? t.readerNamePhone : '';
 }
 
 export function currentTransport(): Transport | null {
@@ -208,7 +213,7 @@ export function initDeviceBar(): void {
       renderConn();
       updateDeviceButtons();
       notify(true);
-      deviceStatus.textContent = t.readerPhoneNfc;
+      deviceStatus.textContent = '';
     } catch (e) {
       await failHandOff(humanError(e));
       log.error('device', 'Phone NFC activation failed', { error: String(e) });
@@ -250,7 +255,7 @@ export function initDeviceBar(): void {
       renderConn();
       updateDeviceButtons();
       notify(true);
-      deviceStatus.textContent = t.readerChameleon;
+      deviceStatus.textContent = '';
       log.info('device', 'Connected');
     } catch (e) {
       // The teardown above already dropped whatever reader was live, so this is

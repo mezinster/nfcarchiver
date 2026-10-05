@@ -485,20 +485,30 @@
     </header>
 
     <div id="device-bar">
-      <div id="device-pill" class="status-pill" data-connected="false">
-        <span class="status-dot"></span>
-        <!-- No data-i18n: this span mirrors live connection state, so device.ts
-             owns it and re-renders it on locale change. applyStaticText() would
-             overwrite "connected" with the disconnected text. -->
-        <span id="conn">disconnected</span>
+      <div id="device-pill" class="reader-card" data-connected="false" data-reader="">
+        <span class="icon-tile" aria-hidden="true">
+          <svg class="ico glyph-bt"><use href="#i-bluetooth"/></svg>
+          <svg class="ico glyph-nfc"><use href="#i-nfc"/></svg>
+        </span>
+        <div class="reader-text">
+          <div class="reader-title">
+            <!-- #reader-name and #conn carry live state; device.ts owns and
+                 re-renders them, so neither may be marked data-i18n. -->
+            <span id="reader-name"></span><span class="reader-cta" data-i18n="readerConnectTitle">Connect a reader</span>
+          </div>
+          <div class="reader-sub"><span class="status-dot"></span><span id="conn">disconnected</span></div>
+          <div class="reader-body" data-i18n="readerConnectBody">A Chameleon Ultra over Bluetooth, or this phone’s NFC (Chrome on Android, NTAG only).</div>
+          <div id="device-status" class="reader-status" role="status"></div>
+        </div>
+        <div class="reader-actions">
+          <button id="inspect" class="btn btn-tonal" type="button" disabled data-i18n="inspect">Inspect</button>
+          <button id="disconnect" class="btn-icon icon-link-off" type="button" disabled data-i18n="disconnect">Disconnect</button>
+        </div>
+        <div class="reader-connect">
+          <button id="connect" class="btn btn-filled" type="button" data-i18n="connect">Connect Chameleon</button>
+          <button id="use-web-nfc" class="btn btn-outlined-sm" type="button" hidden data-i18n="usePhoneNfc">Use phone NFC</button>
+        </div>
       </div>
-      <div id="device-actions">
-        <button id="connect" class="btn-tonal" data-i18n="connect">Connect Chameleon</button>
-        <button id="use-web-nfc" class="btn-tonal" hidden data-i18n="usePhoneNfc">Use phone NFC</button>
-        <button id="inspect" class="btn-tonal" disabled data-i18n="inspectCard">Inspect card</button>
-        <button id="disconnect" class="btn-tonal" disabled data-i18n="disconnect">Disconnect</button>
-      </div>
-      <pre id="device-status"></pre>
     </div>
 
     <main>
