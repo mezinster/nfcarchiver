@@ -70,6 +70,8 @@ export function initRestorePanel(): void {
     scanAbort = new AbortController();
     setStatus(t.scanning);
     log.info('scan', 'Scan started');
+    // The Scan button is hidden by data-scanning; keep focus in the panel.
+    $('stop-scan').focus();
     const breaker = new FailureBreaker();
     try {
       for (;;) {
@@ -114,6 +116,7 @@ export function initRestorePanel(): void {
     } finally {
       readerLock.release('scan');
       log.info('scan', 'Scan stopped');
+      $('scan').focus();
     }
   });
 

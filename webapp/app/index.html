@@ -381,6 +381,7 @@
       .slot-counter { font-size: 32px; line-height: 40px; color: var(--primary); text-align: center; }
       @keyframes slot-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 18%, transparent); } }
       .stage-headline { margin: 0 0 16px; font-size: 22px; line-height: 28px; font-weight: 400; text-align: center; }
+      .stage-headline[data-tone="error"] { color: var(--error); }
       .stage-progress { margin-bottom: 16px; }
       .progress-meta { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; line-height: 16px; color: var(--on-surface-variant); }
       /* Kept as a native <progress>: indeterminate state is expressed by removing

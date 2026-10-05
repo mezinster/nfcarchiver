@@ -121,13 +121,16 @@ export function initArchivePanel(): void {
   );
 
   let counterTimer: ReturnType<typeof setTimeout> | undefined;
+  let estimateGen = 0;
   const updateCounter = async (): Promise<void> => {
+    const gen = ++estimateGen;
     const src = currentSource();
     const el = $('cardcount');
     if (!src) { el.replaceChildren(); return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const encrypted = ($('apass') as HTMLInputElement).value.length > 0;
     const count = await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: selectedPayloadSize() });
+    if (gen !== estimateGen) return; // a newer call started while we awaited
     const sel = $('target-tag') as HTMLSelectElement;
     const title = document.createElement('div');
     title.className = 'estimate-title';
@@ -177,6 +180,9 @@ export function initArchivePanel(): void {
   onLocaleChange(syncArchiveButton);
   syncArchiveButton();
 
+  const idleStatus = (): string =>
+    !isConnected() ? t.archiveIdle : activeReaderName() === 'web-nfc' ? t.autoDetectNeedsChameleon : t.archiveReady;
+
   onConnectionChange((connected) => {
     syncArchiveButton();
     // The fallback changes the basis of the card-count estimate (720 B/chunk ->
@@ -192,7 +198,7 @@ export function initArchivePanel(): void {
     // would overwrite the terminal "Done"/"Stopped" message. The form's status is
     // set by the Archive another / Back handler instead.
     if (connected && !archivingNow() && !$('panel-archive').hasAttribute('data-state')) {
-      setStatus(activeReaderName() === 'web-nfc' ? t.autoDetectNeedsChameleon : t.archiveReady);
+      setStatus(idleStatus());
     }
   });
 
@@ -217,7 +223,10 @@ export function initArchivePanel(): void {
     bar.max = 1;
     bar.removeAttribute('value');
     $('archive-stop').hidden = false;
+    ($('archive-stop') as HTMLButtonElement).disabled = false;
+    $('stage-headline').removeAttribute('data-tone');
     $('archive-again').hidden = true;
+    $('archive-stop').focus();
   };
 
   const leaveStage = (outcome: ArchiveOutcome): void => {
@@ -227,13 +236,21 @@ export function initArchivePanel(): void {
     const again = $('archive-again');
     again.textContent = againLabel();
     again.hidden = false;
+    if (outcome === 'failed') $('stage-headline').setAttribute('data-tone', 'error');
+    again.focus();
   };
 
-  $('archive-stop').addEventListener('click', () => { runAbort?.abort(); });
+  $('archive-stop').addEventListener('click', () => {
+    runAbort?.abort();
+    ($('archive-stop') as HTMLButtonElement).disabled = true;
+    $('stage-headline').textContent = t.stopping;
+  });
   $('archive-again').addEventListener('click', () => {
     lastOutcome = null;
     $('panel-archive').removeAttribute('data-state');
-    setStatus(isConnected() ? t.archiveReady : t.archiveIdle);
+    setStatus(idleStatus());
+    const go = $('archive') as HTMLButtonElement;
+    (go.disabled ? $(mode === 'file' ? 'source-file-btn' : 'source-text-btn') : go).focus();
   });
   onLocaleChange(() => {
     if (slotsTotal > 0) drawSlots();
