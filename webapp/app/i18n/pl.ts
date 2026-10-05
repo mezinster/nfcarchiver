@@ -150,6 +150,8 @@ export const pl: Messages = {
   errNdefFormat: 'Ten tag nie zawiera danych NFAR NDEF.',
 
   // — redesign 2026-10 —
+  encryptedLabel: 'Zaszyfrowane',
+  stopping: 'Zatrzymywanie…',
   readerConnectTitle: 'Podłącz czytnik',
   readerConnectBody: 'Chameleon Ultra przez Bluetooth lub NFC tego telefonu (Chrome na Androidzie, tylko NTAG).',
   readerNamePhone: 'NFC telefonu',

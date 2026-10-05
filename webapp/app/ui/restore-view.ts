@@ -54,7 +54,9 @@ export function renderArchiveList(
       const status = doc.createElement('span');
       status.className = 'row-status';
       sub.append(dotsEl, status);
-      text.append(name, sub);
+      const encSr = doc.createElement('span');
+      encSr.className = 'sr-only';
+      text.append(name, sub, encSr);
 
       const control = doc.createElement('div');
       control.className = 'row-control';
@@ -77,6 +79,8 @@ export function renderArchiveList(
     (text.children[0] as HTMLElement).textContent = `#${a.shortId}`;
     (sub.children[0] as HTMLElement).innerHTML = dots(a.received, a.totalChunks);
     (sub.children[1] as HTMLElement).textContent = t.archiveRowStatus(a.received, a.totalChunks, a.complete);
+    // Visually hidden: the lock is a CSS mask, so screen readers need the words.
+    (text.children[2] as HTMLElement).textContent = a.isEncrypted ? t.encryptedLabel : '';
     row.setAttribute('data-encrypted', String(a.isEncrypted));
     row.setAttribute('data-complete', String(a.complete));
     btn.textContent = t.restore;

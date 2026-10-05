@@ -117,3 +117,12 @@ test('renderFileList shows the name, meta line and encrypted flag', () => {
   assert.equal(row.getAttribute('data-encrypted'), 'true');
   assert.equal(row.children[2]!.children[0]!.getAttribute('title'), en.download);
 });
+
+test('renderFileList exposes the encrypted state as hidden text', () => {
+  const doc = makeDoc();
+  const container = doc.createElement('div') as unknown as HTMLElement;
+  renderFileList(container, [item({ id: 'e', isEncrypted: true }), item({ id: 'p', isEncrypted: false })], { onDownload: () => {}, onDelete: () => {} });
+  const rows = (container as unknown as StubEl).children;
+  assert.equal(rows[0]!.children[1]!.children[2]!.textContent, en.encryptedLabel);
+  assert.equal(rows[1]!.children[1]!.children[2]!.textContent, '');
+});

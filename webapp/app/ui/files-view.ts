@@ -43,7 +43,9 @@ export function renderFileList(
       name.className = 'row-name';
       const meta = doc.createElement('div');
       meta.className = 'row-sub';
-      text.append(name, meta);
+      const encSr = doc.createElement('span');
+      encSr.className = 'sr-only';
+      text.append(name, meta, encSr);
 
       const control = doc.createElement('div');
       control.className = 'row-control';
@@ -67,6 +69,8 @@ export function renderFileList(
     (text.children[0] as HTMLElement).textContent = f.name;
     (text.children[1] as HTMLElement).textContent =
       t.fileRowMeta(humanSize(f.size), f.totalChunks, new Date(f.createdAt).toLocaleString());
+    // Visually hidden: the lock is a CSS mask, so screen readers need the words.
+    (text.children[2] as HTMLElement).textContent = f.isEncrypted ? t.encryptedLabel : '';
     row.setAttribute('data-encrypted', String(f.isEncrypted));
     const dlBtn = controls.children[0] as HTMLElement;
     const delBtn = controls.children[1] as HTMLElement;

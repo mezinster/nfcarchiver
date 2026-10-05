@@ -151,3 +151,13 @@ test('restore view omits dots for archives too long to draw', () => {
   const row = (container as unknown as StubEl).children[0]!;
   assert.equal(row.children[1]!.children[1]!.children[0]!.innerHTML, '');
 });
+
+test('restore view exposes the encrypted state as hidden text, relabelled per render', () => {
+  setLocale('en');
+  const doc = makeDoc();
+  const container = doc.createElement('div') as unknown as HTMLElement;
+  renderArchiveList(container, [archive({ isEncrypted: true }), archive({ archiveId: 'bbbb', shortId: 'bbbb', isEncrypted: false })], () => {});
+  const rows = (container as unknown as StubEl).children;
+  assert.equal(rows[0]!.children[1]!.children[2]!.textContent, en.encryptedLabel);
+  assert.equal(rows[1]!.children[1]!.children[2]!.textContent, '');
+});

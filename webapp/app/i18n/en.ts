@@ -149,6 +149,8 @@ export const en = {
   errNdefFormat: 'This tag holds no NFAR NDEF data.',
 
   // — redesign 2026-10: reader card, source picker, stage —
+  encryptedLabel: 'Encrypted',
+  stopping: 'Stopping…',
   readerConnectTitle: 'Connect a reader',
   readerConnectBody: 'A Chameleon Ultra over Bluetooth, or this phone’s NFC (Chrome on Android, NTAG only).',
   readerNamePhone: 'Phone NFC',

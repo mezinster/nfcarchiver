@@ -147,6 +147,8 @@ export const tr: Messages = {
   errNdefFormat: 'Bu etikette NFAR NDEF verisi yok.',
 
   // — redesign 2026-10 —
+  encryptedLabel: 'Şifreli',
+  stopping: 'Durduruluyor…',
   readerConnectTitle: 'Bir okuyucu bağlayın',
   readerConnectBody: "Bluetooth üzerinden bir Chameleon Ultra ya da bu telefonun NFC'si (Android'de Chrome, yalnızca NTAG).",
   readerNamePhone: "Telefonun NFC'si",

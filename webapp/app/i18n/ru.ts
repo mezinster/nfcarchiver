@@ -150,6 +150,8 @@ export const ru: Messages = {
   errNdefFormat: 'На этой метке нет данных NFAR NDEF.',
 
   // — redesign 2026-10 —
+  encryptedLabel: 'Зашифровано',
+  stopping: 'Остановка…',
   readerConnectTitle: 'Подключите считыватель',
   readerConnectBody: 'Chameleon Ultra по Bluetooth или NFC этого телефона (Chrome на Android, только NTAG).',
   readerNamePhone: 'NFC телефона',

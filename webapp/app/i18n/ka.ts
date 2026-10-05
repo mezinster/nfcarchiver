@@ -147,6 +147,8 @@ export const ka: Messages = {
   errNdefFormat: 'ამ ტეგზე NFAR NDEF მონაცემები არ არის.',
 
   // — redesign 2026-10 —
+  encryptedLabel: 'დაშიფრულია',
+  stopping: 'ჩერდება…',
   readerConnectTitle: 'დააკავშირეთ წამკითხველი',
   readerConnectBody: 'Chameleon Ultra Bluetooth-ით, ან ამ ტელეფონის NFC (Chrome Android-ზე, მხოლოდ NTAG).',
   readerNamePhone: 'ტელეფონის NFC',
