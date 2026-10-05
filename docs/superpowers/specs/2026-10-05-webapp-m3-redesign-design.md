@@ -174,3 +174,19 @@ New keys (English shown; all seven catalogues): `readerConnectTitle` "Connect a 
 - Any Flutter app change, including pulling its palette further toward this one.
 - Persisting the selected source mode or tab across reloads.
 - Navigation rail layouts, landscape-specific layouts, and tablet breakpoints beyond the single 840px switch.
+
+## Amendments (2026-10-05, during planning)
+
+Found while reading the code for the implementation plan; they override the sections above.
+
+1. **Inspect keeps preformatted text.** Identity and NFAR stay `<pre>` blocks (now inside cards), not key/value rows with a CRC chip: the same strings feed the downloadable report via `inspect-orchestrator.ts`, and re-shaping them is a logic change this redesign does not need.
+2. **Reader name.** "Chameleon Ultra" is a product name and is hard-coded; only the phone reader's name is translated (new key `readerNamePhone`). `#device-status` no longer echoes the reader name (`readerChameleon` / `readerPhoneNfc` are retired) — it carries only messages such as "Reader disconnected…". The reader card's button uses a new short key `inspect` ("Inspect"); `inspectCard` stays the dialog title.
+3. **Wide navigation** sits above the panels, i.e. below the reader card, because `#tabs` lives inside `<main>`. Moving it into the header would split the tablist from its panels for no gain.
+4. **No separate stage supporting line.** The stage headline mirrors the orchestrator's status text (`tapCardOf` / `writingCard` / errors), which already says what to do next.
+5. **Icon buttons use CSS masks.** Download, Delete, Disconnect and Close render their glyph from a `--icon` data-URI mask on `.btn-icon`, so the button's `textContent` stays exactly its translated label (the view tests assert it, and it is the accessible name). The sprite gains only the glyphs used as real `<svg>`s.
+6. **Two more keys**: `overwriteTitle`, `overwriteBody` (the dialog previously had only a body sentence). **Retired keys** (removed from all seven catalogues): `cardEstimate`, `archiveRow`, `fileRow`, `readerChameleon`, `readerPhoneNfc`, `orSeparator`, `targetTag`, `password`, `saveAs`, `optionalPlaceholder`, `subTargetTag`.
+7. **`ArchiveOrchestrator.run` returns its outcome** — `'done' | 'stopped' | 'failed'` — so the panel can show "Archive another" or "Back" without re-deriving it from status text. `ArchiveIO.awaitReconnect` takes the `AbortSignal`.
+8. **Stop while the overwrite dialog is open is unreachable from the UI** (the dialog is modal). The orchestrator still checks `signal.aborted` after the prompt resolves, so the guarantee holds for any future caller, but the panel does not wire abort to close the dialog.
+9. **Stop vs reader teardown.** The loop decides "user pressed Stop" from `signal.aborted`, never from the error type: a Web NFC teardown rejects the pending tap with its own `AbortError`, and that must still route to the reconnect path.
+10. **Slot density.** Up to 5 cards, slots show glyph + "Card n" + state word; 6–10 show the glyph only (`data-dense`); above 10, the counter.
+11. **Source selection is a pure function** (`app/source.ts: pickSource`) so the mode rule — a chosen file is ignored in Text mode — is unit-tested.
