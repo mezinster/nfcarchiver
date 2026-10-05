@@ -149,6 +149,7 @@ export const ka: Messages = {
   // — redesign 2026-10 —
   encryptedLabel: 'დაშიფრულია',
   stopping: 'ჩერდება…',
+  restoreWebNfcMifareNote: 'ტელეფონის NFC კითხულობს მხოლოდ NTAG არქივებს. Mifare Classic ბარათები ბრაუზერამდე არ აღწევს — მათ წასაკითხად დააკავშირეთ Chameleon ან გამოიყენეთ Android-ის აპი.',
   readerConnectTitle: 'დააკავშირეთ წამკითხველი',
   readerConnectBody: 'Chameleon Ultra Bluetooth-ით, ან ამ ტელეფონის NFC (Chrome Android-ზე, მხოლოდ NTAG).',
   readerNamePhone: 'ტელეფონის NFC',

@@ -149,6 +149,7 @@ export const tr: Messages = {
   // — redesign 2026-10 —
   encryptedLabel: 'Şifreli',
   stopping: 'Durduruluyor…',
+  restoreWebNfcMifareNote: "Telefonun NFC'si yalnızca NTAG arşivlerini okur. Mifare Classic kartlar tarayıcıya ulaşmaz — okumak için bir Chameleon bağlayın ya da Android uygulamasını kullanın.",
   readerConnectTitle: 'Bir okuyucu bağlayın',
   readerConnectBody: "Bluetooth üzerinden bir Chameleon Ultra ya da bu telefonun NFC'si (Android'de Chrome, yalnızca NTAG).",
   readerNamePhone: "Telefonun NFC'si",

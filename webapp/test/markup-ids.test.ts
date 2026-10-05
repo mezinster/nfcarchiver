@@ -175,3 +175,16 @@ test('the write stage holds its own controls and progress', () => {
   }
   assert.ok(!html.includes('id="archive-progress-row"'), 'the old progress card is gone');
 });
+
+test('restore tells phone-NFC users that Mifare Classic cards never reach the browser', () => {
+  // Web NFC delivers only NDEF tags. An NFAR Mifare Classic card holds raw
+  // blocks behind sector keys, so Chrome fires no reading and no error — the
+  // page cannot detect the tap at all (confirmed on a Pixel, 2026-10-05). The
+  // only place to say so is up front, whenever phone NFC is the active reader.
+  assert.match(html, /<[^>]+id="restore-webnfc-note"[\s\S]*?data-i18n="restoreWebNfcMifareNote"/,
+    '#restore-webnfc-note must carry the restoreWebNfcMifareNote text');
+  const css = stylesheet();
+  assert.match(css, /#restore-webnfc-note\s*\{[^}]*display:\s*none/, 'the note is hidden by default');
+  assert.match(css, /:has\(#device-pill\[data-reader="web-nfc"\]\)\s*#restore-webnfc-note\s*\{[^}]*display:\s*flex/,
+    'the note shows exactly when device.ts marks the reader as web-nfc');
+});

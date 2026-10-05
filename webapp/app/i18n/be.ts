@@ -152,6 +152,7 @@ export const be: Messages = {
   // — redesign 2026-10 —
   encryptedLabel: 'Зашыфравана',
   stopping: 'Спыненне…',
+  restoreWebNfcMifareNote: 'NFC тэлефона чытае толькі архівы на NTAG. Карты Mifare Classic не даходзяць да браўзера — каб прачытаць іх, падключыце Chameleon або скарыстайцеся праграмай для Android.',
   readerConnectTitle: 'Падключыце счытвальнік',
   readerConnectBody: 'Chameleon Ultra праз Bluetooth або NFC гэтага тэлефона (Chrome на Android, толькі NTAG).',
   readerNamePhone: 'NFC тэлефона',
