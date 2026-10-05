@@ -652,31 +652,25 @@
         <div class="card">
           <div class="row">
             <div class="row-text"><div class="row-name" data-i18n="logLevel">level</div></div>
-            <div class="row-control">
-              <select id="log-level">
-                <option value="debug">debug</option>
-                <option value="info" selected>info</option>
-                <option value="warn">warn</option>
-                <option value="error">error</option>
-              </select>
-            </div>
+            <select id="log-level" class="compact">
+              <option value="debug">debug</option>
+              <option value="info" selected>info</option>
+              <option value="warn">warn</option>
+              <option value="error">error</option>
+            </select>
           </div>
           <div class="row">
             <div class="row-text"><div class="row-name" data-i18n="autoScroll">auto-scroll</div></div>
-            <div class="row-control">
-              <label class="switch"><input type="checkbox" id="log-autoscroll" checked /><span class="switch-track"></span></label>
-            </div>
+            <label class="switch"><input type="checkbox" id="log-autoscroll" checked /><span class="switch-track"></span></label>
           </div>
           <div class="row">
             <div class="row-text"><div class="row-name" data-i18n="mirrorToConsole">mirror to console</div></div>
-            <div class="row-control">
-              <label class="switch"><input type="checkbox" id="log-console" /><span class="switch-track"></span></label>
-            </div>
+            <label class="switch"><input type="checkbox" id="log-console" /><span class="switch-track"></span></label>
           </div>
-          <div class="row" style="justify-content:flex-end;gap:4px">
-            <button id="log-clear" class="btn-text" data-i18n="clear">Clear</button>
-            <button id="log-copy" class="btn-text" data-i18n="copy">Copy</button>
-            <button id="log-download" class="btn-text" data-i18n="download">Download</button>
+          <div class="row log-actions">
+            <button id="log-clear" class="btn btn-text" type="button" data-i18n="clear">Clear</button>
+            <button id="log-copy" class="btn btn-text" type="button" data-i18n="copy">Copy</button>
+            <button id="log-download" class="btn btn-text" type="button" data-i18n="download">Download</button>
           </div>
         </div>
         <div id="log"></div>
@@ -700,21 +694,18 @@
     <dialog id="inspect-dialog" class="inspect">
       <div class="inspect-body">
         <div class="inspect-head">
+          <button id="inspect-close" class="btn-icon icon-close" type="button" data-i18n="close">Close</button>
           <strong data-i18n="inspectCard">Inspect card</strong>
-          <span id="inspect-progress" class="muted"></span>
-          <span class="inspect-actions">
-            <button id="inspect-copy" class="btn-text" type="button" data-i18n="copy">Copy</button>
-            <button id="inspect-download" class="btn-text" type="button" data-i18n="download">Download</button>
-            <button id="inspect-close" class="btn-text" type="button" data-i18n="close">Close</button>
-          </span>
+          <button id="inspect-copy" class="btn btn-text" type="button" data-i18n="copy">Copy</button>
+          <button id="inspect-download" class="btn btn-text" type="button" data-i18n="download">Download</button>
         </div>
-        <p id="inspect-status" class="muted"></p>
-        <h4 data-i18n="inspectIdentity">Identity</h4>
-        <pre id="inspect-identity"></pre>
-        <h4 data-i18n="inspectNfar">NFAR chunk</h4>
-        <pre id="inspect-nfar"></pre>
-        <h4 data-i18n="inspectRaw">Raw</h4>
-        <pre id="inspect-raw"></pre>
+        <p class="inspect-meta"><span id="inspect-progress"></span> <span id="inspect-status"></span></p>
+        <span class="section-label" data-i18n="inspectIdentity">Identity</span>
+        <div class="card inspect-card"><pre id="inspect-identity"></pre></div>
+        <span class="section-label" data-i18n="inspectNfar">NFAR chunk</span>
+        <div class="card inspect-card"><pre id="inspect-nfar"></pre></div>
+        <span class="section-label" data-i18n="inspectRaw">Raw</span>
+        <div class="card inspect-card"><pre id="inspect-raw"></pre></div>
       </div>
     </dialog>
 
