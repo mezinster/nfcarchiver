@@ -216,10 +216,11 @@
       .row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
       .row-name { font-size: 16px; line-height: 24px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .row-sub { font-size: 12px; line-height: 16px; color: var(--on-surface-variant); }
+      .row-name.mono { font-size: 14px; }
       .row-control { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
-      .row[data-encrypted="true"] .row-name::after {
-        content: ""; display: inline-block; width: 16px; height: 16px; margin-left: 6px; vertical-align: -2px;
-        background: currentColor; -webkit-mask: var(--icon-lock) center / 16px no-repeat; mask: var(--icon-lock) center / 16px no-repeat;
+      .row[data-encrypted="true"] .row-sub::before {
+        content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px;
+        background: currentColor; -webkit-mask: var(--icon-lock) center / 14px no-repeat; mask: var(--icon-lock) center / 14px no-repeat;
       }
       .row[data-complete="true"] .row-status { color: var(--success); }
       .dots { display: inline-flex; gap: 3px; margin-right: 6px; vertical-align: middle; }
