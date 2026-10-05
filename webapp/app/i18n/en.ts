@@ -151,6 +151,7 @@ export const en = {
   // — redesign 2026-10: reader card, source picker, stage —
   encryptedLabel: 'Encrypted',
   stopping: 'Stopping…',
+  restoreWebNfcMifareNote: 'Phone NFC reads NTAG archives only. Mifare Classic cards never reach the browser — to read them, connect a Chameleon or use the Android app.',
   readerConnectTitle: 'Connect a reader',
   readerConnectBody: 'A Chameleon Ultra over Bluetooth, or this phone’s NFC (Chrome on Android, NTAG only).',
   readerNamePhone: 'Phone NFC',

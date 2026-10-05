@@ -397,6 +397,13 @@
       .pulse-core .ico { width: 36px; height: 36px; }
       @keyframes ring { from { transform: scale(0.7); opacity: 0.8; } to { transform: scale(1.1); opacity: 0; } }
       .restore-idle { margin-top: 16px; }
+      .notice {
+        margin: 16px 0 0; padding: 12px 16px; border-radius: 12px; gap: 12px; align-items: flex-start;
+        background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 13px; line-height: 18px;
+      }
+      .notice .ico { width: 20px; height: 20px; flex-shrink: 0; color: var(--primary); }
+      #restore-webnfc-note { display: none; }
+      body:has(#device-pill[data-reader="web-nfc"]) #restore-webnfc-note { display: flex; }
       @media (prefers-reduced-motion: reduce) {
         .slot, .pulse::before { animation: none !important; }
         progress::-webkit-progress-value { transition: none; }
@@ -610,6 +617,10 @@
       </section>
 
       <section id="panel-restore" role="tabpanel" hidden>
+        <!-- Shown by CSS only while phone NFC is the reader (#device-pill[data-reader="web-nfc"]):
+             Chrome's Web NFC never reports a Mifare Classic NFAR card — no reading,
+             no error — so this cannot be said at tap time, only up front. -->
+        <p id="restore-webnfc-note" class="notice" role="note"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span data-i18n="restoreWebNfcMifareNote">Phone NFC reads NTAG archives only. Mifare Classic cards never reach the browser — to read them, connect a Chameleon or use the Android app.</span></p>
         <div class="restore-idle">
           <button id="scan" class="btn btn-primary" type="button" disabled><svg class="ico" aria-hidden="true"><use href="#i-nfc"/></svg><span data-i18n="scanCards">Scan cards</span></button>
         </div>
