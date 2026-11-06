@@ -100,15 +100,16 @@ void main() {
   });
 
   group('deployment target', () {
-    // file_picker's Swift package (file-picker-darwin) requires iOS 14.0;
-    // at 13.0 xcodebuild fails resolving FlutterGeneratedPluginSwiftPackage.
-    test('every IPHONEOS_DEPLOYMENT_TARGET is at least 14.0', () {
+    // App Store Connect refuses uploads targeting less than iOS 15.0 from
+    // April 2027 (warned on every upload of 1.2.0). The earlier floor, 14.0,
+    // came from file_picker's Swift package (file-picker-darwin).
+    test('every IPHONEOS_DEPLOYMENT_TARGET is at least 15.0', () {
       final targets = RegExp(r'IPHONEOS_DEPLOYMENT_TARGET = ([\d.]+);')
           .allMatches(pbxproj)
           .map((m) => double.parse(m.group(1)!))
           .toList();
       expect(targets, isNotEmpty);
-      expect(targets, everyElement(greaterThanOrEqualTo(14.0)));
+      expect(targets, everyElement(greaterThanOrEqualTo(15.0)));
     });
   });
 
