@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_archiver/features/nfc/domain/card_reader.dart';
-import 'package:nfc_archiver/features/nfc/domain/ios_read_session.dart';
+import 'package:nfc_archiver/features/nfc/domain/ios_nfc_session.dart';
 import 'package:nfc_manager/nfc_manager_ios.dart';
 
 /// Core NFC read sessions during a scan: one sheet per tag.
@@ -16,14 +16,14 @@ void main() {
   late List<String> calls;
   late List<Duration> waits;
   late DateTime now;
-  late IosReadSession session;
+  late IosNfcSession session;
 
-  IosReadSession make({
+  IosNfcSession make({
     Future<void> Function()? restartPolling,
     Future<void> Function({String? alertMessage, String? errorMessage})?
         invalidate,
   }) =>
-      IosReadSession(
+      IosNfcSession(
         restartPolling:
             restartPolling ?? () async => calls.add('restartPolling'),
         invalidate: invalidate ??
@@ -96,13 +96,13 @@ void main() {
         await session.end(message: 'Chunk 1 of 3');
         now = now.add(const Duration(milliseconds: 400));
         await session.beforeBegin();
-        expect(waits, [IosReadSession.sheetCooldown - const Duration(milliseconds: 400)]);
+        expect(waits, [IosNfcSession.sheetCooldown - const Duration(milliseconds: 400)]);
       });
 
       test('a begin after the cool-down does not wait', () async {
         session.began();
         await session.end(message: 'Chunk 1 of 3');
-        now = now.add(IosReadSession.sheetCooldown);
+        now = now.add(IosNfcSession.sheetCooldown);
         await session.beforeBegin();
         expect(waits, isEmpty);
       });
@@ -113,7 +113,7 @@ void main() {
         session.began();
         await session.beforeBegin();
         expect(calls, ['invalidate alert=null error=null']);
-        expect(waits, [IosReadSession.sheetCooldown]);
+        expect(waits, [IosNfcSession.sheetCooldown]);
       });
     });
 
@@ -133,7 +133,7 @@ void main() {
 
       test('is a real error once the session has been up a while', () {
         session.began();
-        now = now.add(IosReadSession.refusalWindow);
+        now = now.add(IosNfcSession.refusalWindow);
         expect(session.refusedAtBegin(terminated), isFalse);
       });
 
@@ -151,7 +151,7 @@ void main() {
         expect(session.refusedAtBegin(terminated), isTrue);
         await session.retryAfterRefusal();
         await session.beforeBegin();
-        expect(waits, [IosReadSession.refusalRetryGap]);
+        expect(waits, [IosNfcSession.refusalRetryGap]);
       });
 
       test('is released before the retry', () async {
@@ -163,7 +163,7 @@ void main() {
 
       // Something other than "not ready" must surface eventually.
       test('stops being retried after too many in a row', () async {
-        for (var i = 0; i < IosReadSession.maxRefusalRetries; i++) {
+        for (var i = 0; i < IosNfcSession.maxRefusalRetries; i++) {
           session.began();
           expect(session.refusedAtBegin(terminated), isTrue, reason: 'try $i');
           await session.retryAfterRefusal();
@@ -173,7 +173,7 @@ void main() {
       });
 
       test('a handled tag resets the retry budget', () async {
-        for (var i = 0; i < IosReadSession.maxRefusalRetries; i++) {
+        for (var i = 0; i < IosNfcSession.maxRefusalRetries; i++) {
           session.began();
           session.refusedAtBegin(terminated);
           await session.retryAfterRefusal();
@@ -198,7 +198,7 @@ void main() {
         session.began();
         await session.invalidatedBySystem();
         await session.beforeBegin();
-        expect(waits, [IosReadSession.sheetCooldown]);
+        expect(waits, [IosNfcSession.sheetCooldown]);
       });
 
       test('a failing release is swallowed', () async {
@@ -219,21 +219,21 @@ void main() {
       // last sighting — the window has to cover the sheet's cool-down.
       test('is a repeat when the next sheet finds it again', () {
         session.isRepeat('04A1B2');
-        now = now.add(IosReadSession.sheetCooldown + const Duration(milliseconds: 800));
+        now = now.add(IosNfcSession.sheetCooldown + const Duration(milliseconds: 800));
         expect(session.isRepeat('04A1B2'), isTrue);
       });
 
       test('stays a repeat while it keeps being rediscovered', () {
         session.isRepeat('04A1B2');
         for (var i = 0; i < 5; i++) {
-          now = now.add(IosReadSession.repeatPause + const Duration(milliseconds: 600));
+          now = now.add(IosNfcSession.repeatPause + const Duration(milliseconds: 600));
           expect(session.isRepeat('04A1B2'), isTrue, reason: 'rediscovery $i');
         }
       });
 
       test('is new again once it has been away', () {
         session.isRepeat('04A1B2');
-        now = now.add(IosReadSession.repeatWindow + const Duration(milliseconds: 1));
+        now = now.add(IosNfcSession.repeatWindow + const Duration(milliseconds: 1));
         expect(session.isRepeat('04A1B2'), isFalse);
       });
 
@@ -252,7 +252,7 @@ void main() {
       test('a repeat keeps the sheet up and polls again, slowly', () async {
         session.began();
         await session.keepPolling();
-        expect(waits, [IosReadSession.repeatPause]);
+        expect(waits, [IosNfcSession.repeatPause]);
         expect(calls, ['restartPolling']);
       });
 

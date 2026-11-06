@@ -96,6 +96,8 @@ class FakeCardReader implements CardReader {
   void endTag(String message, {bool problem = false}) =>
       endedTags.add(problem ? 'problem: $message' : message);
 
+  void Function(ScanStop reason)? lastWriteOnStopped;
+
   @override
   Future<void Function()> startWriteSession({
     required Chunk chunk,
@@ -107,9 +109,12 @@ class FakeCardReader implements CardReader {
     void Function(String tappedMedium, String configuredMedium,
             NfcTagInfo? tagInfo)?
         onTagTypeMismatch,
+    void Function(ScanStop reason)? onStopped,
     String alertMessage = '',
-  }) async =>
-      () {};
+  }) async {
+    lastWriteOnStopped = onStopped;
+    return () {};
+  }
 
   @override
   Future<NfcReadResult> readTag({Duration timeout = const Duration(seconds: 30)}) =>

@@ -204,6 +204,11 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
             tagInfo: tagInfo,
           );
         },
+        onStopped: (reason) {
+          // The reader already released its session; nothing left to stop.
+          _stopSession = null;
+          state = NfcSessionStopped(reason);
+        },
       );
     } catch (e) {
       state = NfcSessionError(message: e.toString());

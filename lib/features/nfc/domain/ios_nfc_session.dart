@@ -4,7 +4,9 @@ import 'package:nfc_manager/nfc_manager_ios.dart';
 import '../../../core/log/logger.dart';
 import 'card_reader.dart';
 
-/// Core NFC read sessions during a scan: one system sheet per tag.
+/// Core NFC sessions — restore scans and archive writes alike — one system
+/// sheet per tag. One instance serves both, because nfc_manager holds a single
+/// session at a time.
 ///
 /// The restore screen re-arms after every tag, which on Android is free. On
 /// iOS every session is a system sheet with rules of its own, and each rule
@@ -32,8 +34,8 @@ import 'card_reader.dart';
 ///   repeat: the sheet stays up ([keepPolling]) waiting for a real tap.
 ///
 /// Android is untouched: nothing ends, waits, repeats or releases.
-class IosReadSession {
-  IosReadSession({
+class IosNfcSession {
+  IosNfcSession({
     required Future<void> Function() restartPolling,
     required Future<void> Function({String? alertMessage, String? errorMessage})
         invalidate,
