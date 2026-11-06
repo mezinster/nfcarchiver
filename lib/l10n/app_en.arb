@@ -269,6 +269,20 @@
     }
   },
   "chunkOfTotal": "Chunk {current} of {total}",
+  "chunkAlreadyScanned": "Chunk {current} of {total} already scanned",
+  "@chunkAlreadyScanned": {
+    "description": "Shown on the iOS NFC sheet when the tapped tag holds a chunk the scan already has",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "description": "Chunk number (1-based)"
+      },
+      "total": {
+        "type": "int",
+        "description": "Total chunks in the archive"
+      }
+    }
+  },
   "@chunkOfTotal": {
     "description": "Chunk progress indicator",
     "placeholders": {

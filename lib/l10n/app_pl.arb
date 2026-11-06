@@ -53,6 +53,7 @@
   "holdTagNearDevice": "Przytrzymaj tag przy urządzeniu",
   "readyToWriteTag": "Gotowy do zapisu tagu {index}",
   "chunkOfTotal": "Fragment {current} z {total}",
+  "chunkAlreadyScanned": "Fragment {current} z {total} już zeskanowany",
   "writeToTag": "Zapisz na tag",
   "cancel": "Anuluj",
   "skipThisTag": "Pomiń ten tag",

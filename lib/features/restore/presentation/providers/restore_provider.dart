@@ -131,7 +131,8 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
   }
 
   /// Process a scanned chunk.
-  void processChunk(Chunk chunk) {
+  /// Returns what was scanned, including whether it was new to the session.
+  ScannedChunkInfo processChunk(Chunk chunk) {
     final session = _repository.getSession(chunk.archiveId);
 
     // Check if this chunk already exists
@@ -176,6 +177,7 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
         lastScannedChunk: info,
       );
     }
+    return info;
   }
 
   /// Handle scan error.

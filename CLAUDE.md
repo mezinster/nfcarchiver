@@ -162,6 +162,22 @@ The consequence is counter-intuitive and worth stating plainly: **the Chameleon 
 
 `ChameleonReader.isAvailable()` and `ChameleonReader.supportsMifareClassic()` both return `true` unconditionally, and the class imports nothing from `nfc_manager`, so the reader path is independent of Core NFC by construction — keep it that way. The UI must never fall back to a phone-wide capability check for either: doing so is what once hid Mifare Classic on iOS with a Chameleon connected.
 
+### Core NFC scanning: one sheet per tag
+
+Restoring on iOS took several hardware rounds to get right; the rules live in `lib/features/nfc/domain/ios_read_session.dart` (`IosReadSession`) and each answers something a real iPhone did:
+
+- **Sessions don't poll FeliCa** (`polling_options.dart`). Polling ISO 18092 with an empty `felica.systemcodes` array invalidates every session: "Missing required entitlement".
+- **nfc_manager holds one session and never forgets it by itself.** A second `startSession` throws `session_already_exists`, and `didInvalidateWithError` does not clear the plugin's handle — only `stopSession` does. Every iOS-ended session is therefore released explicitly.
+- **Each tag ends its sheet.** iOS gives feedback (checkmark or cross, with haptic) only when a session ends; the app's own vibration does not get through while a sheet is up. Keeping one sheet open across tags was silent. A new chunk ends as success, a duplicate or unreadable tag as an error (`endTag`).
+- **The next sheet waits ~3 s** (`sheetCooldown`): begun 0.2 s after an end, a session was cancelled as "user canceled" when the old sheet finished dismissing. Begins iOS still refuses right away ("Session invalidated unexpectedly" within 500 ms) are retried every 0.5 s without telling the UI.
+- **Cancel and the 60 s timeout stop the scan** (`NfcSessionStopped`, "Scan more tags"); every other error is retried by the screen.
+- **A tag resting on the phone is read once**: the next sheet finds it at once, so a tag ID seen again within 5 s is ignored. NTAG IDs on iOS come from `MiFareIos.identifier`.
+- **Leaving the scan screen any way stops the scan**, including a begin still waiting out the cool-down.
+
+Debugging these needs the app's log from the phone: `flutter run --profile` and subscribe to the VM Service `Logging` stream (`print` output does not reach the terminal on iOS 17+, and `log collect` archives from iOS 26 cannot be read by macOS 15's `log`).
+
+**Writing tags (archive) on iOS still uses the old session handling** and has not been through these fixes.
+
 ### What the Chameleon path does NOT verify
 
 It bypasses `nfc_manager` entirely (it uses `lib/core/chameleon/`), so it exercises **none** of `IosNdefIO`, `NdefStatusIos`, or the `defaultTargetPlatform` guards in `ndefIoFor`/`mifareIoFor`. Verifying those needs Core NFC, hence the paid programme. Don't let a green Chameleon run on iOS be mistaken for iOS coverage of the `nfc_manager` layer.

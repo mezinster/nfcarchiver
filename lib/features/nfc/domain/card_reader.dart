@@ -4,6 +4,18 @@ import '../../../core/models/nfc_tag_info.dart';
 import '../../../core/chameleon/chameleon_device.dart';
 import '../data/nfc_repository.dart';
 
+/// Why a scan ended by itself, as opposed to failing and being retried.
+enum ScanStop {
+  /// The user dismissed the system sheet.
+  cancelled,
+
+  /// The system sheet timed out with no tag (iOS: 60 s).
+  timedOut,
+
+  /// The screen gave up after too many consecutive errors.
+  failed,
+}
+
 /// A source of card reads and writes.
 ///
 /// **Extracted from [NfcRepository]'s existing public API, not invented.** Every
@@ -62,12 +74,21 @@ abstract class CardReader {
 
   Future<bool> isAvailable();
 
+  /// [onStopped] reports that the scan ended and must NOT be re-armed by
+  /// itself — today only iOS's sheet does that (Cancel, timeout).
   Future<void Function()> startReadSession({
     required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
     required void Function(String message) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
+    void Function(ScanStop reason)? onStopped,
     String alertMessage,
   });
+
+  /// End the system NFC sheet for the tag just read, showing [message] — as a
+  /// failure if [problem]. Only iOS has such a sheet, and its checkmark or
+  /// cross with their haptics are the only feedback there; elsewhere this does
+  /// nothing.
+  void endTag(String message, {bool problem = false});
 
   Future<void Function()> startWriteSession({
     required Chunk chunk,

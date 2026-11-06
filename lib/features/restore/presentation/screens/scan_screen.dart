@@ -16,10 +16,28 @@ class ScanScreen extends ConsumerStatefulWidget {
 }
 
 class _ScanScreenState extends ConsumerState<ScanScreen> {
+  /// Kept for dispose, where ref may no longer be used.
+  late final NfcSessionNotifier _nfcSession;
+
   @override
   void initState() {
     super.initState();
+    _nfcSession = ref.read(nfcSessionProvider.notifier);
     WidgetsBinding.instance.addPostFrameCallback((_) => _startScanning());
+  }
+
+  /// However the screen goes — the app bar's arrow, a swipe-back, Android's
+  /// back button, or on to the result — the scan goes with it. Only the arrow
+  /// used to stop it, so an iOS sheet could open over the next screen.
+  @override
+  void dispose() {
+    final nfcSession = _nfcSession;
+    // After the frame: stopping changes provider state, which must not happen
+    // while the tree is being torn down.
+    Future.microtask(() {
+      if (nfcSession.mounted) nfcSession.stopSession();
+    });
+    super.dispose();
   }
 
   Future<void> _startScanning() async {
@@ -42,7 +60,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     _consecutiveErrors++;
     if (_consecutiveErrors >= _errorLimit) {
       // Stopping and saying so beats spinning and showing nothing.
-      ref.read(nfcSessionProvider.notifier).stopSession();
+      ref.read(nfcSessionProvider.notifier).halt();
       return;
     }
     await Future<void>.delayed(_retryFloor);
@@ -80,12 +98,28 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         // Parse chunk and process
         try {
           final chunk = next.chunk;
-          ref.read(restoreProvider.notifier).processChunk(chunk);
+          final info = ref.read(restoreProvider.notifier).processChunk(chunk);
+          // iOS's sheet hides this screen's banner: the way it closes — a
+          // checkmark for a new chunk, a cross for a duplicate, each with its
+          // own haptic — is all the user has to go on.
+          final l10n = AppLocalizations.of(context);
+          final number = chunk.chunkIndex + 1;
+          ref.read(nfcSessionProvider.notifier).endTag(
+                info.isNew
+                    ? (l10n?.chunkOfTotal(number, chunk.totalChunks) ?? '')
+                    : (l10n?.chunkAlreadyScanned(number, chunk.totalChunks) ?? ''),
+                problem: !info.isNew,
+              );
         } catch (e) {
           ref.read(restoreProvider.notifier).scanError(e.toString());
         }
 
-        // Continue scanning
+        // That chunk completed the archive: the screen is about to leave for
+        // the result, and a re-arm would open a fresh iOS sheet on top of it.
+        if (ref.read(restoreProvider) is RestoreReady) return;
+
+        // Continue scanning (on iOS: a new sheet, once the last has closed —
+        // see IosReadSession).
         _startNfcSession();
       } else if (next is NfcSessionError) {
         ref.read(restoreProvider.notifier).scanError(next.message);
@@ -98,6 +132,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         // hung the app, and the same failure the web app's Web NFC scan hit.
         _restartAfterError();
       }
+      // NfcSessionStopped: Cancel, timeout or out of retries. Deliberately no
+      // re-arm — the user dismissed the sheet; "Scan more tags" brings it back.
     });
 
     // Navigate when ready
@@ -230,9 +266,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                   _NfcAnimatedIcon(isScanning: nfcState is NfcSessionWaiting),
                   const SizedBox(height: 24),
                   Text(
-                    nfcState is NfcSessionWaiting
-                        ? l10n.scanningForTags
-                        : l10n.preparingScanner,
+                    switch (nfcState) {
+                      NfcSessionWaiting() => l10n.scanningForTags,
+                      NfcSessionStopped() => l10n.scanTags,
+                      _ => l10n.preparingScanner,
+                    },
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
@@ -245,6 +283,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                               .withValues(alpha: 0.6),
                         ),
                   ),
+                  if (nfcState is NfcSessionStopped) ...[
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () {
+                        _consecutiveErrors = 0;
+                        _startNfcSession();
+                      },
+                      icon: const Icon(Icons.nfc),
+                      label: Text(l10n.scanMoreTags),
+                    ),
+                  ],
                 ],
               ),
               ),

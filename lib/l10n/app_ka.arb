@@ -53,6 +53,7 @@
   "holdTagNearDevice": "მიაახლოვეთ ტეგი მოწყობილობას",
   "readyToWriteTag": "მზადაა ტეგის {index} ჩასაწერად",
   "chunkOfTotal": "ნაწილი {current} / {total}",
+  "chunkAlreadyScanned": "ნაწილი {current} / {total} უკვე დასკანერებულია",
   "writeToTag": "ტეგზე ჩაწერა",
   "cancel": "გაუქმება",
   "skipThisTag": "ამ ტეგის გამოტოვება",

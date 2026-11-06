@@ -53,6 +53,7 @@
   "holdTagNearDevice": "Піднесіть мітку до пристрою",
   "readyToWriteTag": "Готовий до запису мітки {index}",
   "chunkOfTotal": "Чанк {current} з {total}",
+  "chunkAlreadyScanned": "Чанк {current} з {total} вже відскановано",
   "writeToTag": "Записати на мітку",
   "cancel": "Скасувати",
   "skipThisTag": "Пропустити цю мітку",
