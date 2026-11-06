@@ -15,6 +15,7 @@ import '../domain/ndef_availability.dart';
 import '../domain/ndef_formatter.dart';
 import '../domain/ndef_io.dart';
 import '../domain/ndef_tag_codec.dart';
+import '../domain/polling_options.dart';
 import '../domain/tag_codec.dart';
 import 'nfc_capabilities.dart';
 import '../../../core/log/logger.dart';
@@ -156,9 +157,7 @@ class NfcRepository {
 
     await _releaseStaleTagConnection(SessionKind.read);
     NfcManager.instance.startSession(
-      // Required in v4. v3 defaulted to `NfcPollingOption.values.toSet()`, so
-      // passing anything narrower here would silently stop discovering tags.
-      pollingOptions: NfcPollingOption.values.toSet(),
+      pollingOptions: sessionPollingOptions(),
       alertMessageIos: alertMessage,
       onDiscovered: (tag) async {
         // Ignore reads during write cooldown to prevent re-reading just-written tags
@@ -243,9 +242,7 @@ class NfcRepository {
 
     await _releaseStaleTagConnection(SessionKind.write);
     NfcManager.instance.startSession(
-      // Required in v4. v3 defaulted to `NfcPollingOption.values.toSet()`, so
-      // passing anything narrower here would silently stop discovering tags.
-      pollingOptions: NfcPollingOption.values.toSet(),
+      pollingOptions: sessionPollingOptions(),
       alertMessageIos: alertMessage,
       onDiscovered: (tag) async {
         try {
