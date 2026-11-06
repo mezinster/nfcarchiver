@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  App-level privacy manifest, required by App Store Connect since May 2024.
+
+  NFC Archiver is offline: no tracking, no analytics, no data leaves the
+  device except through a Share / Save that the user starts themselves.
+
+  Plugins (shared_preferences, path_provider, ...) ship their own manifests;
+  this file only covers what the app's OWN code does:
+
+  - FileTimestamp / C617.1: the file manager lists restored files sorted by
+    modification date (FileManagerRepository, `entity.stat()`). The files live
+    in the app container (Documents/NFC_Archives).
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>
