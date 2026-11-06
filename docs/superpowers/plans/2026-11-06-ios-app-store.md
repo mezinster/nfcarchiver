@@ -19,9 +19,9 @@
 
 | # | Question | Blocks | Notes |
 |---|---|---|---|
-| D1 | **Team ID** (10 chars, developer.apple.com → Membership) | Phase 2b, Phase 3 | Not a secret; safe to commit. |
-| D2 | **Can the team register `com.nfcarchiver.nfcArchiver`?** | Everything after Phase 1 | `Debug.xcconfig` records that a free team once got *"cannot be registered … not available"*, so another team owns it. If the friend's team can't register it either, choose a new ID (e.g. `com.nfcarchiver.app`) **before the first upload**, and change `NFAR_BUNDLE_ID` in both `ios/Flutter/Debug.xcconfig` and `Release.xcconfig`, plus the `RunnerTests` IDs in `project.pbxproj`. |
-| D3 | **`ITSAppUsesNonExemptEncryption`** | Phase 4 (any upload asks) | The app ships its own AES-256-GCM through `pointycastle`, so the honest answer is probably **YES, standard algorithms, mass-market exemption**, not `NO`. This is the maintainer's legal decision; Claude must not choose it. Once decided, add the key to `ios/Runner/Info.plist` and a guard to `test/ios_config_test.dart`. |
+| D1 | **Team ID** (10 chars, developer.apple.com → Membership) | Phase 2b, Phase 3 | **Decided 2026-11-06: `C6LYTC662B`.** |
+| D2 | **Can the team register `com.nfcarchiver.nfcArchiver`?** | Everything after Phase 1 | **2026-11-06: maintainer will try to register it in Phase 1.1; fall back only if refused.** `Debug.xcconfig` records that a free team once got *"cannot be registered … not available"*, so another team owns it. If the friend's team can't register it either, choose a new ID (e.g. `com.nfcarchiver.app`) **before the first upload**, and change `NFAR_BUNDLE_ID` in `ios/Flutter/Debug.xcconfig`, `Profile.xcconfig` and `Release.xcconfig`, plus the `RunnerTests` IDs in `project.pbxproj`. |
+| D3 | **`ITSAppUsesNonExemptEncryption`** | Phase 4 (any upload asks) | The app ships its own AES-256-GCM through `pointycastle`, so the honest answer is probably **YES, standard algorithms, mass-market exemption**, not `NO`. **Decided 2026-11-06 by the maintainer: YES, standard algorithms, mass-market exemption.** Key added in 2c. |
 
 ---
 
@@ -29,7 +29,7 @@
 
 - [ ] **0.1** The friend adds the maintainer in App Store Connect → Users and Access as **Admin**, or **App Manager** with *Access to Certificates, Identifiers & Profiles*.
   **Done when:** the maintainer can open developer.apple.com → Certificates, Identifiers & Profiles for the friend's team.
-- [ ] **0.2** Record the Team ID → D1.
+- [x] **0.2** Record the Team ID → D1.
 - [ ] **0.3** Check whether the Free Apps agreement is active (App Store Connect → Business). Only the Account Holder can accept it.
 
 ## Phase 1 — Developer portal (browser)
@@ -50,14 +50,14 @@
 
 ### 2b — needs D1
 
-- [ ] **2b.1** Add `DEVELOPMENT_TEAM = <TEAMID>` to **`ios/Flutter/Release.xcconfig`**, and to **`ios/Flutter/Debug.xcconfig` above the `#include? "LocalOverrides.xcconfig"` line**, so a free-team developer can still override it. Profile has its own xcconfig (commit `13d472a`); check it and set it there too if it signs separately.
+- [x] **2b.1** Add `DEVELOPMENT_TEAM = <TEAMID>` to **`ios/Flutter/Release.xcconfig`**, and to **`ios/Flutter/Debug.xcconfig` above the `#include? "LocalOverrides.xcconfig"` line**, so a free-team developer can still override it. Profile has its own xcconfig (commit `13d472a`); check it and set it there too if it signs separately.
   **Never put `DEVELOPMENT_TEAM` in the target settings of `project.pbxproj`:** target settings beat xcconfig values and would silently override `LocalOverrides.xcconfig`.
-- [ ] **2b.2** Add a guard to `test/ios_config_test.dart`: `project.pbxproj` contains no `DEVELOPMENT_TEAM =` line.
+- [x] **2b.2** Add a guard to `test/ios_config_test.dart`: `project.pbxproj` contains no `DEVELOPMENT_TEAM =` line.
 - [ ] **2b.3** If D2 forced a new bundle ID, change it in the same PR.
 
 ### 2c — needs D3
 
-- [ ] **2c.1** Add the `ITSAppUsesNonExemptEncryption` key (and `ITSEncryptionExportComplianceCode` if Apple issues one) with a guard test.
+- [x] **2c.1** Add the `ITSAppUsesNonExemptEncryption` key (and `ITSEncryptionExportComplianceCode` if Apple issues one) with a guard test.
 
 ## Phase 3 — Mac: first signed device build
 

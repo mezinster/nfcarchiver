@@ -36,4 +36,8 @@ NFAR_CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
 // updates off the bundle ID, so a wrong one is not a bad build, it is a
 // different app that existing users can never update to.
 NFAR_BUNDLE_ID = com.nfcarchiver.nfcArchiver
+// The paid team that signs and ships the app. Set here, never in the target
+// settings of project.pbxproj: target settings beat xcconfig values and would
+// override a free-team developer's LocalOverrides.xcconfig.
+DEVELOPMENT_TEAM = C6LYTC662B
 #include? "LocalOverrides.xcconfig"

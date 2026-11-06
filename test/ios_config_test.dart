@@ -49,6 +49,45 @@ void main() {
     });
   });
 
+  group('signing team', () {
+    const teamLine = 'DEVELOPMENT_TEAM = C6LYTC662B';
+    const overrideInclude = '#include? "LocalOverrides.xcconfig"';
+
+    // Target-level build settings beat xcconfig values, so a team Xcode
+    // writes into the target would silently override LocalOverrides.xcconfig
+    // for a free-team developer.
+    test('project.pbxproj sets no DEVELOPMENT_TEAM', () {
+      expect(pbxproj, isNot(contains('DEVELOPMENT_TEAM')));
+    });
+
+    for (final config in ['Debug', 'Profile', 'Release']) {
+      test('$config.xcconfig sets the paid team', () {
+        final xcconfig =
+            File('ios/Flutter/$config.xcconfig').readAsStringSync();
+        expect(xcconfig, contains(teamLine));
+        // Where there is an override hook, the team must come before it, or a
+        // free-team developer could no longer substitute their own.
+        final hook = xcconfig.indexOf(overrideInclude);
+        if (hook != -1) {
+          expect(xcconfig.indexOf(teamLine), lessThan(hook));
+        }
+      });
+    }
+  });
+
+  group('export compliance', () {
+    // The app ships its own AES-256-GCM (pointycastle): standard algorithms,
+    // not exempt, declared under the mass-market exemption. Without the key
+    // every upload stops at the compliance question in App Store Connect.
+    test('Info.plist declares non-exempt encryption', () {
+      expect(
+        RegExp(r'<key>ITSAppUsesNonExemptEncryption</key>\s*<true/>')
+            .hasMatch(infoPlist),
+        isTrue,
+      );
+    });
+  });
+
   group('privacy manifest', () {
     test('exists and declares no tracking', () {
       final manifest =
