@@ -129,13 +129,22 @@ A browser port that reads/writes NFAR archives on physical cards, either via a C
 4. **App Store metadata** — Write app description, keywords, subtitle, promotional text, and select appropriate categories
 5. **Privacy policy URL** — Host `PRIVACY_POLICY.md` at a public URL (required by Apple for apps accessing NFC/files); reference it in App Store Connect
 6. **Age rating questionnaire** — Complete the age rating questionnaire in App Store Connect
-7. **Review NFC entitlements** — Ensure `ios/Runner/Runner.entitlements` has the correct NFC tag reading capability; already added in commit `25ee496`
+7. **NFC entitlement** — `Runner.entitlements` requests **`TAG` only**. Development signing accepts `NDEF` too, but App Store upload rejects it (ITMS-90778 "NDEF is disallowed"); `nfc_manager` 4.x only opens `NFCTagReaderSession`, for which `TAG` suffices. `test/ios_config_test.dart` guards this, the iPhone-only device family and the privacy manifest.
 8. **Signing & provisioning** — Configure distribution certificate and App Store provisioning profile in Xcode
 9. **Build & upload** — Build release IPA via `flutter build ipa` and upload via Xcode or `xcrun altool`
 10. **TestFlight** — Distribute a build via TestFlight for pre-release testing before submitting for review
 11. **App Review submission** — Submit for Apple review; address any rejection feedback
 
 ## iOS Development (Mac)
+
+### Store setup decisions (2026-11)
+
+- **Paid account:** the developer programme membership belongs to a partner's team, not the maintainer's own; the maintainer works as a team member. Seller name on the store is the account holder's. Moving to an own account later goes through Apple's App Transfer — the bundle ID cannot change.
+- **iPhone only** (`TARGETED_DEVICE_FAMILY = 1`): iPads have no NFC radio, and iPad support would demand iPad screenshots. iPhone apps still run in compatibility mode on iPad / Apple Silicon Macs unless opted out in App Store Connect.
+- **Privacy manifest:** `ios/Runner/PrivacyInfo.xcprivacy` declares no tracking, no collected data, and FileTimestamp `C617.1` (file manager sorts by `stat().modified`). It must stay in the Runner **Resources** build phase or it never reaches the bundle. Plugins ship their own manifests.
+- **Team ID belongs in the xcconfigs, not in the target settings of `project.pbxproj`.** Target-level build settings beat xcconfig values, so a `DEVELOPMENT_TEAM` that Xcode writes into the target would silently override a free-team developer's `LocalOverrides.xcconfig`. If Xcode's Signing tab writes one there, move it. The team is `C6LYTC662B`, set in all three of `ios/Flutter/{Debug,Profile,Release}.xcconfig` — above the `LocalOverrides` include where there is one, so a free-team developer can still replace it.
+- **Export compliance:** `Info.plist` declares `ITSAppUsesNonExemptEncryption = YES` — the maintainer's decision: the app ships its own AES-256-GCM (`pointycastle`), standard algorithms under the mass-market exemption. Not `NO`: that would claim only OS-provided or exempt encryption. If Apple issues an `ITSEncryptionExportComplianceCode`, add it alongside.
+
 
 ### The two radios have very different gates
 
