@@ -113,15 +113,19 @@ void main() {
   });
 
   group('export compliance', () {
-    // The app ships its own AES-256-GCM (pointycastle): standard algorithms,
-    // not exempt, declared under the mass-market exemption. Without the key
-    // every upload stops at the compliance question in App Store Connect.
-    test('Info.plist declares non-exempt encryption', () {
-      expect(
-        RegExp(r'<key>ITSAppUsesNonExemptEncryption</key>\s*<true/>')
-            .hasMatch(infoPlist),
-        isTrue,
-      );
+    // Declaring non-exempt encryption obliges the app to carry the code Apple
+    // issues once its encryption documentation is approved. The first
+    // TestFlight upload declared YES with no code and was rejected at
+    // validation ("Invalid Export Compliance Code"). Until a code exists the
+    // key stays out, and the questions are answered per build in App Store
+    // Connect.
+    test('non-exempt encryption is only declared together with its code', () {
+      final declaresNonExempt =
+          RegExp(r'<key>ITSAppUsesNonExemptEncryption</key>\s*<true/>')
+              .hasMatch(infoPlist);
+      if (declaresNonExempt) {
+        expect(infoPlist, contains('<key>ITSEncryptionExportComplianceCode</key>'));
+      }
     });
   });
 

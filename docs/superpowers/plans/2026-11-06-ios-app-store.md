@@ -21,7 +21,7 @@
 |---|---|---|---|
 | D1 | **Team ID** (10 chars, developer.apple.com → Membership) | Phase 2b, Phase 3 | **Decided 2026-11-06: `C6LYTC662B`.** |
 | D2 | **Can the team register `com.nfcarchiver.nfcArchiver`?** | Everything after Phase 1 | **2026-11-06: refused to the paid team too ("not available"). New ID: `com.nfcarchiver.app`** (maintainer's choice), changed in PR `chore/ios-bundle-id-target`. `Debug.xcconfig` records that a free team once got *"cannot be registered … not available"*, so another team owns it. If the friend's team can't register it either, choose a new ID (e.g. `com.nfcarchiver.app`) **before the first upload**, and change `NFAR_BUNDLE_ID` in `ios/Flutter/Debug.xcconfig`, `Profile.xcconfig` and `Release.xcconfig`, plus the `RunnerTests` IDs in `project.pbxproj`. |
-| D3 | **`ITSAppUsesNonExemptEncryption`** | Phase 4 (any upload asks) | The app ships its own AES-256-GCM through `pointycastle`, so the honest answer is probably **YES, standard algorithms, mass-market exemption**, not `NO`. **Decided 2026-11-06 by the maintainer: YES, standard algorithms, mass-market exemption.** Key added in 2c. |
+| D3 | **`ITSAppUsesNonExemptEncryption`** | Phase 4 (any upload asks) | The app ships its own AES-256-GCM through `pointycastle`, so the honest answer is probably **YES, standard algorithms, mass-market exemption**, not `NO`. **Decided 2026-11-06 by the maintainer: YES, standard algorithms, mass-market exemption.** Key added in 2c, then **removed**: the first TestFlight upload was rejected ("Invalid Export Compliance Code") because YES requires the code Apple issues for approved documentation. Answered per build in App Store Connect instead. |
 
 ---
 
