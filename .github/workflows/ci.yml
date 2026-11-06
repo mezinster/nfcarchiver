@@ -162,6 +162,44 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
 
+  # Compiles the iOS app without signing, so an iOS-only break reaches a PR
+  # instead of a phone: raising the deployment target to 14.0 was found only on
+  # a device build, after file_picker's Swift package started requiring it.
+  # Pinned to the image and Xcode the maintainer builds with, so a runner
+  # update cannot change the toolchain silently. Not a required check: a macOS
+  # runner hiccup must not block merges. Signing and upload are a separate
+  # concern (see CLAUDE.md, iOS Development).
+  build-ios:
+    name: Build iOS (unsigned)
+    runs-on: macos-26
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Select Xcode 26.3
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.3.app
+          xcodebuild -version
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Generate localization files
+        run: flutter gen-l10n
+
+      - name: Build iOS app (release, no code signing)
+        run: flutter build ios --release --no-codesign
+
   webapp:
     name: Web app core (TypeScript)
     runs-on: ubuntu-latest
