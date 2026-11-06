@@ -75,6 +75,43 @@ void main() {
     }
   });
 
+  group('bundle ID', () {
+    // com.nfcarchiver.nfcArchiver is registered to an unrelated team, so the
+    // store app is com.nfcarchiver.app. After the first upload it can never
+    // change: a different bundle ID is a different app.
+    const bundleId = 'com.nfcarchiver.app';
+
+    for (final config in ['Debug', 'Profile', 'Release']) {
+      test('$config.xcconfig uses $bundleId', () {
+        final xcconfig =
+            File('ios/Flutter/$config.xcconfig').readAsStringSync();
+        expect(xcconfig, contains('NFAR_BUNDLE_ID = $bundleId\n'));
+      });
+    }
+
+    test('RunnerTests IDs and ExportOptions follow it', () {
+      expect(pbxproj, isNot(contains('com.nfcarchiver.nfcArchiver')));
+      expect(pbxproj, contains('PRODUCT_BUNDLE_IDENTIFIER = $bundleId.RunnerTests;'));
+      final exportOptions =
+          File('ios/ExportOptions.plist').readAsStringSync();
+      expect(exportOptions, contains('<key>$bundleId</key>'));
+      expect(exportOptions, contains('<string>C6LYTC662B</string>'));
+    });
+  });
+
+  group('deployment target', () {
+    // file_picker's Swift package (file-picker-darwin) requires iOS 14.0;
+    // at 13.0 xcodebuild fails resolving FlutterGeneratedPluginSwiftPackage.
+    test('every IPHONEOS_DEPLOYMENT_TARGET is at least 14.0', () {
+      final targets = RegExp(r'IPHONEOS_DEPLOYMENT_TARGET = ([\d.]+);')
+          .allMatches(pbxproj)
+          .map((m) => double.parse(m.group(1)!))
+          .toList();
+      expect(targets, isNotEmpty);
+      expect(targets, everyElement(greaterThanOrEqualTo(14.0)));
+    });
+  });
+
   group('export compliance', () {
     // The app ships its own AES-256-GCM (pointycastle): standard algorithms,
     // not exempt, declared under the mass-market exemption. Without the key
