@@ -66,14 +66,35 @@ class FakeCardReader implements CardReader {
   @override
   void stopSession({String? message}) {}
 
+  /// The latest read arm's callbacks, so a test can play the reader's part.
+  void Function(Chunk chunk, NfcTagInfo tagInfo)? lastOnChunkRead;
+  void Function(String message)? lastOnError;
+  void Function(ScanStop reason)? lastOnStopped;
+  int readArms = 0;
+
+  /// Calls of the stop closures handed out by startReadSession.
+  int readStops = 0;
+  /// endTag calls, as 'message' or 'problem: message'.
+  final List<String> endedTags = [];
+
   @override
   Future<void Function()> startReadSession({
     required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
     required void Function(String message) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
+    void Function(ScanStop reason)? onStopped,
     String alertMessage = '',
-  }) async =>
-      () {};
+  }) async {
+    readArms++;
+    lastOnChunkRead = onChunkRead;
+    lastOnError = onError;
+    lastOnStopped = onStopped;
+    return () => readStops++;
+  }
+
+  @override
+  void endTag(String message, {bool problem = false}) =>
+      endedTags.add(problem ? 'problem: $message' : message);
 
   @override
   Future<void Function()> startWriteSession({

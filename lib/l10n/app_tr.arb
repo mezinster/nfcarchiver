@@ -53,6 +53,7 @@
   "holdTagNearDevice": "Etiketi cihaza yakın tutun",
   "readyToWriteTag": "Etiket {index} yazmaya hazır",
   "chunkOfTotal": "Parça {current} / {total}",
+  "chunkAlreadyScanned": "Parça {current} / {total} zaten tarandı",
   "writeToTag": "Etikete Yaz",
   "cancel": "İptal",
   "skipThisTag": "Bu etiketi atla",

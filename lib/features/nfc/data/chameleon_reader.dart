@@ -106,11 +106,18 @@ class ChameleonReader implements CardReader {
   @override
   Future<bool> supportsMifareClassic() async => true;
 
+  /// No system sheet to end on a Chameleon.
+  @override
+  void endTag(String message, {bool problem = false}) {}
+
   @override
   Future<void Function()> startReadSession({
     required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
     required void Function(String message) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
+    // Accepted and ignored, like alertMessage: only iOS's system sheet ends a
+    // scan by itself (Cancel, timeout). A Chameleon scan runs until stopped.
+    void Function(ScanStop reason)? onStopped,
     // Accepted and ignored: it exists for iOS's system NFC sheet, which a
     // Chameleon has no equivalent of. Conditionalising the interface for one
     // platform's UI would be worse than one unused parameter.

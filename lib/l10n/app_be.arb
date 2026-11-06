@@ -53,6 +53,7 @@
   "holdTagNearDevice": "Падтрымлівайце метку каля прылады",
   "readyToWriteTag": "Гатовы да запісу меткі {index}",
   "chunkOfTotal": "Фрагмент {current} з {total}",
+  "chunkAlreadyScanned": "Фрагмент {current} з {total} ужо адсканаваны",
   "writeToTag": "Запісаць на метку",
   "cancel": "Адмена",
   "skipThisTag": "Прапусціць гэту метку",

@@ -58,6 +58,14 @@ class NfcSessionWriteSuccess extends NfcSessionState {
   final bool waitingForRemoval;
 }
 
+/// The scan ended by itself and must not be re-armed until the user asks:
+/// iOS's sheet was cancelled or timed out, or the screen gave up retrying.
+class NfcSessionStopped extends NfcSessionState {
+  const NfcSessionStopped(this.reason);
+
+  final ScanStop reason;
+}
+
 /// NFC session encountered an error.
 class NfcSessionError extends NfcSessionState {
   const NfcSessionError({
@@ -141,6 +149,11 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
         onTagDiscovered: (tagInfo) {
           // Could update state to show tag detected
         },
+        onStopped: (reason) {
+          // The reader already released its session; nothing left to stop.
+          _stopSession = null;
+          state = NfcSessionStopped(reason);
+        },
       );
     } catch (e) {
       state = NfcSessionError(message: e.toString());
@@ -196,6 +209,17 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
       state = NfcSessionError(message: e.toString());
     }
   }
+
+  /// End the scan because retrying is not getting anywhere.
+  void halt() {
+    _stopSession?.call();
+    _stopSession = null;
+    state = const NfcSessionStopped(ScanStop.failed);
+  }
+
+  /// End the system NFC sheet (iOS) for the tag just read.
+  void endTag(String message, {bool problem = false}) =>
+      _repository.endTag(message, problem: problem);
 
   /// Stop the current session.
   void stopSession() {

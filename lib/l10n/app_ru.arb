@@ -53,6 +53,7 @@
   "holdTagNearDevice": "Поднесите метку к устройству",
   "readyToWriteTag": "Готов к записи метки {index}",
   "chunkOfTotal": "Чанк {current} из {total}",
+  "chunkAlreadyScanned": "Чанк {current} из {total} уже отсканирован",
   "writeToTag": "Записать на метку",
   "cancel": "Отмена",
   "skipThisTag": "Пропустить эту метку",

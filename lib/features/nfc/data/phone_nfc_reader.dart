@@ -60,14 +60,20 @@ class PhoneNfcReader implements CardReader {
     required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
     required void Function(String message) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
+    void Function(ScanStop reason)? onStopped,
     String alertMessage = 'Hold your device near an NFC tag',
   }) =>
       _repository.startReadSession(
         onChunkRead: onChunkRead,
         onError: onError,
         onTagDiscovered: onTagDiscovered,
+        onStopped: onStopped,
         alertMessage: alertMessage,
       );
+
+  @override
+  void endTag(String message, {bool problem = false}) =>
+      _repository.endTag(message, problem: problem);
 
   @override
   Future<void Function()> startWriteSession({

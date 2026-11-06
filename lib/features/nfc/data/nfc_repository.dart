@@ -11,10 +11,13 @@ import '../../../core/models/nfc_tag_info.dart';
 import '../domain/mifare_block_io.dart';
 import '../domain/mifare_tag_codec.dart';
 import '../domain/android_tech_list.dart';
+import '../domain/card_reader.dart';
 import '../domain/ndef_availability.dart';
 import '../domain/ndef_formatter.dart';
 import '../domain/ndef_io.dart';
+import '../domain/ios_read_session.dart';
 import '../domain/ndef_tag_codec.dart';
+import '../domain/polling_options.dart';
 import '../domain/tag_codec.dart';
 import 'nfc_capabilities.dart';
 import '../../../core/log/logger.dart';
@@ -45,6 +48,28 @@ class NfcRepository {
   NfcRepository._();
 
   final _ndefFormatter = NdefFormatter.instance;
+
+  final _iosRead = IosReadSession(
+    restartPolling: () => NfcManagerIos.instance.tagSessionRestartPolling(),
+    invalidate: ({alertMessage, errorMessage}) => NfcManager.instance
+        .stopSession(alertMessageIos: alertMessage, errorMessageIos: errorMessage),
+  );
+
+  /// Callbacks of the latest read arm. A session iOS ends late (its sheet may
+  /// outlive the arm that opened it) reports to the current screen.
+  ({
+    void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
+    void Function(String message) onError,
+    void Function(NfcTagInfo tagInfo)? onTagDiscovered,
+    void Function(ScanStop reason)? onStopped,
+  })? _readHandlers;
+
+  /// End iOS's sheet for the tag just read, showing [message] — as a failure
+  /// if [problem]. The checkmark or cross, and its haptic, are the user's only
+  /// feedback: the app's own vibration does not get through a sheet.
+  void endTag(String message, {bool problem = false}) {
+    unawaited(_iosRead.end(message: message, problem: problem));
+  }
 
   bool _deviceSupportsMifare = false;
 
@@ -146,62 +171,121 @@ class NfcRepository {
     required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
     required void Function(String message) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
+    void Function(ScanStop reason)? onStopped,
     String alertMessage = 'Hold your device near an NFC tag',
   }) async {
     if (!await isAvailable()) {
       throw const NfcNotAvailableException();
     }
 
-    final completer = Completer<void Function()>();
+    _readHandlers = (
+      onChunkRead: onChunkRead,
+      onError: onError,
+      onTagDiscovered: onTagDiscovered,
+      onStopped: onStopped,
+    );
+    final generation = ++_readGeneration;
+    void stop() {
+      // Also cancels a retry still waiting to begin (see _beginReadSession).
+      _readGeneration++;
+      _iosRead.stopped();
+      NfcManager.instance.stopSession();
+    }
 
     await _releaseStaleTagConnection(SessionKind.read);
+    // Not awaited: on iOS the begin can wait seconds for the last sheet to
+    // close, and the caller must hold `stop` meanwhile — leaving the screen in
+    // that window has to cancel the sheet before it opens.
+    unawaited(_beginReadSession(generation, alertMessage));
+    return stop;
+  }
+
+  /// Bumped by every arm and every stop; a begin whose generation is stale was
+  /// overtaken while it waited, and must not open a sheet.
+  int _readGeneration = 0;
+
+  Future<void> _beginReadSession(int generation, String alertMessage) async {
+    await _iosRead.beforeBegin();
+    if (generation != _readGeneration) return;
+    Logger.instance.info('nfc.read', 'session armed');
+    _iosRead.began();
     NfcManager.instance.startSession(
-      // Required in v4. v3 defaulted to `NfcPollingOption.values.toSet()`, so
-      // passing anything narrower here would silently stop discovering tags.
-      pollingOptions: NfcPollingOption.values.toSet(),
+      pollingOptions: sessionPollingOptions(),
       alertMessageIos: alertMessage,
       onDiscovered: (tag) async {
+        Logger.instance.info('nfc.read', 'tag discovered');
         // Ignore reads during write cooldown to prevent re-reading just-written tags
         if (isInWriteCooldown) {
           return;
         }
 
+        final handlers = _readHandlers!;
+        // A failure ends iOS's sheet before it is reported: reporting re-arms.
+        // A good read is left open for the screen to end with endTag, since
+        // only the screen knows whether the chunk is new or a duplicate.
+        Future<void> fail(String message) async {
+          await _iosRead.end(message: message, problem: true);
+          handlers.onError(message);
+        }
+
         try {
           final tagInfo = _extractTagInfo(tag);
-          onTagDiscovered?.call(tagInfo);
+          if (_iosRead.isRepeat(tagInfo.identifier)) {
+            // Still resting on the phone from the last read: not a new tap.
+            Logger.instance.debug('nfc.read', 'resting tag ignored');
+            await _iosRead.keepPolling();
+            return;
+          }
+          handlers.onTagDiscovered?.call(tagInfo);
 
           final codec = _codecFor(tag);
           if (codec == null) {
-            onError(messageFor(_ndefUnavailableReason(tag)));
+            await fail(messageFor(_ndefUnavailableReason(tag)));
             return;
           }
-
           final chunk = await codec.readChunk(tag);
           // The card was read to the end, whatever it held: we are done with
-          // it, so the re-arm that follows must not rediscover it. A read that
-          // THROWS (tag lost, I/O) skips this and is retried in place.
+          // it, so the re-arm that follows must not rediscover it. A read
+          // that THROWS (tag lost, I/O) skips this and is retried in place.
           _staleTagPolicy.succeeded(SessionKind.read);
 
           if (chunk == null) {
-            onError('Tag does not contain valid archive data');
+            await fail('Tag does not contain valid archive data');
             return;
           }
-
-          onChunkRead(chunk, tagInfo);
+          Logger.instance.info('nfc.read', 'chunk read', {'index': chunk.chunkIndex});
+          handlers.onChunkRead(chunk, tagInfo);
         } catch (e) {
-          onError('Failed to read tag: $e');
+          await fail('Failed to read tag: $e');
         }
       },
-      onSessionErrorIos: (error) {
-        onError(error.message);
+      onSessionErrorIos: (error) async {
+        Logger.instance.warn('nfc.read', 'ios session error', {'code': error.code.name, 'message': error.message});
+        if (_iosRead.refusedAtBegin(error.code)) {
+          // Not ready yet — the last sheet is still closing. Try again
+          // shortly, without telling the screen: there is nothing to report.
+          Logger.instance.debug('nfc.read', 'begin refused, retrying');
+          await _iosRead.retryAfterRefusal();
+          unawaited(_beginReadSession(generation, alertMessage));
+          return;
+        }
+        await _iosRead.invalidatedBySystem();
+        final handlers = _readHandlers;
+        final stop = scanStopFor(error.code);
+        // Re-arming after Cancel or a timeout re-opens the sheet the user
+        // just dismissed; with no onStopped, fall back to the error path.
+        if (stop != null && handlers?.onStopped != null) {
+          handlers!.onStopped!(stop);
+        } else {
+          handlers?.onError(error.message);
+        }
       },
-    );
-
-    completer.complete(() {
-      NfcManager.instance.stopSession();
+    ).catchError((Object e) {
+      // Unawaited, so a refused start (e.g. session_already_exists) would
+      // otherwise vanish into the zone and leave the UI waiting forever.
+      Logger.instance.warn('nfc.read', 'startSession failed', {'error': e});
+      _iosRead.stopped();
     });
-
-    return completer.future;
   }
 
   /// Start an NFC session for writing a chunk.
@@ -243,9 +327,7 @@ class NfcRepository {
 
     await _releaseStaleTagConnection(SessionKind.write);
     NfcManager.instance.startSession(
-      // Required in v4. v3 defaulted to `NfcPollingOption.values.toSet()`, so
-      // passing anything narrower here would silently stop discovering tags.
-      pollingOptions: NfcPollingOption.values.toSet(),
+      pollingOptions: sessionPollingOptions(),
       alertMessageIos: alertMessage,
       onDiscovered: (tag) async {
         try {
@@ -482,6 +564,7 @@ class NfcRepository {
 
   /// Stop any active NFC session.
   void stopSession({String? message}) {
+    _iosRead.stopped();
     NfcManager.instance.stopSession(
       alertMessageIos: message,
       errorMessageIos: null,
@@ -548,6 +631,12 @@ class NfcRepository {
     }
 
     if (defaultTargetPlatform == TargetPlatform.iOS) {
+      // NTAG and Mifare arrive as MiFare; without this an NTAG has no ID on
+      // iOS, and a tag resting on the phone can't be told from a new one.
+      final mifare = MiFareIos.from(tag);
+      if (mifare != null && mifare.identifier.isNotEmpty) {
+        identifier = _hexId(mifare.identifier);
+      }
       final iso15693 = Iso15693Ios.from(tag);
       if (iso15693 != null) {
         identifier = _hexId(iso15693.identifier);
