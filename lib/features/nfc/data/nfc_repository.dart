@@ -15,7 +15,7 @@ import '../domain/card_reader.dart';
 import '../domain/ndef_availability.dart';
 import '../domain/ndef_formatter.dart';
 import '../domain/ndef_io.dart';
-import '../domain/ios_read_session.dart';
+import '../domain/ios_nfc_session.dart';
 import '../domain/ndef_tag_codec.dart';
 import '../domain/polling_options.dart';
 import '../domain/tag_codec.dart';
@@ -49,7 +49,7 @@ class NfcRepository {
 
   final _ndefFormatter = NdefFormatter.instance;
 
-  final _iosRead = IosReadSession(
+  final _ios = IosNfcSession(
     restartPolling: () => NfcManagerIos.instance.tagSessionRestartPolling(),
     invalidate: ({alertMessage, errorMessage}) => NfcManager.instance
         .stopSession(alertMessageIos: alertMessage, errorMessageIos: errorMessage),
@@ -68,7 +68,7 @@ class NfcRepository {
   /// if [problem]. The checkmark or cross, and its haptic, are the user's only
   /// feedback: the app's own vibration does not get through a sheet.
   void endTag(String message, {bool problem = false}) {
-    unawaited(_iosRead.end(message: message, problem: problem));
+    unawaited(_ios.end(message: message, problem: problem));
   }
 
   bool _deviceSupportsMifare = false;
@@ -184,12 +184,12 @@ class NfcRepository {
       onTagDiscovered: onTagDiscovered,
       onStopped: onStopped,
     );
-    final generation = ++_readGeneration;
+    final generation = ++_sessionGeneration;
     void stop() {
       // Also cancels a retry still waiting to begin (see _beginReadSession).
-      _readGeneration++;
-      _iosRead.stopped();
-      NfcManager.instance.stopSession();
+      _sessionGeneration++;
+      _ios.stopped();
+      NfcManager.instance.stopSession().catchError((Object _) {});
     }
 
     await _releaseStaleTagConnection(SessionKind.read);
@@ -202,13 +202,13 @@ class NfcRepository {
 
   /// Bumped by every arm and every stop; a begin whose generation is stale was
   /// overtaken while it waited, and must not open a sheet.
-  int _readGeneration = 0;
+  int _sessionGeneration = 0;
 
   Future<void> _beginReadSession(int generation, String alertMessage) async {
-    await _iosRead.beforeBegin();
-    if (generation != _readGeneration) return;
+    await _ios.beforeBegin();
+    if (generation != _sessionGeneration) return;
     Logger.instance.info('nfc.read', 'session armed');
-    _iosRead.began();
+    _ios.began();
     NfcManager.instance.startSession(
       pollingOptions: sessionPollingOptions(),
       alertMessageIos: alertMessage,
@@ -224,16 +224,16 @@ class NfcRepository {
         // A good read is left open for the screen to end with endTag, since
         // only the screen knows whether the chunk is new or a duplicate.
         Future<void> fail(String message) async {
-          await _iosRead.end(message: message, problem: true);
+          await _ios.end(message: message, problem: true);
           handlers.onError(message);
         }
 
         try {
           final tagInfo = _extractTagInfo(tag);
-          if (_iosRead.isRepeat(tagInfo.identifier)) {
+          if (_ios.isRepeat(tagInfo.identifier)) {
             // Still resting on the phone from the last read: not a new tap.
             Logger.instance.debug('nfc.read', 'resting tag ignored');
-            await _iosRead.keepPolling();
+            await _ios.keepPolling();
             return;
           }
           handlers.onTagDiscovered?.call(tagInfo);
@@ -261,15 +261,15 @@ class NfcRepository {
       },
       onSessionErrorIos: (error) async {
         Logger.instance.warn('nfc.read', 'ios session error', {'code': error.code.name, 'message': error.message});
-        if (_iosRead.refusedAtBegin(error.code)) {
+        if (_ios.refusedAtBegin(error.code)) {
           // Not ready yet — the last sheet is still closing. Try again
           // shortly, without telling the screen: there is nothing to report.
           Logger.instance.debug('nfc.read', 'begin refused, retrying');
-          await _iosRead.retryAfterRefusal();
+          await _ios.retryAfterRefusal();
           unawaited(_beginReadSession(generation, alertMessage));
           return;
         }
-        await _iosRead.invalidatedBySystem();
+        await _ios.invalidatedBySystem();
         final handlers = _readHandlers;
         final stop = scanStopFor(error.code);
         // Re-arming after Cancel or a timeout re-opens the sheet the user
@@ -284,7 +284,7 @@ class NfcRepository {
       // Unawaited, so a refused start (e.g. session_already_exists) would
       // otherwise vanish into the zone and leave the UI waiting forever.
       Logger.instance.warn('nfc.read', 'startSession failed', {'error': e});
-      _iosRead.stopped();
+      _ios.stopped();
     });
   }
 
@@ -311,147 +311,196 @@ class NfcRepository {
     void Function(String tappedMedium, String configuredMedium,
             NfcTagInfo? tagInfo)?
         onTagTypeMismatch,
+    void Function(ScanStop reason)? onStopped,
     String alertMessage = 'Hold your device near an NFC tag to write',
   }) async {
     if (!await isAvailable()) {
       throw const NfcNotAvailableException();
     }
 
-    final completer = Completer<void Function()>();
     final log = Logger.instance;
-    log.info('nfc.write', 'session armed', {
-      'chunk': chunk.chunkIndex,
-      'bytes': chunk.totalSize,
-      'configured': configuredTagType.name,
-    });
+    final generation = ++_sessionGeneration;
+    void stop() {
+      // Also cancels a begin still waiting for the last sheet to close.
+      _sessionGeneration++;
+      _ios.stopped();
+      NfcManager.instance.stopSession().catchError((Object _) {});
+    }
+
+    // A failure ends iOS's sheet as an error before it is reported: the
+    // screen's retry must not find it still open (see IosNfcSession).
+    Future<void> fail(String sheetMessage, void Function() report) async {
+      await _ios.end(message: sheetMessage, problem: true);
+      report();
+    }
+
+    Future<void> begin() async {
+      await _ios.beforeBegin();
+      if (generation != _sessionGeneration) return;
+      log.info('nfc.write', 'session armed', {
+        'chunk': chunk.chunkIndex,
+        'bytes': chunk.totalSize,
+        'configured': configuredTagType.name,
+      });
+      _ios.began();
+      NfcManager.instance.startSession(
+        pollingOptions: sessionPollingOptions(),
+        alertMessageIos: alertMessage,
+        onDiscovered: (tag) async {
+          try {
+            log.info('nfc.write', 'tag discovered');
+            final tagInfo = _extractTagInfo(tag);
+            final codec = _codecFor(tag);
+            log.info('nfc.write', 'codec selected', {'codec': codec?.name});
+
+            if (codec == null) {
+              final message = messageFor(_ndefUnavailableReason(tag));
+              await fail(message, () => onError(message));
+              return;
+            }
+
+            // The tapped tag's medium must match what the archive was
+            // configured for. `codec is MifareTagCodec` is the ground truth for
+            // which medium was actually selected (routing is Mifare-first, see
+            // `_codecFor`), so this can't be fooled by e.g. a Mifare Classic
+            // card that some other app happened to NDEF-format. Checked before
+            // any medium-specific pre-check or write, so a mismatch never
+            // reaches `codec.writeChunk`.
+            if (tagMediumMismatches(
+              tappedIsMifare: codec is MifareTagCodec,
+              configuredMedium: configuredTagType.medium,
+            )) {
+              final message =
+                  "That's a ${codec.name} card, but this archive is configured "
+                  'for ${configuredTagType.name} — change the tag type in '
+                  'Settings.';
+              await fail(message, () {
+                if (onTagTypeMismatch != null) {
+                  onTagTypeMismatch(codec.name, configuredTagType.name, tagInfo);
+                } else {
+                  onError(message);
+                }
+              });
+              return;
+            }
+
+            // These pre-write checks are NDEF-specific and must key off which
+            // codec was actually selected, not off `Ndef.from(tag) != null`: a
+            // Mifare Classic card that some other app happened to NDEF-format
+            // still has non-null NDEF data, but Mifare-first routing still
+            // selects MifareTagCodec for it, and NDEF's writability/size numbers
+            // do not describe that raw block write. `codec is NdefTagCodec` is
+            // strictly narrower than `ndef != null` (it also requires
+            // MifareTagCodec.supports(tag) to have been false), so this cannot
+            // change behaviour for a tag that actually gets the NDEF codec.
+            // NDEF's checks and messages are unchanged: this is the same
+            // `ndef.maxSize` vs `requiredNdefSize(chunk)` comparison as before,
+            // not the (1-4 byte stricter) `codec.capacityBytes(tag)` used below
+            // for other media.
+            if (codec is NdefTagCodec) {
+              final ndef = ndefIoFor(tag)!;
+              if (!ndef.isWritable) {
+                await fail('Tag is not writable',
+                    () => onError('Tag is not writable'));
+                return;
+              }
+
+              final requiredSize = _ndefFormatter.requiredNdefSize(chunk);
+              if (ndef.maxSize < requiredSize) {
+                final message = 'Tag too small: needs $requiredSize bytes, '
+                    'has ${ndef.maxSize} bytes';
+                await fail(message, () {
+                  if (onTagTooSmall != null) {
+                    onTagTooSmall(requiredSize, ndef.maxSize, tagInfo);
+                  } else {
+                    onError(message);
+                  }
+                });
+                return;
+              }
+            } else {
+              // Non-NDEF media (Mifare Classic): `capacityBytes` is defined as
+              // chunk bytes, so it's directly comparable to `chunk.totalSize`.
+              // Checked before `writeChunk` so an oversized chunk is reported
+              // via `onTagTooSmall` (the same re-chunk offer NDEF gets) instead
+              // of failing mid-write with a raw `MifareCapacityException`.
+              //
+              // This branch is currently unreachable: `mifareClassic1k` is the
+              // only `TagMedium.mifareClassic` type, its capacity (752) equals
+              // `MifareTagCodec.capacityBytes`, and the tag-type picker refuses
+              // to render once an archive is prepared, so the configured medium
+              // can't change mid-archive. Kept as defence-in-depth for the day
+              // a second Mifare medium exists.
+              //
+              // If that day comes: `onTagTooSmall`'s consumer,
+              // `_showRechunkDialog`, computes the rechunk size via
+              // `NfcTagType.maxPayloadForCapacity(detectedCapacity)`, which is
+              // NDEF-shaped (subtracts NDEF record/terminator overhead). For
+              // capacity 752 that yields 680 — the wrong payload for Mifare,
+              // whose real payload is 720. That formula must be fixed before
+              // this branch can fire for a real Mifare "too small" case.
+              final capacity = await codec.capacityBytes(tag);
+              if (chunk.totalSize > capacity) {
+                final message = 'Tag too small: needs ${chunk.totalSize} bytes, '
+                    'has $capacity bytes';
+                await fail(message, () {
+                  if (onTagTooSmall != null) {
+                    onTagTooSmall(chunk.totalSize, capacity, tagInfo);
+                  } else {
+                    onError(message);
+                  }
+                });
+                return;
+              }
+            }
+
+            log.info('nfc.write', 'writeChunk start');
+            await codec.writeChunk(tag, chunk);
+            log.info('nfc.write', 'writeChunk done');
+            _recordWrite(); // Start cooldown to prevent immediate re-read
+            _staleTagPolicy.succeeded(SessionKind.write);
+            // Left open: the screen ends iOS's sheet with its own "written"
+            // message (endTag), the way the restore screen does for reads.
+            onSuccess(tagInfo);
+          } catch (e, st) {
+            log.error('nfc.write', 'write failed', {'error': e, 'stack': st});
+            await fail('Failed to write tag: $e',
+                () => onError('Failed to write tag: $e'));
+          }
+        },
+        onSessionErrorIos: (error) async {
+          log.warn('nfc.write', 'ios session error',
+              {'code': error.code.name, 'message': error.message});
+          if (_ios.refusedAtBegin(error.code)) {
+            // Not ready yet — the last sheet is still closing. Try again
+            // shortly, without telling the screen (see IosNfcSession).
+            log.debug('nfc.write', 'begin refused, retrying');
+            await _ios.retryAfterRefusal();
+            unawaited(begin());
+            return;
+          }
+          await _ios.invalidatedBySystem();
+          final stopReason = scanStopFor(error.code);
+          // Cancelling the sheet is the user's choice, not a write error.
+          if (stopReason != null && onStopped != null) {
+            onStopped(stopReason);
+          } else {
+            onError(error.message);
+          }
+        },
+      ).catchError((Object e) {
+        // Unawaited, so a refused start would otherwise vanish into the zone
+        // and leave the UI waiting forever.
+        log.warn('nfc.write', 'startSession failed', {'error': e});
+        _ios.stopped();
+      });
+    }
 
     await _releaseStaleTagConnection(SessionKind.write);
-    NfcManager.instance.startSession(
-      pollingOptions: sessionPollingOptions(),
-      alertMessageIos: alertMessage,
-      onDiscovered: (tag) async {
-        try {
-          log.info('nfc.write', 'tag discovered');
-          final tagInfo = _extractTagInfo(tag);
-          final codec = _codecFor(tag);
-          log.info('nfc.write', 'codec selected', {'codec': codec?.name});
-
-          if (codec == null) {
-            onError(messageFor(_ndefUnavailableReason(tag)));
-            return;
-          }
-
-          // The tapped tag's medium must match what the archive was
-          // configured for. `codec is MifareTagCodec` is the ground truth for
-          // which medium was actually selected (routing is Mifare-first, see
-          // `_codecFor`), so this can't be fooled by e.g. a Mifare Classic
-          // card that some other app happened to NDEF-format. Checked before
-          // any medium-specific pre-check or write, so a mismatch never
-          // reaches `codec.writeChunk`.
-          if (tagMediumMismatches(
-            tappedIsMifare: codec is MifareTagCodec,
-            configuredMedium: configuredTagType.medium,
-          )) {
-            if (onTagTypeMismatch != null) {
-              onTagTypeMismatch(codec.name, configuredTagType.name, tagInfo);
-            } else {
-              onError(
-                "That's a ${codec.name} card, but this archive is configured "
-                'for ${configuredTagType.name} — change the tag type in '
-                'Settings.',
-              );
-            }
-            return;
-          }
-
-          // These pre-write checks are NDEF-specific and must key off which
-          // codec was actually selected, not off `Ndef.from(tag) != null`: a
-          // Mifare Classic card that some other app happened to NDEF-format
-          // still has non-null NDEF data, but Mifare-first routing still
-          // selects MifareTagCodec for it, and NDEF's writability/size numbers
-          // do not describe that raw block write. `codec is NdefTagCodec` is
-          // strictly narrower than `ndef != null` (it also requires
-          // MifareTagCodec.supports(tag) to have been false), so this cannot
-          // change behaviour for a tag that actually gets the NDEF codec.
-          // NDEF's checks and messages are unchanged: this is the same
-          // `ndef.maxSize` vs `requiredNdefSize(chunk)` comparison as before,
-          // not the (1-4 byte stricter) `codec.capacityBytes(tag)` used below
-          // for other media.
-          if (codec is NdefTagCodec) {
-            final ndef = ndefIoFor(tag)!;
-            if (!ndef.isWritable) {
-              onError('Tag is not writable');
-              return;
-            }
-
-            final requiredSize = _ndefFormatter.requiredNdefSize(chunk);
-            if (ndef.maxSize < requiredSize) {
-              if (onTagTooSmall != null) {
-                onTagTooSmall(requiredSize, ndef.maxSize, tagInfo);
-              } else {
-                onError(
-                  'Tag too small: needs $requiredSize bytes, '
-                  'has ${ndef.maxSize} bytes',
-                );
-              }
-              return;
-            }
-          } else {
-            // Non-NDEF media (Mifare Classic): `capacityBytes` is defined as
-            // chunk bytes, so it's directly comparable to `chunk.totalSize`.
-            // Checked before `writeChunk` so an oversized chunk is reported
-            // via `onTagTooSmall` (the same re-chunk offer NDEF gets) instead
-            // of failing mid-write with a raw `MifareCapacityException`.
-            //
-            // This branch is currently unreachable: `mifareClassic1k` is the
-            // only `TagMedium.mifareClassic` type, its capacity (752) equals
-            // `MifareTagCodec.capacityBytes`, and the tag-type picker refuses
-            // to render once an archive is prepared, so the configured medium
-            // can't change mid-archive. Kept as defence-in-depth for the day
-            // a second Mifare medium exists.
-            //
-            // If that day comes: `onTagTooSmall`'s consumer,
-            // `_showRechunkDialog`, computes the rechunk size via
-            // `NfcTagType.maxPayloadForCapacity(detectedCapacity)`, which is
-            // NDEF-shaped (subtracts NDEF record/terminator overhead). For
-            // capacity 752 that yields 680 — the wrong payload for Mifare,
-            // whose real payload is 720. That formula must be fixed before
-            // this branch can fire for a real Mifare "too small" case.
-            final capacity = await codec.capacityBytes(tag);
-            if (chunk.totalSize > capacity) {
-              if (onTagTooSmall != null) {
-                onTagTooSmall(chunk.totalSize, capacity, tagInfo);
-              } else {
-                onError(
-                  'Tag too small: needs ${chunk.totalSize} bytes, '
-                  'has $capacity bytes',
-                );
-              }
-              return;
-            }
-          }
-
-          log.info('nfc.write', 'writeChunk start');
-          await codec.writeChunk(tag, chunk);
-          log.info('nfc.write', 'writeChunk done');
-          _recordWrite(); // Start cooldown to prevent immediate re-read
-          _staleTagPolicy.succeeded(SessionKind.write);
-          onSuccess(tagInfo);
-        } catch (e, st) {
-          log.error('nfc.write', 'write failed', {'error': e, 'stack': st});
-          onError('Failed to write tag: $e');
-        }
-      },
-      onSessionErrorIos: (error) {
-        onError(error.message);
-      },
-    );
-
-    completer.complete(() {
-      NfcManager.instance.stopSession();
-    });
-
-    return completer.future;
+    // Not awaited: on iOS the begin can wait seconds for the last sheet to
+    // close, and the caller must hold `stop` meanwhile.
+    unawaited(begin());
+    return stop;
   }
 
   /// Read a single tag and return the chunk.
@@ -564,11 +613,11 @@ class NfcRepository {
 
   /// Stop any active NFC session.
   void stopSession({String? message}) {
-    _iosRead.stopped();
-    NfcManager.instance.stopSession(
-      alertMessageIos: message,
-      errorMessageIos: null,
-    );
+    _ios.stopped();
+    NfcManager.instance
+        .stopSession(alertMessageIos: message, errorMessageIos: null)
+        // No session open (e.g. iOS already ended it): nothing to stop.
+        .catchError((Object _) {});
   }
 
   /// Why this tag came back without the `Ndef` technology.

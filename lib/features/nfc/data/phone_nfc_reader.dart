@@ -86,6 +86,7 @@ class PhoneNfcReader implements CardReader {
     void Function(String tappedMedium, String configuredMedium,
             NfcTagInfo? tagInfo)?
         onTagTypeMismatch,
+    void Function(ScanStop reason)? onStopped,
     String alertMessage = 'Hold your device near an NFC tag to write',
   }) =>
       _repository.startWriteSession(
@@ -95,6 +96,7 @@ class PhoneNfcReader implements CardReader {
         onError: onError,
         onTagTooSmall: onTagTooSmall,
         onTagTypeMismatch: onTagTypeMismatch,
+        onStopped: onStopped,
         alertMessage: alertMessage,
       );
 

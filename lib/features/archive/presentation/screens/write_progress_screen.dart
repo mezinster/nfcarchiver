@@ -17,14 +17,46 @@ class WriteProgressScreen extends ConsumerStatefulWidget {
 }
 
 class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
+  /// Kept for dispose, where ref may no longer be used.
+  late final NfcSessionNotifier _nfcSession;
+
   @override
   void initState() {
     super.initState();
+    _nfcSession = ref.read(nfcSessionProvider.notifier);
     _listenToNfcSession();
+  }
+
+  /// However the screen goes — swipe-back, Android's back button, Cancel —
+  /// the write session goes with it, or an iOS sheet could open over the next
+  /// screen (see the scan screen's dispose).
+  @override
+  void dispose() {
+    final nfcSession = _nfcSession;
+    // After the frame: stopping changes provider state, which must not happen
+    // while the tree is being torn down.
+    Future.microtask(() {
+      if (nfcSession.mounted) nfcSession.stopSession();
+    });
+    super.dispose();
   }
 
   void _listenToNfcSession() {
     ref.listenManual(nfcSessionProvider, (previous, next) {
+      if (next is NfcSessionWriteSuccess && previous is! NfcSessionWriteSuccess) {
+        // iOS gives its checkmark and haptic only when the sheet ends; left
+        // open, a good write was silent. No-op on Android and the Chameleon.
+        final l10n = AppLocalizations.of(context);
+        if (l10n != null) {
+          ref.read(nfcSessionProvider.notifier).endTag(l10n.tagWritten);
+        }
+      }
+      if (next is NfcSessionStopped) {
+        // The user cancelled iOS's sheet (or it timed out): back to "ready",
+        // no error — they can tap "Write to tag" again.
+        ref.read(archiveProvider.notifier).cancelWriting();
+        return;
+      }
       if (next is NfcSessionWriteSuccess) {
         if (next.waitingForRemoval) {
           // Show "remove tag" prompt - will be handled by UI

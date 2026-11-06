@@ -162,9 +162,9 @@ The consequence is counter-intuitive and worth stating plainly: **the Chameleon 
 
 `ChameleonReader.isAvailable()` and `ChameleonReader.supportsMifareClassic()` both return `true` unconditionally, and the class imports nothing from `nfc_manager`, so the reader path is independent of Core NFC by construction — keep it that way. The UI must never fall back to a phone-wide capability check for either: doing so is what once hid Mifare Classic on iOS with a Chameleon connected.
 
-### Core NFC scanning: one sheet per tag
+### Core NFC sessions: one sheet per tag
 
-Restoring on iOS took several hardware rounds to get right; the rules live in `lib/features/nfc/domain/ios_read_session.dart` (`IosReadSession`) and each answers something a real iPhone did:
+Restoring on iOS took several hardware rounds to get right; the rules live in `lib/features/nfc/domain/ios_nfc_session.dart` (`IosNfcSession`) and each answers something a real iPhone did:
 
 - **Sessions don't poll FeliCa** (`polling_options.dart`). Polling ISO 18092 with an empty `felica.systemcodes` array invalidates every session: "Missing required entitlement".
 - **nfc_manager holds one session and never forgets it by itself.** A second `startSession` throws `session_already_exists`, and `didInvalidateWithError` does not clear the plugin's handle — only `stopSession` does. Every iOS-ended session is therefore released explicitly.
@@ -176,7 +176,7 @@ Restoring on iOS took several hardware rounds to get right; the rules live in `l
 
 Debugging these needs the app's log from the phone: `flutter run --profile` and subscribe to the VM Service `Logging` stream (`print` output does not reach the terminal on iOS 17+, and `log collect` archives from iOS 26 cannot be read by macOS 15's `log`).
 
-**Writing tags (archive) on iOS still uses the old session handling** and has not been through these fixes.
+**Writing tags (archive) follows the same rules** through the same `IosNfcSession` instance (nfc_manager holds one session): failures end the sheet as an error before they are reported, a good write is ended by the write screen with `tagWritten`, Cancel/timeout come back as `NfcSessionStopped` (archive returns to ready, no error), and leaving the write screen stops the session.
 
 ### What the Chameleon path does NOT verify
 

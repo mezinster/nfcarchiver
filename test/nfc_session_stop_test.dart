@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nfc_archiver/core/constants/nfar_format.dart';
+import 'package:nfc_archiver/core/models/chunk.dart';
 import 'package:nfc_archiver/features/nfc/domain/card_reader.dart';
 import 'package:nfc_archiver/features/nfc/presentation/providers/nfc_provider.dart';
 
@@ -22,6 +26,22 @@ void main() {
     await notifier.startReadSession();
     reader.lastOnStopped!(ScanStop.cancelled);
     expect(notifier.state, isA<NfcSessionStopped>());
+    expect((notifier.state as NfcSessionStopped).reason, ScanStop.cancelled);
+  });
+
+  // Cancelling iOS's write sheet is not a write error: no snackbar, just back.
+  test('a stopped write session becomes NfcSessionStopped', () async {
+    await notifier.startWriteSession(
+      chunk: Chunk(
+        archiveId: Uint8List(16),
+        totalChunks: 1,
+        chunkIndex: 0,
+        payload: Uint8List(0),
+        crc32: 0,
+      ),
+      configuredTagType: NfcTagType.ntag216,
+    );
+    reader.lastWriteOnStopped!(ScanStop.cancelled);
     expect((notifier.state as NfcSessionStopped).reason, ScanStop.cancelled);
   });
 

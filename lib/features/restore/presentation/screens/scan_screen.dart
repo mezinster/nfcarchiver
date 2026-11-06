@@ -119,7 +119,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         if (ref.read(restoreProvider) is RestoreReady) return;
 
         // Continue scanning (on iOS: a new sheet, once the last has closed —
-        // see IosReadSession).
+        // see IosNfcSession).
         _startNfcSession();
       } else if (next is NfcSessionError) {
         ref.read(restoreProvider.notifier).scanError(next.message);

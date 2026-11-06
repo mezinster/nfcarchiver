@@ -100,6 +100,7 @@ abstract class CardReader {
     void Function(String tappedMedium, String configuredMedium,
             NfcTagInfo? tagInfo)?
         onTagTypeMismatch,
+    void Function(ScanStop reason)? onStopped,
     String alertMessage,
   });
 

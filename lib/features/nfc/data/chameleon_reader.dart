@@ -161,6 +161,8 @@ class ChameleonReader implements CardReader {
     void Function(String tappedMedium, String configuredMedium,
             NfcTagInfo? tagInfo)?
         onTagTypeMismatch,
+    // Accepted and ignored: only iOS's system sheet ends a session by itself.
+    void Function(ScanStop reason)? onStopped,
     String alertMessage = '',
   }) async {
     final gen = ++_generation;
