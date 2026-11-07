@@ -1,0 +1,5 @@
+Çevrimiçi kılavuz ve gizlilik politikası
+- Yeni: kullanım kılavuzu, gizlilik politikası ve destek sayfası nfcarchiver.com/docs adresinde, uygulamanın tüm dillerinde
+- Değişti: Gizlilik Politikası ekranı kısa bir özet gösterir ve tam politikayı çevrimiçi açar
+- Düzeltildi: Chameleon Ultra ile NTAG etiketlerinden geri yüklerken tam boyutlu parçalar atlanıyordu
+- Güncellendi: kitaplıklar
