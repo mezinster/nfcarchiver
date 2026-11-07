@@ -1,0 +1,310 @@
+name: Deploy docs
+
+# Manual only, from master. Never on push or tag.
+#   gh workflow run deploy-docs.yml --ref master -f dry_run=true   # plan only
+#   gh workflow run deploy-docs.yml --ref master                   # deploy
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Print the S3 sync plan and stop — uploads nothing, Pages untouched'
+        type: boolean
+        default: false
+
+# No ambient permissions anywhere. Each deploy job opts in to what it needs.
+permissions: {}
+
+concurrency:
+  # Queue, never cancel: a run cancelled mid-sync would leave docs/ half-updated.
+  group: deploy-docs
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build & check docs
+    runs-on: ubuntu-latest
+    # This job runs pip, which executes third-party package code. It holds no
+    # credential of any kind, so a compromised dependency can reach neither S3
+    # nor Pages.
+    permissions: {}
+    env:
+      # Material prints a banner about MkDocs 2 on every build; it is noise here.
+      NO_MKDOCS_2_WARNING: '1'
+      DOCS_BUILD_SHA: ${{ github.sha }}
+    steps:
+      - name: Refuse anything but master
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != "refs/heads/master" ]; then
+            echo "::error::deploy-docs runs only from master (got '$REF')"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install site dependencies
+        run: pip install --require-hashes -r site-docs/requirements.txt
+
+      - name: Source checks
+        run: python site-docs/check_site.py
+
+      - name: Build for nfcarchiver.com/docs/
+        working-directory: site-docs
+        run: mkdocs build --strict -d site/main
+
+      - name: Build for GitHub Pages
+        working-directory: site-docs
+        env:
+          DOCS_SITE_URL: https://mezinster.github.io/nfcarchiver/
+        run: mkdocs build --strict -d site/pages
+
+      - name: Built-tree checks
+        # Each tree may only link under its own base path: a /docs/ link in the
+        # Pages copy would break the language switch and the 404 page there.
+        run: |
+          python site-docs/check_site.py --built site-docs/site/main --base /docs/ --sha "$DOCS_BUILD_SHA"
+          python site-docs/check_site.py --built site-docs/site/pages --base /nfcarchiver/ --sha "$DOCS_BUILD_SHA"
+
+      - name: Upload the nfcarchiver.com tree
+        uses: actions/upload-artifact@v7
+        with:
+          name: docs-main
+          path: site-docs/site/main/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload the GitHub Pages tree
+        # Named `github-pages`, which is what deploy-pages consumes.
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site-docs/site/pages/
+
+  deploy-s3:
+    name: Deploy to nfcarchiver.com/docs/
+    needs: build
+    runs-on: ubuntu-latest
+    # Pins the OIDC trust policy on `environment:production` and restricts
+    # deploys to master. The variables below exist only in this environment.
+    environment: production
+    permissions:
+      id-token: write   # mint the OIDC token used to assume the AWS role
+      contents: read
+    # The distribution ID is deliberately NOT in the job env: it comes from an
+    # environment secret (auto-masked) and is passed only to the steps that
+    # need it, so it never appears in this public log.
+    env:
+      BUCKET: ${{ vars.S3_BUCKET }}
+      PREFIX: ${{ vars.S3_DOCS_PREFIX }}
+      DOCS_BASE_URL: ${{ vars.DOCS_BASE_URL }}
+      MARKER: '<meta name="nfar-docs-build" content="${{ github.sha }}">'
+    steps:
+      - name: Refuse anything but master
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != "refs/heads/master" ]; then
+            echo "::error::deploy-docs runs only from master (got '$REF')"
+            exit 1
+          fi
+
+      - name: Check the target before touching anything
+        # `sync --delete` deletes whatever lies under the target and is not in
+        # the tree. An empty prefix, `/`, a missing trailing slash or the web
+        # app's prefix would delete a neighbouring site, so the prefix must be
+        # exactly `docs/` — and, as a second check, a single lower-case path
+        # segment ending in `/` that differs from the web app's. An empty
+        # S3_PREFIX fails too: without it the inequality check proves nothing.
+        env:
+          DIST_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+          APP_PREFIX: ${{ vars.S3_PREFIX }}
+        run: |
+          set -euo pipefail
+          export LC_ALL=C
+          bad=0
+          for v in BUCKET PREFIX APP_PREFIX DIST_ID DOCS_BASE_URL; do
+            if [ -z "${!v:-}" ]; then echo "::error::$v is empty — check the production environment variables and secrets"; bad=1; fi
+          done
+          if [ "${PREFIX}" != "docs/" ]; then
+            echo "::error::S3_DOCS_PREFIX must be exactly 'docs/' (got '${PREFIX}')"; bad=1
+          fi
+          if ! [[ "${PREFIX}" =~ ^[a-z0-9-]+/$ ]]; then
+            echo "::error::S3_DOCS_PREFIX must match ^[a-z0-9-]+/\$ (got '${PREFIX}')"; bad=1
+          fi
+          if [ "${PREFIX}" = "${APP_PREFIX:-}" ]; then
+            echo "::error::S3_DOCS_PREFIX must differ from S3_PREFIX (both '${PREFIX}')"; bad=1
+          fi
+          case "${DOCS_BASE_URL}" in
+            https://*/) ;;
+            *) echo "::error::DOCS_BASE_URL must be https:// and end with a slash (got '${DOCS_BASE_URL}')"; bad=1 ;;
+          esac
+          [ "$bad" -eq 0 ] || exit 1
+          echo "target s3://${BUCKET}/${PREFIX}"
+
+      - name: Download the nfcarchiver.com tree
+        uses: actions/download-artifact@v8
+        with:
+          name: docs-main
+          path: docs-main
+
+      - name: Assume the AWS deploy role via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: gha-docs-deploy-${{ github.run_id }}
+          # AWS error messages quote the account ID; keep it out of the log.
+          mask-aws-account-id: true
+
+      - name: Show what would be uploaded, then stop
+        if: ${{ inputs.dry_run }}
+        # Besides printing the plan, refuse it if any planned key lies outside
+        # the target prefix — a second line of defence behind the guard above.
+        run: |
+          set -euo pipefail
+          aws s3 sync docs-main/ "s3://${BUCKET}/${PREFIX}" --delete --dryrun | tee plan.txt
+          target="s3://${BUCKET}/${PREFIX}"
+          outside=0
+          while IFS= read -r key; do
+            case "$key" in
+              "$target"*) ;;
+              *) echo "::error::planned key outside ${target}: ${key}"; outside=1 ;;
+            esac
+          done < <(grep -oE 's3://[^[:space:]]+' plan.txt || true)
+          [ "$outside" -eq 0 ] || exit 1
+          echo "dry_run: $(wc -l < plan.txt) planned operations, all under ${target}; nothing was uploaded."
+
+      - name: Upload everything but HTML (one-hour cache)
+        if: ${{ !inputs.dry_run }}
+        # --delete is confined to ${PREFIX}. HTML is excluded here (and so is
+        # exempt from --delete) because it goes up last, with other headers.
+        run: |
+          set -euo pipefail
+          aws s3 sync docs-main/ "s3://${BUCKET}/${PREFIX}" \
+            --delete \
+            --exclude '*.html' \
+            --cache-control 'public, max-age=3600'
+
+      - name: Upload HTML last (no-cache)
+        if: ${{ !inputs.dry_run }}
+        # Written last so no page references an asset that has not landed.
+        # Explicit content-type: S3's guessing is not trusted here.
+        run: |
+          set -euo pipefail
+          aws s3 sync docs-main/ "s3://${BUCKET}/${PREFIX}" \
+            --delete \
+            --exclude '*' --include '*.html' \
+            --cache-control 'no-cache' \
+            --content-type 'text/html; charset=utf-8'
+
+      - name: Invalidate the docs prefix and wait
+        id: invalidate
+        if: ${{ !inputs.dry_run }}
+        env:
+          DIST_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          set -euo pipefail
+          id=$(aws cloudfront create-invalidation \
+                 --distribution-id "${DIST_ID}" \
+                 --paths "/${PREFIX}*" \
+                 --query 'Invalidation.Id' --output text)
+          echo "invalidation=${id}" >> "$GITHUB_OUTPUT"
+          echo "created invalidation ${id} for /${PREFIX}*"
+          # Verify must not run before propagation finishes, or it would test
+          # the old edge copy.
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "${DIST_ID}" --id "${id}"
+          echo "invalidation ${id} completed"
+
+      - name: Verify the live site serves this build
+        if: ${{ !inputs.dry_run }}
+        # The full 40-character SHA, so a stale page cannot match by chance.
+        run: |
+          # No pipefail: grep -q exits on the first match, and curl's resulting
+          # SIGPIPE would turn a hit into a failure.
+          set -u
+          urls=("${DOCS_BASE_URL}" "${DOCS_BASE_URL}privacy/" "${DOCS_BASE_URL}support/" "${DOCS_BASE_URL}ru/privacy/")
+          for try in 1 2 3 4 5; do
+            ok=1
+            for u in "${urls[@]}"; do
+              if curl -fsS "$u" | grep -qF "$MARKER"; then
+                echo "try ${try}: ${u} serves this build"
+              else
+                echo "try ${try}: ${u} does not serve this build yet"; ok=0
+              fi
+            done
+            [ "$ok" -eq 1 ] && exit 0
+            [ "$try" -lt 5 ] && sleep 10
+          done
+          echo "::error::${DOCS_BASE_URL} does not serve build ${GITHUB_SHA} after 5 tries"
+          exit 1
+
+      - name: Summary
+        if: ${{ always() && !inputs.dry_run }}
+        run: |
+          {
+            echo "### Docs deploy (nfcarchiver.com)"
+            echo ""
+            echo "| field | value |"
+            echo "|---|---|"
+            echo "| build | \`${GITHUB_SHA}\` |"
+            echo "| target | \`s3://${BUCKET}/${PREFIX}\` |"
+            echo "| url | ${DOCS_BASE_URL} |"
+            echo "| invalidation | \`${{ steps.invalidate.outputs.invalidation || 'n/a' }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    # After deploy-s3, so the mirror never runs ahead of the URL Apple has.
+    needs: [build, deploy-s3]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write      # deploy to Pages
+      id-token: write   # deploy-pages proves its origin with an OIDC token
+    env:
+      PAGES_URL: https://mezinster.github.io/nfcarchiver/
+      MARKER: '<meta name="nfar-docs-build" content="${{ github.sha }}">'
+    steps:
+      - name: Refuse anything but master
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [ "$REF" != "refs/heads/master" ]; then
+            echo "::error::deploy-docs runs only from master (got '$REF')"
+            exit 1
+          fi
+
+      - name: Deploy the Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      - name: Verify Pages serves this build
+        run: |
+          # No pipefail: grep -q exits on the first match, and curl's resulting
+          # SIGPIPE would turn a hit into a failure.
+          set -u
+          urls=("${PAGES_URL}" "${PAGES_URL}privacy/")
+          for try in $(seq 1 10); do
+            ok=1
+            for u in "${urls[@]}"; do
+              if curl -fsS "$u" | grep -qF "$MARKER"; then
+                echo "try ${try}: ${u} serves this build"
+              else
+                echo "try ${try}: ${u} does not serve this build yet"; ok=0
+              fi
+            done
+            [ "$ok" -eq 1 ] && exit 0
+            [ "$try" -lt 10 ] && sleep 20
+          done
+          echo "::error::${PAGES_URL} does not serve build ${GITHUB_SHA} after 10 tries"
+          exit 1
