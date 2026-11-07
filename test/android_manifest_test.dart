@@ -48,4 +48,16 @@ void main() {
       expect(removal.hasMatch(manifest), isTrue);
     });
   }
+
+  // RxAndroidBle declares both with no maxSdkVersion; without this cap the
+  // merger ships them to Android 12+, where nothing needs them (issue #104).
+  for (final permission in ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION']) {
+    test('caps $permission at Android 11 over the library declaration', () {
+      final cap = RegExp(
+        '<uses-permission-sdk-23\\s+android:name="android.permission.$permission"'
+        '\\s+android:maxSdkVersion="30"\\s+tools:node="replace"\\s*/>',
+      );
+      expect(cap.hasMatch(manifest), isTrue);
+    });
+  }
 }
