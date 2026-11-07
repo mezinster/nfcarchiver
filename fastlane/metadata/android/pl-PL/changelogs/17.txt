@@ -1,0 +1,4 @@
+Przewodnik i polityka prywatności online
+- Nowość: przewodnik, polityka prywatności i strona pomocy na nfcarchiver.com/docs we wszystkich językach aplikacji
+- Zmieniono: ekran „Polityka prywatności” pokazuje krótkie podsumowanie i otwiera pełną politykę online
+- Zaktualizowano: biblioteki
