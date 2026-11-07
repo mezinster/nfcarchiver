@@ -52,3 +52,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+.superpowers/
+site-docs/site/
+site-docs/.venv/

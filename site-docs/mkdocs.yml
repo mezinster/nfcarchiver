@@ -1,0 +1,159 @@
+site_name: NFC Archiver
+site_url: !ENV [DOCS_SITE_URL, "https://nfcarchiver.com/docs/"]
+use_directory_urls: true
+
+theme:
+  name: material
+  custom_dir: overrides
+  # No Google Fonts: the site must not load anything third-party.
+  font: false
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - search.highlight
+    - navigation.footer
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+extra:
+  build_sha: !ENV [DOCS_BUILD_SHA, "dev"]
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - toc:
+      permalink: true
+  # Material's icons are bundled SVG, inlined at build time: nothing is
+  # fetched from a third party.
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  # lunr ships stemmers for en, ru and tr only; uk, ka, pl and be fall back to
+  # the default tokenizer.
+  - search:
+      lang:
+        - en
+        - ru
+        - tr
+  - i18n:
+      docs_structure: folder
+      reconfigure_material: true
+      reconfigure_search: false
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: ru
+          name: Русский
+          build: true
+          nav_translations:
+            Home: Главная
+            On iPhone: На iPhone
+            On Android: На Android
+            Archive a file: Архивация файла
+            Restore a file: Восстановление файла
+            Tag types: Типы меток
+            Chameleon reader: Считыватель Chameleon
+            Troubleshooting: Решение проблем
+            Privacy policy: Политика конфиденциальности
+            Support: Поддержка
+        - locale: tr
+          name: Türkçe
+          build: true
+          nav_translations:
+            Home: Ana sayfa
+            On iPhone: iPhone'da
+            On Android: Android'de
+            Archive a file: Dosya arşivleme
+            Restore a file: Dosya geri yükleme
+            Tag types: Etiket türleri
+            Chameleon reader: Chameleon okuyucu
+            Troubleshooting: Sorun giderme
+            Privacy policy: Gizlilik politikası
+            Support: Destek
+        - locale: uk
+          name: Українська
+          build: true
+          nav_translations:
+            Home: Головна
+            On iPhone: На iPhone
+            On Android: На Android
+            Archive a file: Архівація файлу
+            Restore a file: Відновлення файлу
+            Tag types: Типи міток
+            Chameleon reader: Зчитувач Chameleon
+            Troubleshooting: Усунення проблем
+            Privacy policy: Політика конфіденційності
+            Support: Підтримка
+        - locale: ka
+          name: ქართული
+          build: true
+          nav_translations:
+            Home: მთავარი
+            On iPhone: iPhone-ზე
+            On Android: Android-ზე
+            Archive a file: ფაილის დაარქივება
+            Restore a file: ფაილის აღდგენა
+            Tag types: ტეგების ტიპები
+            Chameleon reader: Chameleon წამკითხველი
+            Troubleshooting: პრობლემების გადაჭრა
+            Privacy policy: კონფიდენციალურობის პოლიტიკა
+            Support: მხარდაჭერა
+        - locale: pl
+          name: Polski
+          build: true
+          nav_translations:
+            Home: Strona główna
+            On iPhone: Na iPhonie
+            On Android: Na Androidzie
+            Archive a file: Archiwizacja pliku
+            Restore a file: Przywracanie pliku
+            Tag types: Typy tagów
+            Chameleon reader: Czytnik Chameleon
+            Troubleshooting: Rozwiązywanie problemów
+            Privacy policy: Polityka prywatności
+            Support: Pomoc
+        - locale: be
+          name: Беларуская
+          build: true
+          nav_translations:
+            Home: Галоўная
+            On iPhone: На iPhone
+            On Android: На Android
+            Archive a file: Архіваванне файла
+            Restore a file: Аднаўленне файла
+            Tag types: Тыпы метак
+            Chameleon reader: Счытвальнік Chameleon
+            Troubleshooting: Вырашэнне праблем
+            Privacy policy: Палітыка прыватнасці
+            Support: Падтрымка
+
+nav:
+  - Home: index.md
+  - On iPhone: iphone.md
+  - On Android: android.md
+  - Archive a file: archive.md
+  - Restore a file: restore.md
+  - Tag types: tag-types.md
+  - Chameleon reader: chameleon.md
+  - Troubleshooting: troubleshooting.md
+  - Privacy policy: privacy.md
+  - Support: support.md
