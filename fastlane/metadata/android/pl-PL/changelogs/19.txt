@@ -1,0 +1,7 @@
+Przewodnik online, poprawki Bluetooth
+- Nowość: przewodnik, polityka prywatności i pomoc na nfcarchiver.com/docs
+- Zmieniono: ekran polityki prywatności pokazuje podsumowanie i link do pełnej treści
+- Naprawiono: przywracanie z NTAG przez Chameleon Ultra pomijało pełne fragmenty
+- Naprawiono: Chameleon Ultra nie był wykrywany na Androidzie 7–11 (pomóż przetestować: issue #104)
+- Zmieniono: na Androidzie 12+ nie ma już uprawnienia do lokalizacji
+- Zaktualizowano: biblioteki
