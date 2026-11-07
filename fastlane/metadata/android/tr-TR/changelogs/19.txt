@@ -1,0 +1,7 @@
+Çevrimiçi kılavuz, Bluetooth düzeltmeleri
+- Yeni: kılavuz, gizlilik politikası ve destek nfcarchiver.com/docs adresinde
+- Değişti: Gizlilik Politikası ekranı özet gösterir ve tam metne bağlantı verir
+- Düzeltildi: Chameleon Ultra ile NTAG'den geri yüklemede tam boyutlu parçalar atlanıyordu
+- Düzeltildi: Chameleon Ultra, Android 7–11'de bulunamıyordu (test etmeye yardım edin: issue #104)
+- Değişti: Android 12+ sürümünde konum izni artık listelenmiyor
+- Güncellendi: kitaplıklar

@@ -1,0 +1,7 @@
+Online guide, Bluetooth fixes
+- New: user guide, privacy policy and support at nfcarchiver.com/docs
+- Changed: the Privacy Policy screen shows a summary and links to the full policy
+- Fixed: Chameleon Ultra restore from NTAG skipped full-size chunks
+- Fixed: Chameleon Ultra could not be found on Android 7–11 (help us test: issue #104)
+- Changed: location permission is no longer listed on Android 12+
+- Updated: libraries
