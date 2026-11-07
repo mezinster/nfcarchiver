@@ -18,6 +18,16 @@
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" />
+    <!-- Location, capped at Android 11. We never declared these: RxAndroidBle
+         (under flutter_reactive_ble) does, with no maxSdkVersion, and the
+         manifest merger silently put them in every APK since 1.1.0 (issue #104).
+         Android 6-11 needs location for ANY Bluetooth scan; on 12+ the
+         neverForLocation BLUETOOTH_SCAN above is all a scan needs, so there
+         they are dead weight. tools:node="replace" makes our cap win the merge. -->
+    <uses-permission-sdk-23 android:name="android.permission.ACCESS_COARSE_LOCATION"
+        android:maxSdkVersion="30" tools:node="replace" />
+    <uses-permission-sdk-23 android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" tools:node="replace" />
     <uses-feature android:name="android.hardware.bluetooth_le"
         android:required="false" />
     <uses-feature android:name="android.hardware.nfc" android:required="true" />
