@@ -38,4 +38,28 @@ void main() {
     });
     expect(await hasMifareClassicSupport(), isFalse);
   });
+
+  group('androidSdkInt', () {
+    test('returns the API level the platform reports', () async {
+      messenger.setMockMethodCallHandler(nfcCapabilitiesChannel, (call) async {
+        expect(call.method, 'androidSdkInt');
+        return 30;
+      });
+      expect(await androidSdkInt(), 30);
+    });
+
+    test('returns null when the channel is unimplemented (iOS)', () async {
+      messenger.setMockMethodCallHandler(nfcCapabilitiesChannel, (call) async {
+        throw MissingPluginException('no implementation');
+      });
+      expect(await androidSdkInt(), isNull);
+    });
+
+    test('returns null rather than throwing on any platform error', () async {
+      messenger.setMockMethodCallHandler(nfcCapabilitiesChannel, (call) async {
+        throw PlatformException(code: 'ERROR');
+      });
+      expect(await androidSdkInt(), isNull);
+    });
+  });
 }

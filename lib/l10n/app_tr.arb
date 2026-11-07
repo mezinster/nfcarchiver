@@ -176,6 +176,8 @@
   "readerDisconnect": "Bağlantıyı kes",
   "readerBluetoothOff": "Bluetooth kapalı. Chameleon kullanmak için açın.",
   "readerPermissionDenied": "Chameleon bulmak için Bluetooth izni gerekir.",
+  "readerLocationPermissionDenied": "Android 11 ve öncesi, Bluetooth taramasına yalnızca konum izniyle izin verir. NFC Archiver konumunuzu asla kullanmaz.",
+  "readerLocationOff": "Konum kapalı. Android 11 ve öncesinde Chameleon bulmak için açık olması gerekir.",
   "readerConnectFailed": "Chameleon’a bağlanılamadı.",
   "readerPhoneSubtitle": "Telefonun kendi NFC’sini kullanır",
   "readerChameleonSubtitle": "Bluetooth üzerinden Mifare Classic ve kart incelemesi ekler",

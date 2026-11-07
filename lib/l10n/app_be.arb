@@ -169,6 +169,8 @@
   "readerDisconnect": "Адключыць",
   "readerBluetoothOff": "Bluetooth выключаны. Уключыце яго, каб выкарыстоўваць Chameleon.",
   "readerPermissionDenied": "Для пошуку Chameleon патрэбны дазвол Bluetooth.",
+  "readerLocationPermissionDenied": "Android 11 і старэйшыя дазваляюць пошук Bluetooth-прылад толькі з дазволам на геалакацыю. NFC Archiver ніколі не выкарыстоўвае ваша месцазнаходжанне.",
+  "readerLocationOff": "Геалакацыя выключана. На Android 11 і старэйшых яна патрэбна, каб знайсці Chameleon.",
   "readerConnectFailed": "Не ўдалося падключыцца да Chameleon.",
   "readerPhoneSubtitle": "Выкарыстоўвае ўласны NFC тэлефона",
   "readerChameleonSubtitle": "Дадае Mifare Classic і агляд карты праз Bluetooth",

@@ -28,3 +28,19 @@ Future<bool> hasMifareClassicSupport() async {
     return false;
   }
 }
+
+/// The Android API level (`Build.VERSION.SDK_INT`), or null off Android.
+///
+/// Needed because a BLE scan's permission rules changed in Android 12: before
+/// it, the OS requires location permission for any scan, and permission_handler
+/// reports the Android-12 Bluetooth permissions as granted without asking. See
+/// `bluetoothPermissionsFor`.
+Future<int?> androidSdkInt() async {
+  try {
+    return await nfcCapabilitiesChannel.invokeMethod<int>('androidSdkInt');
+  } on MissingPluginException {
+    return null; // iOS, or an older build without the channel
+  } on PlatformException {
+    return null;
+  }
+}

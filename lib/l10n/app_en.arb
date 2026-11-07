@@ -838,6 +838,14 @@
   "@readerPermissionDenied": {
     "description": "Shown when Bluetooth permission was refused"
   },
+  "readerLocationPermissionDenied": "Android 11 and older only allow Bluetooth scanning with location permission. NFC Archiver never uses your location.",
+  "@readerLocationPermissionDenied": {
+    "description": "Android 11 and older: location permission refused; the OS requires it for any Bluetooth scan"
+  },
+  "readerLocationOff": "Location is off. Android 11 and older need it on to find a Chameleon.",
+  "@readerLocationOff": {
+    "description": "Android 11 and older: location services are off, so Bluetooth scans find nothing"
+  },
   "readerConnectFailed": "Could not connect to the Chameleon.",
   "@readerConnectFailed": {
     "description": "Shown when connecting to a Chameleon failed"

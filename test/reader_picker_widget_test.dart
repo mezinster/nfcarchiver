@@ -10,21 +10,23 @@ import 'package:nfc_archiver/features/nfc/presentation/screens/reader_picker_scr
 
 /// A scanner that never touches a radio.
 class _FakeScanner implements BleScanner {
-  _FakeScanner({this.devices = const [], this.failWith, this.ready = true});
+  _FakeScanner({this.devices = const [], this.failWith, this.radio});
 
   final List<DiscoveredReader> devices;
+
+  /// Thrown from [ensurePermissions], as the real scanner does.
   final BleUnavailableReason? failWith;
-  final bool ready;
+
+  /// What the radio reports once permissions are through.
+  final BleUnavailableReason? radio;
 
   @override
   Future<void> ensurePermissions() async {
-    if (failWith == BleUnavailableReason.permissionDenied) {
-      throw const BleUnavailableException(BleUnavailableReason.permissionDenied);
-    }
+    if (failWith != null) throw BleUnavailableException(failWith!);
   }
 
   @override
-  Future<bool> isBluetoothReady() async => ready;
+  Future<BleUnavailableReason?> unavailableReason() async => radio;
 
   @override
   Stream<DiscoveredReader> scan() => Stream.fromIterable(devices);
@@ -81,7 +83,7 @@ void main() {
   });
 
   testWidgets('Bluetooth being off is named specifically', (t) async {
-    await t.pumpWidget(_host(_FakeScanner(ready: false)));
+    await t.pumpWidget(_host(_FakeScanner(radio: BleUnavailableReason.bluetoothOff)));
     await t.pumpAndSettle();
     await t.tap(find.text('Search'));
     await t.pumpAndSettle();
@@ -97,5 +99,34 @@ void main() {
     await t.tap(find.text('Search'));
     await t.pump();
     expect(find.text('Searching for Chameleons…'), findsOneWidget);
+  });
+
+  testWidgets('a refused location permission says why a Bluetooth app wants it',
+      (t) async {
+    await t.pumpWidget(_host(
+      _FakeScanner(failWith: BleUnavailableReason.locationPermissionDenied),
+    ));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Search'));
+    await t.pumpAndSettle();
+    expect(
+      find.text('Android 11 and older only allow Bluetooth scanning with '
+          'location permission. NFC Archiver never uses your location.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('location services being off is named, not called Bluetooth',
+      (t) async {
+    await t.pumpWidget(
+        _host(_FakeScanner(radio: BleUnavailableReason.locationOff)));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Search'));
+    await t.pumpAndSettle();
+    expect(
+      find.text('Location is off. Android 11 and older need it on to find '
+          'a Chameleon.'),
+      findsOneWidget,
+    );
   });
 }
