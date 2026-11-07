@@ -1,0 +1,5 @@
+Online guide and privacy policy
+- New: user guide, privacy policy and support page at nfcarchiver.com/docs, in all app languages
+- Changed: the Privacy Policy screen shows a short summary and opens the full policy online
+- Fixed: restoring from NTAG tags through a Chameleon Ultra skipped every full-size chunk
+- Updated: libraries
