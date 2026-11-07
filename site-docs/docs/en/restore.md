@@ -13,7 +13,7 @@ On the home screen tap **Restore Archive**. The **Scan Tags** screen opens and s
 Hold each tag against the phone in turn (on iPhone, one NFC sheet per tag; see [On iPhone](iphone.md)):
 
 - A new tag shows **New chunk found!** and its number, for example "Chunk 3 of 8".
-- A tag you have already scanned shows **Duplicate chunk**; it is ignored. On iPhone the sheet closes with a cross and the message "Chunk 3 of 8 already scanned".
+- A tag you have already scanned shows **Duplicate chunk**; it is ignored. On iPhone the sheet closes with a red exclamation mark and the message "Chunk 3 of 8 already scanned".
 
 **Archives in progress** lists every archive you have started to scan, with how many of its tags you have (for example 2/4). Your progress is saved: you can leave and come back later to scan the remaining tags. Tags from different archives can be mixed; each goes to its own archive.
 

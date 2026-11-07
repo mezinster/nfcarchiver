@@ -9,12 +9,15 @@ Yazarken ve tararken iOS ekranın altında kendi NFC penceresini gösterir. NFC 
 1. iPhone'un üst kısmını etikete tutun. Pencere etiketi okur (ya da ona yazar) ve kapanır.
 2. Pencerenin nasıl kapandığı ne olduğunu gösterir:
     - **onay işareti**: etiket okundu (ya da yazıldı) ve parçası yeni;
-    - **çarpı**: yinelenen bir etiket (zaten taradığınız bir parça) ya da okunamayan bir etiket.
+    - **kırmızı ünlem işareti**: yinelenen bir etiket (zaten taradığınız bir parça) ya da okunamayan bir etiket.
 3. Yaklaşık **3 saniye** bekleyin. Sonraki pencere kendiliğinden açılır; ardından sonraki etiketi tutun.
+
+![Onay işaretli NFC penceresi: yeni parça](../assets/screenshots/iphone-sheet-new.png){ width="260" }
+![Ünlem işaretli NFC penceresi: yinelenen parça](../assets/screenshots/iphone-sheet-duplicate.png){ width="260" }
 
 Telefonun üzerinde duran bir etiket yalnızca bir kez okunur, bu yüzden onu aceleyle çekmeniz gerekmez.
 
-Pencere açıkken uygulamayı örter; bu yüzden onay işareti ya da çarpı ve titreşim sizin geri bildiriminizdir. Ayrıntıları uygulama pencere kapanınca gösterir.
+Pencere açıkken uygulamayı örter; bu yüzden onay işareti ya da ünlem işareti ve titreşim sizin geri bildiriminizdir. Ayrıntıları uygulama pencere kapanınca gösterir.
 
 ## Durdurma ve devam etme
 

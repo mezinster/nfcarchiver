@@ -13,7 +13,7 @@ Ana ekranda **Arşivi Geri Yükle**'ye dokunun. **Etiketleri Tara** ekranı aç�
 Her etiketi sırayla telefona tutun (iPhone'da etiket başına bir NFC penceresi; bkz. [iPhone'da](iphone.md)):
 
 - Yeni bir etiket **Yeni parça bulundu!** ve numarasını gösterir, örneğin "Parça 3 / 8".
-- Zaten taradığınız bir etiket **Yinelenen parça** gösterir ve yok sayılır. iPhone'da pencere bir çarpıyla ve "Parça 3 / 8 zaten tarandı" mesajıyla kapanır.
+- Zaten taradığınız bir etiket **Yinelenen parça** gösterir ve yok sayılır. iPhone'da pencere kırmızı bir ünlem işaretiyle ve "Parça 3 / 8 zaten tarandı" mesajıyla kapanır.
 
 **Devam eden arşivler**, taramaya başladığınız her arşivi ve etiketlerinden kaçının elinizde olduğunu (örneğin 2/4) listeler. İlerlemeniz kaydedilir: çıkıp kalan etiketleri taramak için daha sonra dönebilirsiniz. Farklı arşivlerin etiketleri karışık taranabilir; her biri kendi arşivine gider.
 

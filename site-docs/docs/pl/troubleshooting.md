@@ -10,9 +10,9 @@ Niektóre komunikaty o błędach aplikacja na razie pokazuje tylko po angielsku;
 - Jeśli podłączony jest [Chameleon Ultra](chameleon.md), kładź tag na Chameleonie, nie na telefonie.
 - Po pięciu nieudanych odczytach z rzędu skanowanie się wstrzymuje; dotknij **Skanuj więcej tagów**, aby kontynuować.
 
-## iPhone: okno zamknęło się krzyżykiem
+## iPhone: okno zamknęło się wykrzyknikiem
 
-Krzyżyk oznacza, że tag był duplikatem (już zeskanowany) albo nie dało się go odczytać. Po około 3 sekundach otworzy się nowe okno; przyłóż kolejny tag albo ten sam ponownie, jeśli się nie odczytał. Patrz [Na iPhonie](iphone.md).
+Wykrzyknik oznacza, że tag był duplikatem (już zeskanowany) albo nie dało się go odczytać. Po około 3 sekundach otworzy się nowe okno; przyłóż kolejny tag albo ten sam ponownie, jeśli się nie odczytał. Patrz [Na iPhonie](iphone.md).
 
 ## Tag za mały
 

@@ -13,7 +13,7 @@ Na ekranie głównym dotknij **Przywróć archiwum**. Otworzy się ekran **Skanu
 Przykładaj kolejno każdy tag do telefonu (na iPhonie jedno okno NFC na tag; patrz [Na iPhonie](iphone.md)):
 
 - Nowy tag pokazuje **Znaleziono nowy fragment!** i swój numer, na przykład „Fragment 3 z 8”.
-- Tag już zeskanowany pokazuje **Zduplikowany fragment** i jest pomijany. Na iPhonie okno zamyka się krzyżykiem z komunikatem „Fragment 3 z 8 już zeskanowany”.
+- Tag już zeskanowany pokazuje **Zduplikowany fragment** i jest pomijany. Na iPhonie okno zamyka się czerwonym wykrzyknikiem z komunikatem „Fragment 3 z 8 już zeskanowany”.
 
 **Archiwa w toku** wymienia każde archiwum, które zacząłeś skanować, i ile jego tagów już masz (na przykład 2/4). Postęp jest zapisywany: możesz wyjść i wrócić później, aby zeskanować pozostałe tagi. Tagi różnych archiwów można mieszać; każdy trafia do swojego archiwum.
 
