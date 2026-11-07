@@ -25,7 +25,7 @@ dependencies:
 
   # Bluetooth LE (Chameleon Ultra). BSD-3-Clause — flutter_blue_plus is NOT
   # an option: its licence is non-free and F-Droid would reject the app.
-  flutter_reactive_ble: ^5.5.0
+  flutter_reactive_ble: ^5.6.0
 
   # Navigation
   go_router: ^18.0.0
