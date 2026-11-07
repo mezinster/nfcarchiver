@@ -9,12 +9,15 @@ When you write or scan, iOS shows its NFC sheet at the bottom of the screen. NFC
 1. Hold the top of the iPhone against the tag. The sheet reads (or writes) it and closes.
 2. The way it closes tells you what happened:
     - a **checkmark** means the tag was read (or written) and its chunk is new;
-    - a **cross** means a duplicate (a chunk you already scanned) or a tag that could not be read.
+    - a **red exclamation mark** means a duplicate (a chunk you already scanned) or a tag that could not be read.
 3. Wait about **3 seconds**. The next sheet opens by itself; then hold the next tag.
+
+![The NFC sheet with a checkmark: a new chunk](../assets/screenshots/iphone-sheet-new.png){ width="260" }
+![The NFC sheet with an exclamation mark: a duplicate chunk](../assets/screenshots/iphone-sheet-duplicate.png){ width="260" }
 
 A tag left resting on the phone is read only once, so you don't have to snatch it away.
 
-While a sheet is open it covers the app, so the checkmark or cross, with its vibration, is your feedback. The app shows the details when the sheet closes.
+While a sheet is open it covers the app, so the checkmark or exclamation mark, with its vibration, is your feedback. The app shows the details when the sheet closes.
 
 ## Stopping and resuming
 

@@ -10,9 +10,9 @@ Bazı hata mesajlarını uygulama şimdilik yalnızca İngilizce gösteriyor; bu
 - Bir [Chameleon Ultra](chameleon.md) bağlıysa etiketi telefona değil Chameleon'a koyun.
 - Art arda beş başarısız okumadan sonra tarama duraklar; devam etmek için **Daha fazla etiket tara**'ya dokunun.
 
-## iPhone: pencere bir çarpıyla kapandı
+## iPhone: pencere bir ünlem işaretiyle kapandı
 
-Çarpı, etiketin yinelenen (zaten taranmış) ya da okunamayan bir etiket olduğu anlamına gelir. Yaklaşık 3 saniye sonra yeni bir pencere açılır; sonraki etiketi ya da okunamadıysa aynısını yeniden tutun. Bkz. [iPhone'da](iphone.md).
+Ünlem işareti, etiketin yinelenen (zaten taranmış) ya da okunamayan bir etiket olduğu anlamına gelir. Yaklaşık 3 saniye sonra yeni bir pencere açılır; sonraki etiketi ya da okunamadıysa aynısını yeniden tutun. Bkz. [iPhone'da](iphone.md).
 
 ## Etiket Çok Küçük
 

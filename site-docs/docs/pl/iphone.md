@@ -9,12 +9,15 @@ Podczas zapisu i skanowania iOS pokazuje na dole ekranu własne okno NFC. NFC Ar
 1. Przyłóż górną część iPhone'a do tagu. Okno odczyta (lub zapisze) tag i się zamknie.
 2. Sposób zamknięcia mówi, co się stało:
     - **znaczek ✓** oznacza, że tag został odczytany (lub zapisany), a jego fragment jest nowy;
-    - **krzyżyk** oznacza duplikat (fragment, który już zeskanowano) albo tag, którego nie udało się odczytać.
+    - **czerwony wykrzyknik** oznacza duplikat (fragment, który już zeskanowano) albo tag, którego nie udało się odczytać.
 3. Odczekaj około **3 sekund**. Następne okno otworzy się samo; wtedy przyłóż kolejny tag.
+
+![Okno NFC ze znaczkiem ✓: nowy fragment](../assets/screenshots/iphone-sheet-new.png){ width="260" }
+![Okno NFC z wykrzyknikiem: duplikat](../assets/screenshots/iphone-sheet-duplicate.png){ width="260" }
 
 Tag pozostawiony na telefonie jest odczytywany tylko raz, więc nie trzeba go w pośpiechu zabierać.
 
-Gdy okno jest otwarte, zasłania aplikację, więc znaczek ✓ lub krzyżyk z wibracją to Twoja informacja zwrotna. Szczegóły aplikacja pokaże po zamknięciu okna.
+Gdy okno jest otwarte, zasłania aplikację, więc znaczek ✓ lub wykrzyknik z wibracją to Twoja informacja zwrotna. Szczegóły aplikacja pokaże po zamknięciu okna.
 
 ## Zatrzymywanie i wznawianie
 

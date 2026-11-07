@@ -8,9 +8,9 @@
 - With a [Chameleon Ultra](chameleon.md) connected, put the tag on the Chameleon, not on the phone.
 - Scanning pauses after five failed reads in a row; tap **Scan more tags** to continue.
 
-## iPhone: the sheet closed with a cross
+## iPhone: the sheet closed with an exclamation mark
 
-A cross means the tag was a duplicate (already scanned) or could not be read. A new sheet opens after about 3 seconds; present the next tag, or the same one again if it was unreadable. See [On iPhone](iphone.md).
+A red exclamation mark means the tag was a duplicate (already scanned) or could not be read. A new sheet opens after about 3 seconds; present the next tag, or the same one again if it was unreadable. See [On iPhone](iphone.md).
 
 ## Tag Too Small
 
