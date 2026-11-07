@@ -18,6 +18,9 @@ class MainActivity : FlutterActivity() {
                     "hasMifareClassic" -> result.success(
                         packageManager.hasSystemFeature("com.nxp.mifare")
                     )
+                    // BLE permission rules split at Android 12 (API 31); the
+                    // Dart side picks which permissions to request from this.
+                    "androidSdkInt" -> result.success(android.os.Build.VERSION.SDK_INT)
                     else -> result.notImplemented()
                 }
             }

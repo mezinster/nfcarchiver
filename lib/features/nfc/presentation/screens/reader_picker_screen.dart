@@ -49,9 +49,8 @@ class _ReaderPickerScreenState extends ConsumerState<ReaderPickerScreen> {
     });
     try {
       await _scanner.ensurePermissions();
-      if (!await _scanner.isBluetoothReady()) {
-        throw const BleUnavailableException(BleUnavailableReason.bluetoothOff);
-      }
+      final blocked = await _scanner.unavailableReason();
+      if (blocked != null) throw BleUnavailableException(blocked);
       _sub = _scanner.scan().listen((d) {
         if (!mounted) return;
         setState(() {
@@ -145,8 +144,12 @@ class _ReaderPickerScreenState extends ConsumerState<ReaderPickerScreen> {
                       switch (_unavailable!) {
                         BleUnavailableReason.permissionDenied =>
                           l10n.readerPermissionDenied,
+                        BleUnavailableReason.locationPermissionDenied =>
+                          l10n.readerLocationPermissionDenied,
                         BleUnavailableReason.bluetoothOff =>
                           l10n.readerBluetoothOff,
+                        BleUnavailableReason.locationOff =>
+                          l10n.readerLocationOff,
                         BleUnavailableReason.unsupported =>
                           l10n.readerBluetoothOff,
                       },

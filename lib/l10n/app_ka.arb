@@ -176,6 +176,8 @@
   "readerDisconnect": "გათიშვა",
   "readerBluetoothOff": "Bluetooth გამორთულია. ჩართეთ Chameleon-ის გამოსაყენებლად.",
   "readerPermissionDenied": "Chameleon-ის მოსაძებნად საჭიროა Bluetooth-ის ნებართვა.",
+  "readerLocationPermissionDenied": "Android 11 და უფრო ძველი ვერსიები Bluetooth-ის ძებნას მხოლოდ მდებარეობის ნებართვით უშვებს. NFC Archiver არასოდეს იყენებს თქვენს მდებარეობას.",
+  "readerLocationOff": "მდებარეობა გამორთულია. Android 11-სა და უფრო ძველ ვერსიებზე Chameleon-ის მოსაძებნად ის ჩართული უნდა იყოს.",
   "readerConnectFailed": "Chameleon-თან დაკავშირება ვერ მოხერხდა.",
   "readerPhoneSubtitle": "იყენებს ტელეფონის საკუთარ NFC-ს",
   "readerChameleonSubtitle": "ამატებს Mifare Classic-ს და ბარათის დათვალიერებას Bluetooth-ით",
