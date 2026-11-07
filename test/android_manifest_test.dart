@@ -26,6 +26,15 @@ void main() {
     });
   }
 
+  test('declares package visibility for opening an https link in a browser',
+      () {
+    final intent = RegExp(
+      '<intent>\\s*<action android:name="android.intent.action.VIEW"\\s*/>'
+      '\\s*<data android:scheme="https"\\s*/>\\s*</intent>',
+    );
+    expect(intent.hasMatch(queries()), isTrue);
+  });
+
   for (final permission in [
     'READ_MEDIA_IMAGES',
     'READ_MEDIA_VIDEO',
