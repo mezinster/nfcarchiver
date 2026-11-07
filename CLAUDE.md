@@ -83,6 +83,8 @@ Restored files live in `getApplicationDocumentsDirectory()/NFC_Archives` — app
 
 `AndroidManifest.xml` carries a `VIEW */*` package-visibility query (without it the Open chooser is nearly empty on Android 11+) and strips the `READ_MEDIA_*` permissions `open_filex` merges in with `tools:node="remove"` — we only open our own files through its FileProvider. `test/android_manifest_test.dart` guards both, because nothing in Dart fails when either goes missing.
 
+The privacy screen opens the site's full policy through `url_launcher`; on Android 11+ that works only because `AndroidManifest.xml` also declares a `VIEW` + `https` package-visibility query, guarded by the same `test/android_manifest_test.dart`.
+
 ### Version Display
 
 Version and build number are read at runtime via `PackageInfo.fromPlatform()` (`package_info_plus` package) — **never hardcoded**. `pubspec.yaml` `version:` field is the single source of truth. The version propagates to:
@@ -116,6 +118,14 @@ A browser port that reads/writes NFAR archives on physical cards, either via a C
 - **Commands (Node ≥ 22 required):** `source ~/.nvm/nvm.sh && nvm use --lts` first (the shell default is Node 14). `rm -rf dist && npm test` (the `tsc && node --test` chain doesn't clean stale compiled tests). `npm run app` serves it on `localhost:8000`. Web Bluetooth is Chromium-only; inside WSL the browser must run on the Windows host.
 - **Deploy:** manual only, from `master` — `gh workflow run deploy-webapp.yml --ref master` (add `-f dry_run=true` to print the sync plan without uploading). `npm run build:site` produces the deployable `site/` tree and stamps an esbuild banner `/* nfar-build:<sha> */` into the bundle; the post-deploy healthcheck requires the live bundle to carry that marker, and rolls back if it doesn't. Match on the **marker, never the bare SHA** — the bundle contains hex constants like `"C82000000000"`, so a 7-hex-char needle can match by coincidence and pass a stale deploy. Credentials come from GitHub OIDC; there are no stored AWS keys. Every S3 and CloudFront operation is confined to the `app/` prefix because the `nfcarchiver.com` bucket hosts other applications. See `webapp/README.md` for the configuration table and why the non-credentials are variables rather than secrets.
 - **Status:** working prototype, validated on real hardware. Deferred: an IndexedDB file manager (Files tab is a placeholder).
+
+## Docs site (`site-docs/`)
+
+User guide, privacy policy and support page in the app's seven languages (MkDocs + Material) — see [`site-docs/README.md`](site-docs/README.md).
+
+- **Two copies from one source:** `nfcarchiver.com/docs/` (what App Store Connect links: `/docs/privacy/`, `/docs/support/`) and the GitHub Pages mirror `mezinster.github.io/nfcarchiver/`. English at the root, other languages under their code. `check_site.py` checks the sources and each built tree; CI's `build-docs` job runs it.
+- **Deploy:** manual only, from `master` — `gh workflow run deploy-docs.yml --ref master`, with `-f dry_run=true` first. It syncs to the `docs/` prefix (never `app/`; the guard refuses any other shape), invalidates `/docs/*`, verifies the full-SHA `nfar-docs-build` marker on the live pages, then deploys Pages.
+- **Public-repo hygiene:** this repository and its Actions logs are public. Never commit or print the AWS account ID, the role ARN or the CloudFront distribution ID, and don't run `aws sts get-caller-identity`. The docs workflow reads the distribution ID from the `CLOUDFRONT_DISTRIBUTION_ID` environment secret, so it is masked and never appears in its logs. The deploy role's permissions are managed outside this repository — don't describe them here.
 
 ## Apple App Store Publishing
 

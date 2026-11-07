@@ -279,7 +279,7 @@ fixes only where they live.
    - Provider URL `https://token.actions.githubusercontent.com`
    - Audience `sts.amazonaws.com`
 
-2. **Create role** `nfcarchiver-webapp-deploy` with this trust policy
+2. **Create role** `<deploy-role-name>` with this trust policy
    (substitute the account ID):
 
 ```json

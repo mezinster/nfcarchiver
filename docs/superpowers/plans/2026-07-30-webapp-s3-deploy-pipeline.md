@@ -1163,7 +1163,7 @@ IAM → **Roles** → **Create role** → **Custom trust policy**. Paste this, r
 }
 ```
 
-Name it `nfcarchiver-webapp-deploy`.
+Name it `<deploy-role-name>`.
 
 **The `sub` condition is the entire security boundary.** It must be `StringEquals` on that exact string. A wildcard, or switching to `StringLike` with a `*`, would let other repositories assume this role.
 
@@ -1198,7 +1198,7 @@ On the new role → **Add permissions** → **Create inline policy** → JSON. R
 }
 ```
 
-Name it `nfcarchiver-webapp-deploy-policy`.
+Name it `<deploy-policy-name>`.
 
 This role cannot touch another application's prefix even if the workflow asked it to. That is deliberate: correct paths in the workflow, plus a policy under which a wrong path fails.
 
@@ -1219,7 +1219,7 @@ It works today, so this is a sanity check — but if a Function performs the rew
 
 ### 5. Collect these values
 
-- Role ARN: `arn:aws:iam::<account>:role/nfcarchiver-webapp-deploy`
+- Role ARN: `arn:aws:iam::<account>:role/<deploy-role-name>`
 - Bucket region (S3 → bucket → **Properties** → AWS Region), e.g. `eu-central-1`
 - CloudFront distribution ID (the `E…` string)
 - Answers to 4a and 4b

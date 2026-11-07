@@ -25,6 +25,7 @@ jobs:
       flutter: ${{ steps.filter.outputs.flutter }}
       webapp: ${{ steps.filter.outputs.webapp }}
       interop: ${{ steps.filter.outputs.interop }}
+      docs: ${{ steps.filter.outputs.docs }}
 
     steps:
       - name: Checkout repository
@@ -49,6 +50,7 @@ jobs:
             echo "flutter=true" >> "$GITHUB_OUTPUT"
             echo "webapp=true" >> "$GITHUB_OUTPUT"
             echo "interop=true" >> "$GITHUB_OUTPUT"
+            echo "docs=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -61,6 +63,7 @@ jobs:
           flutter=false
           webapp=false
           interop=false
+          docs=false
 
           # This workflow appears in every set: a change to the pipeline must be
           # validated by every job the pipeline runs.
@@ -77,11 +80,17 @@ jobs:
           if grep -qE '^(lib/core|tool)/|^webapp/src/|^webapp/test/(fixtures/|write_ts_fixtures\.ts|interop-dart\.test\.ts|hex\.ts)|^(pubspec\.(yaml|lock)|webapp/package(-lock)?\.json)$|^\.github/workflows/ci\.yml$' <<< "$files"; then
             interop=true
           fi
+          # check_site.py derives the site's locales from the app's ARB files,
+          # so a new or removed locale must run the docs checks too.
+          if grep -qE '^site-docs/|^lib/l10n/app_[a-z]+\.arb$|^\.github/workflows/(ci|deploy-docs)\.yml$' <<< "$files"; then
+            docs=true
+          fi
 
           echo "flutter=$flutter" >> "$GITHUB_OUTPUT"
           echo "webapp=$webapp" >> "$GITHUB_OUTPUT"
           echo "interop=$interop" >> "$GITHUB_OUTPUT"
-          echo "flutter=\`$flutter\` webapp=\`$webapp\` interop=\`$interop\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "docs=$docs" >> "$GITHUB_OUTPUT"
+          echo "flutter=\`$flutter\` webapp=\`$webapp\` interop=\`$interop\` docs=\`$docs\`" >> "$GITHUB_STEP_SUMMARY"
 
   analyze-and-test:
     name: Analyze & Test
@@ -287,3 +296,48 @@ jobs:
 
       - name: Dart decodes the current TypeScript output
         run: dart run tool/verify_web_fixtures.dart
+
+  # Builds the documentation site (both copies) and checks it; deploys nothing.
+  # Not a required check.
+  build-docs:
+    name: Build docs
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install site dependencies
+        run: pip install --require-hashes -r site-docs/requirements.txt
+
+      - name: Source checks
+        run: python site-docs/check_site.py
+
+      - name: Build for nfcarchiver.com/docs/
+        working-directory: site-docs
+        env:
+          DOCS_BUILD_SHA: ${{ github.sha }}
+        run: mkdocs build --strict -d site/main
+
+      - name: Build for GitHub Pages
+        working-directory: site-docs
+        env:
+          DOCS_BUILD_SHA: ${{ github.sha }}
+          DOCS_SITE_URL: https://mezinster.github.io/nfcarchiver/
+        run: mkdocs build --strict -d site/pages
+
+      - name: Built-tree checks
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          python site-docs/check_site.py --built site-docs/site/main --base /docs/ --sha "$SHA"
+          python site-docs/check_site.py --built site-docs/site/pages --base /nfcarchiver/ --sha "$SHA"
