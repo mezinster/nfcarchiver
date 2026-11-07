@@ -360,10 +360,18 @@ class ChameleonReader implements CardReader {
     return data;
   }
 
+  /// Reads 4 pages at a time until the NDEF TLV is complete, bounded by the
+  /// tag's own memory size.
+  ///
+  /// The bound used to be a fixed 64 pages — 256 bytes — while a chunk sized
+  /// for NTAG215 is ~470 bytes and for NTAG216 ~860, so every full-size NTAG
+  /// chunk came back as "no chunk" and nothing could be restored through a
+  /// Chameleon. The card inspector, which reads the whole memory, read the
+  /// same tags fine; that contrast is what found it.
   Future<Uint8List?> _readNtag() async {
-    // Read enough pages to cover the TLV header, then the whole declared area.
+    final lastPage = await _ntagPageCount();
     final memory = <int>[];
-    for (var page = ndefStartPage; page < ndefStartPage + 64; page += 4) {
+    for (var page = ndefStartPage; page < lastPage; page += 4) {
       final resp = await _device.transceive14a(
         Uint8List.fromList([0x30, page]),
         autoSelect: true,
@@ -372,14 +380,45 @@ class ChameleonReader implements CardReader {
       );
       if (resp.isEmpty) break;
       memory.addAll(resp);
+
+      final Uint8List ndef;
       try {
-        return decodeNdefMime(readType2Ndef(Uint8List.fromList(memory)));
+        ndef = readType2Ndef(Uint8List.fromList(memory));
       } on NdefFormatException {
-        // Not yet enough bytes for a complete TLV — keep reading.
+        // The TLV is not complete yet — keep reading.
         continue;
+      }
+      // The TLV is complete. If its record is not an NFAR chunk (a factory-
+      // blank tag's empty NDEF, a URL tag), reading further cannot change
+      // that: the card holds no chunk.
+      try {
+        return decodeNdefMime(ndef);
+      } on NdefFormatException {
+        return null;
       }
     }
     return null;
+  }
+
+  /// The tag's page count from GET_VERSION; the largest NTAG's when the chip
+  /// does not say. Reading past the real end only costs a failed read, while
+  /// a bound that is too small makes chunks unreadable.
+  Future<int> _ntagPageCount() async {
+    try {
+      final version = await _device.transceive14a(
+        Uint8List.fromList(const [0x60]),
+        autoSelect: true,
+        appendCrc: true,
+        checkResponseCrc: true,
+      );
+      final type = detectNtagType(version);
+      if (type != null) return ntagTotalPages(type);
+    } on CardReadException {
+      // Not every Type 2 tag answers GET_VERSION; fall through.
+    } on TagTimeoutException {
+      // Silence is the other way of not answering it.
+    }
+    return ntagTotalPages(NtagType.ntag216);
   }
 
   Future<void> _writeClassic(Uint8List bytes) async {
