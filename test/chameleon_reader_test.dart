@@ -306,6 +306,59 @@ void main() {
     await reader.disconnect();
     expect(dev.disconnectCalls, 1);
   });
+
+  group('NTAG', () {
+    Future<Chunk?> readOnce(FakeChameleonDevice dev) async {
+      await dev.connect();
+      Chunk? got;
+      final errors = <String>[];
+      var discovered = false;
+      final stop = await _reader(dev).startReadSession(
+        onChunkRead: (c, _) => got = c,
+        onError: errors.add,
+        onTagDiscovered: (_) => discovered = true,
+      );
+      await pumpUntil(() => discovered);
+      // Discovery comes before the read; give the read time to finish.
+      for (var i = 0; i < 200 && got == null && errors.isEmpty; i++) {
+        await pump();
+      }
+      stop();
+      expect(errors, isEmpty);
+      return got;
+    }
+
+    test('a small chunk is read', () async {
+      final dev = FakeChameleonDevice.ntag215();
+      dev.writeNfar(validChunkBytes(payloadLength: 32));
+      final got = await readOnce(dev);
+      expect(got!.payload.length, 32);
+    });
+
+    // A chunk sized for NTAG215 fills ~470 of its 504 user bytes. The read
+    // used to stop after 64 pages (256 bytes) and report "no chunk", so no
+    // full-size NTAG chunk could ever be restored through a Chameleon.
+    test('a full-size NTAG215 chunk is read, not cut off at 256 bytes',
+        () async {
+      final dev = FakeChameleonDevice.ntag215();
+      dev.writeNfar(validChunkBytes(payloadLength: 400));
+      final got = await readOnce(dev);
+      expect(got, isNotNull);
+      expect(got!.payload.length, 400);
+    });
+
+    test('a factory-blank NTAG (empty NDEF TLV) is skipped, not an error',
+        () async {
+      final dev = FakeChameleonDevice.ntag215();
+      await dev.transceive14a(
+        Uint8List.fromList([0xA2, 4, 0x03, 0x00, 0xFE, 0x00]),
+        autoSelect: true,
+        appendCrc: true,
+        checkResponseCrc: true,
+      );
+      expect(await readOnce(dev), isNull);
+    });
+  });
 }
 
 /// Local alias so the test does not depend on the app's NfcTagInfo import path.
