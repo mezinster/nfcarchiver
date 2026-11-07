@@ -42,10 +42,10 @@ jobs:
           fi
 
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
 
@@ -73,7 +73,7 @@ jobs:
           python site-docs/check_site.py --built site-docs/site/pages --base /nfcarchiver/ --sha "$DOCS_BUILD_SHA"
 
       - name: Upload the nfcarchiver.com tree
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: docs-main
           path: site-docs/site/main/
@@ -82,7 +82,7 @@ jobs:
 
       - name: Upload the GitHub Pages tree
         # Named `github-pages`, which is what deploy-pages consumes.
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site-docs/site/pages/
 
@@ -148,13 +148,13 @@ jobs:
           echo "target s3://${BUCKET}/${PREFIX}"
 
       - name: Download the nfcarchiver.com tree
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: docs-main
           path: docs-main
 
       - name: Assume the AWS deploy role via OIDC
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -286,7 +286,7 @@ jobs:
 
       - name: Deploy the Pages artifact
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
       - name: Verify Pages serves this build
         run: |
