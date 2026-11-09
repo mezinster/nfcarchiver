@@ -46,7 +46,7 @@ dependencies:
 
   # Crypto & Compression
   pointycastle: ^4.0.0
-  archive: ^4.2.0
+  archive: ^4.6.0
 
   # Utils
   uuid: ^4.6.0
