@@ -37,8 +37,16 @@ void main() {
   test('an error entry is on disk without waiting for the timer', () async {
     final f = DiagnosticsFile(dir: dir, flushEvery: const Duration(hours: 1));
     f.add(entry(0, LogLevel.error, 'boom'));
-    await pumpEventQueue();
-    expect(cur().readAsStringSync(), contains('boom'));
+    // Poll with a deadline: the flush needs several dart:io round trips, more
+    // than pumpEventQueue's fixed number of loop turns.
+    final deadline = DateTime.now().add(const Duration(seconds: 2));
+    var text = '';
+    while (DateTime.now().isBefore(deadline)) {
+      if (cur().existsSync()) text = cur().readAsStringSync();
+      if (text.contains('boom')) break;
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(text, contains('boom'));
   });
 
   test('rotates at maxBytes keeping one previous file', () async {
