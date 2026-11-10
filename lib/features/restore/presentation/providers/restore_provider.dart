@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/log/logger.dart';
 import '../../../../core/models/chunk.dart';
 import '../../../../core/services/chunker_service.dart';
 import '../../data/restore_repository.dart';
@@ -75,13 +76,15 @@ class RestoreComplete extends RestoreState {
 /// Error during restore.
 class RestoreError extends RestoreState {
   const RestoreError({
-    required this.message,
+    this.message,
     this.canRetry = true,
     this.session,
     this.corruptedChunks = const [],
   });
 
-  final String message;
+  /// App-authored text only ([RestoreException.message]); null means an
+  /// unexpected failure that went to the diagnostics log.
+  final String? message;
   final bool canRetry;
   /// Session preserved for retry (if available)
   final RestoreSession? session;
@@ -89,7 +92,7 @@ class RestoreError extends RestoreState {
   final List<int> corruptedChunks;
 
   bool get hasCorruptedChunks => corruptedChunks.isNotEmpty;
-  bool get isDecryptionError => message.contains('Decryption failed');
+  bool get isDecryptionError => message?.contains('Decryption failed') ?? false;
 }
 
 /// Information about a scanned chunk.
@@ -130,9 +133,11 @@ class RestoreSessionInfo {
 
 /// Notifier for restore state management.
 class RestoreNotifier extends StateNotifier<RestoreState> {
-  RestoreNotifier() : super(const RestoreInitial());
+  RestoreNotifier({RestoreRepository? repository})
+      : _repository = repository ?? RestoreRepository.instance,
+        super(const RestoreInitial());
 
-  final _repository = RestoreRepository.instance;
+  final RestoreRepository _repository;
 
   /// Start scanning for tags. Loads persisted sessions from disk first.
   Future<void> startScanning() async {
@@ -286,9 +291,10 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
         canRetry: true,
         session: session,
       );
-    } catch (e) {
+    } catch (e, st) {
+      log.report('restore', 'restore failed', e, st);
       state = RestoreError(
-        message: e.toString(),
+        message: null,
         canRetry: true,
         session: session,
       );

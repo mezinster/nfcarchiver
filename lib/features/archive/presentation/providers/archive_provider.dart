@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/nfar_format.dart';
+import '../../../../core/log/logger.dart';
 import '../../../../core/models/chunk.dart';
 import '../../data/archive_repository.dart';
 
@@ -133,19 +134,24 @@ class ArchiveComplete extends ArchiveState {
 /// Error during archive process.
 class ArchiveError extends ArchiveState {
   const ArchiveError({
-    required this.message,
+    this.message,
     this.canRetry = true,
   });
 
-  final String message;
+  /// App-authored text only ([ArchiveException.message]). Null means an
+  /// unexpected failure: the cause is in the diagnostics log and the screen
+  /// shows the localized generic message.
+  final String? message;
   final bool canRetry;
 }
 
 /// Notifier for archive creation state.
 class ArchiveNotifier extends StateNotifier<ArchiveState> {
-  ArchiveNotifier() : super(const ArchiveInitial());
+  ArchiveNotifier({ArchiveRepository? repository})
+      : _repository = repository ?? ArchiveRepository.instance,
+        super(const ArchiveInitial());
 
-  final _repository = ArchiveRepository.instance;
+  final ArchiveRepository _repository;
   String? _password;
 
   /// Select a file to archive.
@@ -269,8 +275,11 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
         currentChunkIndex: 0,
         writtenChunks: const {},
       );
-    } catch (e) {
-      state = ArchiveError(message: e.toString());
+    } on ArchiveException catch (e) {
+      state = ArchiveError(message: e.message);
+    } catch (e, st) {
+      log.report('archive', 'prepare failed', e, st);
+      state = const ArchiveError();
     }
   }
 
@@ -399,7 +408,8 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
       );
 
       return newResult.chunks.length;
-    } catch (e) {
+    } catch (e, st) {
+      log.report('archive', 'rechunk failed', e, st);
       return null;
     }
   }

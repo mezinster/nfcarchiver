@@ -32,6 +32,7 @@ class InspectStrings {
     required this.cardLost,
     required this.reading,
     required this.read,
+    required this.failed,
   });
 
   final String holdStill;
@@ -40,6 +41,7 @@ class InspectStrings {
   final String cardLost;
   final String Function(int done, int total) reading;
   final String Function(int done, int total) read;
+  final String failed;
 
   /// English fallback, for tests and for any call site without a context.
   static InspectStrings english() => InspectStrings(
@@ -49,5 +51,6 @@ class InspectStrings {
         cardLost: 'Card left the field — partial dump.',
         reading: (d, t) => 'Reading $d of $t…',
         read: (d, t) => 'Read $d of $t',
+        failed: 'Something went wrong. Details are in the diagnostics log.',
       );
 }

@@ -11,6 +11,7 @@ import '../../../file_manager/presentation/providers/file_manager_provider.dart'
 import '../../../../core/services/file_actions_service.dart';
 import '../../../../shared/utils/format_utils.dart';
 import '../../../../shared/widgets/file_actions.dart';
+import '../../../diagnostics/presentation/diagnostics_screen.dart';
 import '../providers/restore_provider.dart';
 
 /// Screen for completing archive restoration.
@@ -495,7 +496,7 @@ class _RestoreProgressScreenState
           ),
           const SizedBox(height: 16),
           Text(
-            state.message,
+            state.message ?? l10n.somethingWentWrong,
             style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
@@ -533,6 +534,10 @@ class _RestoreProgressScreenState
           ],
 
           const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => context.push(diagnosticsRoute),
+            child: Text(l10n.details),
+          ),
           TextButton(
             onPressed: () {
               ref.read(restoreProvider.notifier).reset();

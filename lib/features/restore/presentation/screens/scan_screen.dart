@@ -500,7 +500,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            state.message,
+            state.message ?? l10n.somethingWentWrong,
             style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
@@ -510,6 +510,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               onPressed: _startScanning,
               child: Text(l10n.tryAgain),
             ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => context.push(diagnosticsRoute),
+            child: Text(l10n.details),
+          ),
         ],
       ),
     );
