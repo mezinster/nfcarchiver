@@ -58,7 +58,8 @@ const _tag = NfcTagInfo(
 void main() {
   late FakeCardReader reader;
 
-  Future<void> pumpScreen(WidgetTester tester) async {
+  Future<void> pumpScreen(WidgetTester tester,
+      {Locale locale = const Locale('en')}) async {
     reader = FakeCardReader(name: 'phone-nfc', supportsRawAccess: false);
     final router = GoRouter(routes: [
       GoRoute(path: '/', builder: (_, __) => const ScanScreen()),
@@ -80,8 +81,10 @@ void main() {
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [Locale('en')],
+          locale: locale,
+          supportedLocales: AppLocalizations.supportedLocales,
         ),
       ),
     );
@@ -147,5 +150,28 @@ void main() {
     await tester.pump();
 
     expect(find.text('No NFC Archiver data on this tag'), findsNothing);
+  });
+
+  testWidgets('the hint follows the locale, not the wording of the text',
+      (tester) async {
+    await pumpScreen(tester, locale: const Locale('ru'));
+    reader.lastOnError!(const NfcFailure(NfcFailureKind.detectionFailed));
+    await tester.pump();
+
+    final ru = await AppLocalizations.delegate.load(const Locale('ru'));
+    expect(find.text(ru.nfcReadFailedHint), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('two quick neutral notices arm one session, not two',
+      (tester) async {
+    await pumpScreen(tester);
+    reader.lastOnError!(const NfcFailure(NfcFailureKind.noArchiveData));
+    await tester.pump(const Duration(milliseconds: 100));
+    reader.lastOnError!(const NfcFailure(NfcFailureKind.noArchiveData));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+
+    expect(reader.readArms, 2);
   });
 }

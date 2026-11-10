@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/chunk.dart';
 import '../../../../core/services/chunker_service.dart';
 import '../../data/restore_repository.dart';
+import '../../../nfc/nfc.dart';
 
 /// State for restore scanning process.
 sealed class RestoreState {
@@ -20,16 +21,22 @@ class RestoreScanning extends RestoreState {
     this.sessions = const [],
     this.lastScannedChunk,
     this.lastError,
-    this.lastErrorNeutral = false,
+    this.lastErrorKind,
   });
 
   final List<RestoreSessionInfo> sessions;
   final ScannedChunkInfo? lastScannedChunk;
   final String? lastError;
 
+  /// What kind of failure [lastError] describes, so the screen can pick its
+  /// styling and hint without comparing translated text. Null when the message
+  /// did not come from a tag failure.
+  final NfcFailureKind? lastErrorKind;
+
   /// [lastError] is an expected outcome (a tag with no archive data), not a
   /// fault: shown as a notice, not an error.
-  final bool lastErrorNeutral;
+  bool get lastErrorNeutral =>
+      lastErrorKind != null && isNeutral(NfcFailure(lastErrorKind!));
 }
 
 /// Archive is complete, ready to restore.
@@ -186,14 +193,14 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
   }
 
   /// Handle scan error.
-  void scanError(String message, {bool neutral = false}) {
+  void scanError(String message, {NfcFailureKind? kind}) {
     final current = state;
     if (current is RestoreScanning) {
       state = RestoreScanning(
         sessions: current.sessions,
         lastScannedChunk: current.lastScannedChunk,
         lastError: message,
-        lastErrorNeutral: neutral,
+        lastErrorKind: kind,
       );
     }
   }

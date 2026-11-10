@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,6 +35,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   /// used to stop it, so an iOS sheet could open over the next screen.
   @override
   void dispose() {
+    _rearmTimer?.cancel();
     final nfcSession = _nfcSession;
     // After the frame: stopping changes provider state, which must not happen
     // while the tree is being torn down.
@@ -47,6 +50,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     if (!mounted) return;
     _startNfcSession();
   }
+
+  /// The pending re-arm after a neutral notice. One at a time: two quick
+  /// notices must not arm two sessions, and any other event supersedes it.
+  Timer? _rearmTimer;
 
   /// Consecutive failures with no successful read in between.
   int _consecutiveErrors = 0;
@@ -93,6 +100,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
     // Listen to NFC session changes
     ref.listen(nfcSessionProvider, (previous, next) {
+      // Whatever happened, a re-arm still waiting from a neutral notice is
+      // stale: the event below decides what comes next.
+      if (next is NfcSessionReadSuccess ||
+          next is NfcSessionError ||
+          next is NfcSessionStopped) {
+        _rearmTimer?.cancel();
+      }
       if (next is NfcSessionReadSuccess) {
         // Progress resets the failure budget: a pile of cards with one bad
         // read in the middle is normal use, not a stuck reader.
@@ -130,16 +144,23 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         final text =
             nfcFailureText(next.failure, AppLocalizations.of(context)!);
         if (isNeutral(next.failure)) {
-          // A tag with no archive data is not a fault: it does not use up the
-          // error budget. Still paced, so a reader that reports it instantly
-          // cannot spin.
-          ref.read(restoreProvider.notifier).scanError(text, neutral: true);
-          Future<void>.delayed(_retryFloor, () {
+          // A tag with no archive data is not a fault, so it is DELIBERATELY
+          // excluded from the error budget: a user tapping many blank tags
+          // must never be halted. That relies on readers reporting
+          // noArchiveData once per presented card (the Chameleon dedupes by
+          // UID; the phone radio needs a physical tap), so the loop cannot
+          // spin. The re-arm is still paced by _retryFloor.
+          ref
+              .read(restoreProvider.notifier)
+              .scanError(text, kind: next.failure.kind);
+          _rearmTimer = Timer(_retryFloor, () {
             if (mounted) _startNfcSession();
           });
           return;
         }
-        ref.read(restoreProvider.notifier).scanError(text);
+        ref
+            .read(restoreProvider.notifier)
+            .scanError(text, kind: next.failure.kind);
         // Continue scanning despite error — but PACED and BOUNDED.
         //
         // Restarting immediately is safe with the phone's radio, where a
@@ -191,9 +212,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     final neutral = state.lastErrorNeutral;
     final fg = neutral ? scheme.onSurfaceVariant : scheme.onErrorContainer;
     final message = state.lastError!;
+    final kind = state.lastErrorKind;
     final String? hint = neutral
         ? l10n.nfcNoArchiveDataHint
-        : (message == l10n.nfcReadFailed ? l10n.nfcReadFailedHint : null);
+        : (kind == NfcFailureKind.readFailed ||
+                kind == NfcFailureKind.detectionFailed)
+            ? l10n.nfcReadFailedHint
+            : null;
     return Card(
       color: neutral ? scheme.surfaceContainerHighest : scheme.errorContainer,
       child: Padding(
