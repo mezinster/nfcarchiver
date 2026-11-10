@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_archiver/core/log/logger.dart';
 
@@ -67,4 +66,60 @@ void main() {
       expect(hexDump(Uint8List(0)), '');
     });
   });
+
+  test('report() records an error with PlatformException fields on separate lines', () {
+    log.report(
+      'nfc.read',
+      'read failed',
+      PlatformException(
+        code: 'Error Domain=NFCError Code=403 "x"',
+        message: 'NFCError',
+        details: 'Stacktrace: ["0 Runner"]',
+      ),
+    );
+    final e = log.snapshot().single;
+    expect(e.level, LogLevel.error);
+    expect(e.detail, contains('code: Error Domain=NFCError Code=403'));
+    expect(e.detail, contains('message: NFCError'));
+    expect(e.detail, contains('details: Stacktrace:'));
+  });
+
+  test('formatFull indents detail under the line', () {
+    log.error('s', 'boom', null, 'a\nb');
+    final e = log.snapshot().single;
+    expect(e.format(), isNot(contains('\n')));
+    final lines = e.formatFull().split('\n');
+    expect(lines[1], startsWith('    '));
+    expect(lines[2], startsWith('    '));
+  });
+
+  test('detail is capped at maxDetailChars', () {
+    log.report('s', 'big', _Huge());
+    final d = log.snapshot().single.detail!;
+    expect(d.length, lessThanOrEqualTo(Logger.maxDetailChars + 20));
+    expect(d, endsWith('[truncated]'));
+  });
+
+  test('listeners receive entries after the level filter and a throwing listener is ignored', () {
+    final got = <LogEntry>[];
+    void thrower(LogEntry _) => throw StateError('bad');
+    log
+      ..addListener(thrower)
+      ..addListener(got.add);
+    addTearDown(() {
+      log
+        ..removeListener(thrower)
+        ..removeListener(got.add);
+    });
+    log.minLevel = LogLevel.info;
+    log.debug('s', 'd');
+    log.info('s', 'i');
+    expect(got.length, 1);
+    expect(got.single.message, 'i');
+  });
+}
+
+class _Huge {
+  @override
+  String toString() => 'x' * 100000;
 }
