@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:nfc_archiver/core/log/diagnostics.dart';
 import 'package:nfc_archiver/core/log/logger.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late FlutterExceptionHandler? savedOnError;
   late void Function(FlutterErrorDetails) savedPresent;
   late ErrorCallback? savedPlatform;
@@ -74,8 +77,63 @@ void main() {
   test('sessionHeader format', () {
     expect(
       sessionHeader(
-          version: '1.2.1', build: '19', os: 'ios 18.5', locale: 'en-US'),
-      '=== NFC Archiver 1.2.1 (19) · ios 18.5 · en-US · session start ===',
+        version: '1.2.1',
+        build: '19',
+        os: 'ios 18.5',
+        locale: 'en-US',
+        at: DateTime.utc(2026, 11, 11, 21, 14, 2, 123),
+      ),
+      '=== NFC Archiver 1.2.1 (19) · ios 18.5 · en-US · '
+      'session start 2026-11-11T21:14:02.123Z ===',
     );
+    expect(
+      sessionHeader(
+        version: '1',
+        build: '2',
+        os: 'o',
+        locale: 'l',
+        at: DateTime.utc(2026, 1, 2),
+        label: 'exported',
+      ),
+      endsWith('exported 2026-01-02T00:00:00.000Z ==='),
+    );
+  });
+
+  group('startDiagnostics', () {
+    test('a failed start leaves no listener attached', () async {
+      final tmp = Directory.systemTemp.createTempSync('diaghooks');
+      addTearDown(() => tmp.deleteSync(recursive: true));
+      final before = log.listenerCount;
+      final file = await startDiagnostics(
+        log,
+        supportDir: () async => tmp,
+        packageInfo: () async => throw StateError('no package info'),
+      );
+      expect(file, isNull);
+      log.info('t', 'x');
+      expect(log.listenerCount, before);
+    });
+
+    test('success writes a dated header and persists entries', () async {
+      final tmp = Directory.systemTemp.createTempSync('diaghooks');
+      addTearDown(() => tmp.deleteSync(recursive: true));
+      final file = await startDiagnostics(
+        log,
+        locale: 'pl',
+        supportDir: () async => tmp,
+        packageInfo: () async => PackageInfo(
+            appName: 'a', packageName: 'p', version: '9.9.9', buildNumber: '7'),
+      );
+      expect(file, isNotNull);
+      addTearDown(() => log.removeListener(file!.add));
+      log.info('t', 'persisted-line');
+      await file!.flush();
+      final text = await file.readAll();
+      expect(text, contains('=== NFC Archiver 9.9.9 (7)'));
+      expect(text, contains(' · pl · session start '));
+      expect(
+          text, matches(RegExp(r'session start \d{4}-\d\d-\d\dT[\d:.]+Z ===')));
+      expect(text, contains('persisted-line'));
+    });
   });
 }

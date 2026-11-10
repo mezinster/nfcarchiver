@@ -39,7 +39,8 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
 
   Future<String> _readText() async {
     final file = ref.read(diagnosticsFileProvider);
-    if (file != null) return file.readAll();
+    // A degraded sink reads back as '' — the in-memory log is all there is.
+    if (file != null && !file.degraded) return file.readAll();
     return log
         .snapshot()
         .where((e) => e.level.rank >= LogLevel.info.rank)
@@ -56,13 +57,15 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
     });
   }
 
-  Future<String> _header(String locale) async {
+  Future<String> _header(String locale, DateTime at) async {
     final info = await PackageInfo.fromPlatform();
     return sessionHeader(
       version: info.version,
       build: info.buildNumber,
       os: '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
       locale: locale,
+      at: at,
+      label: 'exported',
     );
   }
 
@@ -71,12 +74,12 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final locale = Localizations.localeOf(context).toLanguageTag();
     try {
-      final header = await _header(locale);
-      final tmp = await ref.read(diagnosticsTempDirProvider)();
       final now = DateTime.now();
+      final header = await _header(locale, now);
+      final tmp = await ref.read(diagnosticsTempDirProvider)();
       final file = ref.read(diagnosticsFileProvider);
       final String path;
-      if (file != null) {
+      if (file != null && !file.degraded) {
         path = (await file.exportTo(tmp, now: now, header: header)).path;
       } else {
         final f = File('${tmp.path}/nfc-archiver-log-${_stamp(now)}.txt');
@@ -114,7 +117,7 @@ class _DiagnosticsScreenState extends ConsumerState<DiagnosticsScreen> {
         ],
       ),
     );
-    if (ok != true) return;
+    if (ok != true || !mounted) return;
     await ref.read(diagnosticsFileProvider)?.clear();
     log.clear();
     await _load();

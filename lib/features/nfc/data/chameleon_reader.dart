@@ -163,8 +163,8 @@ class ChameleonReader implements CardReader {
     required void Function(NfcFailure failure) onError,
     void Function(int requiredSize, int detectedCapacity, NfcTagInfo? tagInfo)?
         onTagTooSmall,
-    void Function(String tappedMedium, String configuredMedium,
-            NfcTagInfo? tagInfo)?
+    void Function(
+            String tappedMedium, String configuredMedium, NfcTagInfo? tagInfo)?
         onTagTypeMismatch,
     // Accepted and ignored: only iOS's system sheet ends a session by itself.
     void Function(ScanStop reason)? onStopped,
@@ -176,7 +176,8 @@ class ChameleonReader implements CardReader {
     // written, and the card resting from a previous read must not be skipped.
     _currentUid = null;
     final bytes = chunk.toBytes();
-    log.info('reader', 'Write session started', {'bytes': bytes.length, 'gen': gen});
+    log.info(
+        'reader', 'Write session started', {'bytes': bytes.length, 'gen': gen});
 
     unawaited(_pollLoop(gen, (tag) async {
       final info = _tagInfo(tag);
@@ -186,8 +187,12 @@ class ChameleonReader implements CardReader {
           // leave the card holding a chunk that can never be assembled.
           log.warn('reader', 'Chunk too large for Mifare Classic 1K',
               {'bytes': bytes.length, 'capacity': cardCapacityBytes});
-          onTagTooSmall?.call(bytes.length, cardCapacityBytes, info);
-          onError(const NfcFailure(NfcFailureKind.writeFailed));
+          // One report only: the error would overwrite the too-small state.
+          if (onTagTooSmall != null) {
+            onTagTooSmall(bytes.length, cardCapacityBytes, info);
+          } else {
+            onError(const NfcFailure(NfcFailureKind.writeFailed));
+          }
           _sessionActive = false;
           return;
         }
@@ -196,7 +201,8 @@ class ChameleonReader implements CardReader {
         await _writeNtag(bytes);
       }
       _lastWriteAt = DateTime.now();
-      log.info('reader', 'Write complete and verified', {'uid': info.identifier});
+      log.info(
+          'reader', 'Write complete and verified', {'uid': info.identifier});
       onSuccess(info);
       _sessionActive = false;
     }, onError, NfcFailureKind.writeFailed));
@@ -225,7 +231,8 @@ class ChameleonReader implements CardReader {
         timer.cancel();
         if (completer.isCompleted) return;
         stop?.call();
-        completer.complete(NfcReadSuccess(tagInfo: info, data: chunk.toBytes()));
+        completer
+            .complete(NfcReadSuccess(tagInfo: info, data: chunk.toBytes()));
       },
       onError: (failure) {
         timer.cancel();
@@ -303,7 +310,8 @@ class ChameleonReader implements CardReader {
           }
         }
       } on CardAuthException catch (e) {
-        log.warn('reader', 'Foreign card — session continues', {'why': e.message});
+        log.warn(
+            'reader', 'Foreign card — session continues', {'why': e.message});
         // A foreign card — a hotel key or transit card on the reader. Report
         // it, but NEVER end the session: aborting a restore because one wrong
         // card was tapped would be a worse bug than the one being avoided.
@@ -452,7 +460,10 @@ class ChameleonReader implements CardReader {
       final back = await _readBlockStrict(w.block);
       for (var i = 0; i < blockSize; i++) {
         if (back[i] != w.data[i]) {
-          log.error('reader', 'Verification failed', {
+          log.error('reader', 'Verification failed',
+              {'block': w.block, 'firstDiffByte': i});
+          // Card contents: memory/console only, never the persisted file.
+          log.debug('reader', 'Verification mismatch bytes', {
             'block': w.block,
             'wrote': hexDump(w.data),
             'read': hexDump(back),

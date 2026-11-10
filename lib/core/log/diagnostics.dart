@@ -52,27 +52,38 @@ String sessionHeader({
   required String build,
   required String os,
   required String locale,
+  required DateTime at,
+  String label = 'session start',
 }) =>
-    '=== NFC Archiver $version ($build) · $os · $locale · session start ===';
+    '=== NFC Archiver $version ($build) · $os · $locale · '
+    '$label ${at.toUtc().toIso8601String()} ===';
 
 /// Starts persisting [logger]. Returns `null` on any failure, leaving the
-/// logger memory-only.
-Future<DiagnosticsFile?> startDiagnostics(Logger logger) async {
+/// logger memory-only. [locale] is the app's language tag (system locale when
+/// omitted); the resolvers are injectable for tests.
+Future<DiagnosticsFile?> startDiagnostics(
+  Logger logger, {
+  String? locale,
+  Future<Directory> Function()? supportDir,
+  Future<PackageInfo> Function()? packageInfo,
+}) async {
   try {
-    final support = await getApplicationSupportDirectory();
+    final support = await (supportDir ?? getApplicationSupportDirectory)();
     final file = DiagnosticsFile(dir: Directory('${support.path}/logs'));
-    final info = await PackageInfo.fromPlatform();
-    logger.addListener(file.add);
+    final info = await (packageInfo ?? PackageInfo.fromPlatform)();
     file.writeLine(sessionHeader(
       version: info.version,
       build: info.buildNumber,
       os: '${Platform.operatingSystem} ${Platform.operatingSystemVersion}',
-      locale: PlatformDispatcher.instance.locale.toLanguageTag(),
+      locale: locale ?? PlatformDispatcher.instance.locale.toLanguageTag(),
+      at: DateTime.now(),
     ));
     _lifecycle = AppLifecycleListener(
       onPause: () => unawaited(file.flush()),
       onDetach: () => unawaited(file.flush()),
     );
+    // Last, so a failed start leaves no listener attached.
+    logger.addListener(file.add);
     return file;
   } catch (_) {
     return null;

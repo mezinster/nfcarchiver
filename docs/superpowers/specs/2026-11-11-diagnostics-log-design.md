@@ -181,9 +181,9 @@ at `info`:
 **Never log:** file names, file contents or payload bytes at `info`+, the
 encryption password, restored text. Archive IDs and tag UIDs are allowed (they
 identify cards, not content, and are needed to debug multi-card issues).
-Known accepted exception: `chameleon_reader.dart:442` logs two 16-byte blocks
-on a write-verification failure at `error` — kept, it is the whole point of
-that entry.
+The Chameleon write-verification failure logs only the block number and the
+first differing byte at `error`; the two 16-byte hex dumps are `debug`-only
+(memory/console).
 
 ### 4. Log screen
 

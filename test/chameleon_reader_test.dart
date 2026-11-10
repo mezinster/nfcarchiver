@@ -103,7 +103,8 @@ void main() {
     expect(reads, 2);
   });
 
-  test('a foreign card reports an error but does NOT end the session', () async {
+  test('a foreign card reports an error but does NOT end the session',
+      () async {
     // Auth failure means a hotel key on the reader, not a broken session.
     // Ending here would abort a restore because one wrong card was tapped.
     //
@@ -112,7 +113,8 @@ void main() {
     // lives in sector 0, and a non-NFAR card is abandoned there as blank.
     final dev = FakeChameleonDevice.classic1k(
       sectorKeys: {
-        for (var s = 0; s < 16; s++) s: Uint8List.fromList(const [9, 9, 9, 9, 9, 9]),
+        for (var s = 0; s < 16; s++)
+          s: Uint8List.fromList(const [9, 9, 9, 9, 9, 9]),
       },
     );
     await dev.connect();
@@ -129,7 +131,8 @@ void main() {
     stop();
   });
 
-  test('a card without an NFAR chunk reports noArchiveData once and logs it at info',
+  test(
+      'a card without an NFAR chunk reports noArchiveData once and logs it at info',
       () async {
     // A blank card is a normal thing to tap during a restore, but the user
     // must be told why nothing happened. Once per tap: the resting-card guard
@@ -150,8 +153,8 @@ void main() {
 
     expect(reads, 0);
     expect(errors, [NfcFailureKind.noArchiveData]);
-    final infos = log.snapshot().where(
-        (e) => e.level == LogLevel.info && e.message == 'No NFAR chunk on card');
+    final infos = log.snapshot().where((e) =>
+        e.level == LogLevel.info && e.message == 'No NFAR chunk on card');
     expect(infos, hasLength(1));
   });
 
@@ -189,6 +192,57 @@ void main() {
       await pumpUntil(() => err != null);
       stop();
       expect(err!.kind, NfcFailureKind.writeFailed);
+    });
+
+    test('a failed verification keeps card bytes out of the persisted log',
+        () async {
+      log.clear();
+      addTearDown(log.clear);
+      final dev = FakeChameleonDevice.classic1k()..corruptWrites();
+      await dev.connect();
+
+      NfcFailure? err;
+      final stop = await _reader(dev).startWriteSession(
+        chunk: aChunk(),
+        configuredTagType: NfcTagType.mifareClassic1k,
+        onSuccess: (_) {},
+        onError: (f) => err = f,
+      );
+      await pumpUntil(() => err != null);
+      stop();
+
+      final entry =
+          log.snapshot().firstWhere((e) => e.message == 'Verification failed');
+      expect(entry.level, LogLevel.error);
+      final text = entry.formatFull();
+      expect(text, contains('block'));
+      expect(text, isNot(contains('wrote=')));
+      expect(text, isNot(contains('read=')));
+      final dbg = log
+          .snapshot()
+          .where((e) => e.message == 'Verification mismatch bytes');
+      expect(dbg, hasLength(1));
+      expect(dbg.single.level, LogLevel.debug);
+    });
+
+    test('too large with onTagTooSmall reports only too-small', () async {
+      final dev = FakeChameleonDevice.classic1k();
+      await dev.connect();
+
+      var tooSmall = 0;
+      final errors = <NfcFailureKind>[];
+      final stop = await _reader(dev).startWriteSession(
+        chunk: aChunk(payloadLength: cardCapacityBytes + 100),
+        configuredTagType: NfcTagType.mifareClassic1k,
+        onSuccess: (_) {},
+        onError: (f) => errors.add(f.kind),
+        onTagTooSmall: (_, __, ___) => tooSmall++,
+      );
+      await pumpUntil(() => tooSmall > 0);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      stop();
+      expect(tooSmall, 1);
+      expect(errors, isEmpty);
     });
 
     test('a chunk too large for the card is rejected before any write',
@@ -258,7 +312,8 @@ void main() {
     expect(reads, 2);
   });
 
-  test('starting a session twice supersedes — it does not stack loops', () async {
+  test('starting a session twice supersedes — it does not stack loops',
+      () async {
     // The first hardware scan hung on exactly this: scan_screen restarts the
     // session on every error, each start spawned another poll loop, and they
     // all raced for a device that permits one command in flight. Only the
@@ -290,8 +345,8 @@ void main() {
     await dev.connect();
     final reader = _reader(dev);
 
-    final stale = await reader.startReadSession(
-        onChunkRead: (_, __) {}, onError: (_) {});
+    final stale =
+        await reader.startReadSession(onChunkRead: (_, __) {}, onError: (_) {});
     await reader.startReadSession(onChunkRead: (_, __) {}, onError: (_) {});
     stale();
 

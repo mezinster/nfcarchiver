@@ -82,6 +82,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     // A BLE reader can take a moment to answer; the user may have left.
     if (!mounted) return;
     if (!nfcAvailable) {
+      log.warn('restore', 'NFC not available');
       final l10n = AppLocalizations.of(context);
       ref.read(restoreProvider.notifier).scanError(l10n?.nfcUnavailable ?? 'NFC is not available');
       return;

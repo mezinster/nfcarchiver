@@ -22,6 +22,13 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError('SharedPreferences must be overridden in main');
 });
 
+/// The language the user picked in the app, or null for the system default.
+/// Read before the provider tree exists (diagnostics startup).
+Locale? savedAppLocale(SharedPreferences prefs) {
+  final code = prefs.getString(_localeKey);
+  return code == null ? null : Locale(code);
+}
+
 /// Notifier for managing app locale with persistence.
 class LocaleNotifier extends StateNotifier<Locale?> {
   LocaleNotifier(this._prefs) : super(null) {

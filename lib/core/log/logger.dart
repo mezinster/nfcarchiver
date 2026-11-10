@@ -106,6 +106,9 @@ class Logger {
 
   void removeListener(void Function(LogEntry) l) => _listeners.remove(l);
 
+  @visibleForTesting
+  int get listenerCount => _listeners.length;
+
   void debug(String scope, String message,
           [Map<String, Object?>? data, String? detail]) =>
       _add(LogLevel.debug, scope, message, data, detail);
@@ -204,9 +207,11 @@ String errorDetail(Object error, StackTrace? stack) {
 /// Uppercase, space-separated hex — the form that can be compared against a
 /// protocol document or pasted into a bug report without re-formatting.
 String hexDump(Uint8List bytes, {int max = 64}) {
-  final shown = bytes.length <= max ? bytes : Uint8List.sublistView(bytes, 0, max);
-  final body =
-      shown.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
+  final shown =
+      bytes.length <= max ? bytes : Uint8List.sublistView(bytes, 0, max);
+  final body = shown
+      .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
+      .join(' ');
   return bytes.length <= max ? body : '$body … (${bytes.length} B)';
 }
 
