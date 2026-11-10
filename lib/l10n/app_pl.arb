@@ -200,5 +200,13 @@
   "nfcMifareUnsupported": "To wygląda na kartę Mifare Classic. Układ NFC Twojego telefonu nie może jej odczytać.",
   "nfcForeignCard": "Ta karta jest zablokowana kluczami, których aplikacja nie ma.",
   "somethingWentWrong": "Coś poszło nie tak. Szczegóły są w dzienniku diagnostycznym.",
-  "details": "Szczegóły"
+  "details": "Szczegóły",
+  "diagnosticsLog": "Dziennik diagnostyczny",
+  "diagnosticsEmpty": "Nic jeszcze nie zapisano.",
+  "diagnosticsFilterAll": "Wszystko",
+  "diagnosticsFilterProblems": "Ostrzeżenia i błędy",
+  "diagnosticsShare": "Udostępnij dziennik",
+  "diagnosticsClear": "Wyczyść dziennik",
+  "diagnosticsClearConfirm": "Usunąć dziennik diagnostyczny z tego urządzenia?",
+  "diagnosticsClearAction": "Wyczyść"
 }

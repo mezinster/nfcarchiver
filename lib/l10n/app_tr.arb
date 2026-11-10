@@ -207,5 +207,13 @@
   "nfcMifareUnsupported": "Bu bir Mifare Classic kartı gibi görünüyor. Telefonunuzun NFC çipi bu kartı okuyamaz.",
   "nfcForeignCard": "Bu kart, uygulamada bulunmayan anahtarlarla kilitli.",
   "somethingWentWrong": "Bir şeyler ters gitti. Ayrıntılar tanılama günlüğünde.",
-  "details": "Ayrıntılar"
+  "details": "Ayrıntılar",
+  "diagnosticsLog": "Tanılama günlüğü",
+  "diagnosticsEmpty": "Henüz bir şey kaydedilmedi.",
+  "diagnosticsFilterAll": "Tümü",
+  "diagnosticsFilterProblems": "Uyarılar ve hatalar",
+  "diagnosticsShare": "Günlüğü paylaş",
+  "diagnosticsClear": "Günlüğü temizle",
+  "diagnosticsClearConfirm": "Tanılama günlüğü bu cihazdan silinsin mi?",
+  "diagnosticsClearAction": "Temizle"
 }

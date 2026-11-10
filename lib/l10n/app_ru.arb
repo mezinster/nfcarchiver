@@ -207,5 +207,13 @@
   "nfcMifareUnsupported": "Похоже, это карта Mifare Classic. NFC-чип вашего телефона не может её прочитать.",
   "nfcForeignCard": "Эта карта защищена ключами, которых нет у приложения.",
   "somethingWentWrong": "Что-то пошло не так. Подробности — в журнале диагностики.",
-  "details": "Подробнее"
+  "details": "Подробнее",
+  "diagnosticsLog": "Журнал диагностики",
+  "diagnosticsEmpty": "Пока ничего не записано.",
+  "diagnosticsFilterAll": "Все",
+  "diagnosticsFilterProblems": "Предупреждения и ошибки",
+  "diagnosticsShare": "Поделиться журналом",
+  "diagnosticsClear": "Очистить журнал",
+  "diagnosticsClearConfirm": "Удалить журнал диагностики с этого устройства?",
+  "diagnosticsClearAction": "Очистить"
 }

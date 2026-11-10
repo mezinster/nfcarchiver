@@ -985,5 +985,37 @@
   "details": "Details",
   "@details": {
     "description": "Button/action that shows the technical details of an error"
+  },
+  "diagnosticsLog": "Diagnostics log",
+  "@diagnosticsLog": {
+    "description": "Diagnostics log screen: diagnosticsLog"
+  },
+  "diagnosticsEmpty": "Nothing logged yet.",
+  "@diagnosticsEmpty": {
+    "description": "Diagnostics log screen: diagnosticsEmpty"
+  },
+  "diagnosticsFilterAll": "All",
+  "@diagnosticsFilterAll": {
+    "description": "Diagnostics log screen: diagnosticsFilterAll"
+  },
+  "diagnosticsFilterProblems": "Warnings & errors",
+  "@diagnosticsFilterProblems": {
+    "description": "Diagnostics log screen: diagnosticsFilterProblems"
+  },
+  "diagnosticsShare": "Share log",
+  "@diagnosticsShare": {
+    "description": "Diagnostics log screen: diagnosticsShare"
+  },
+  "diagnosticsClear": "Clear log",
+  "@diagnosticsClear": {
+    "description": "Diagnostics log screen: diagnosticsClear"
+  },
+  "diagnosticsClearConfirm": "Delete the diagnostics log from this device?",
+  "@diagnosticsClearConfirm": {
+    "description": "Diagnostics log screen: diagnosticsClearConfirm"
+  },
+  "diagnosticsClearAction": "Clear",
+  "@diagnosticsClearAction": {
+    "description": "Diagnostics log screen: diagnosticsClearAction"
   }
 }

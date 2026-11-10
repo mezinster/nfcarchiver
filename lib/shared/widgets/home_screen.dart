@@ -7,6 +7,7 @@ import '../../features/nfc/presentation/screens/reader_picker_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../features/diagnostics/presentation/diagnostics_screen.dart';
 import '../../features/file_manager/presentation/providers/file_manager_provider.dart';
 import '../../features/nfc/nfc.dart';
 import '../utils/format_utils.dart';
@@ -177,6 +178,13 @@ class HomeScreen extends ConsumerWidget {
             GoRouter.of(context).push('/privacy-policy');
           },
           child: Text(l10n.privacyPolicy),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            GoRouter.of(context).push(diagnosticsRoute);
+          },
+          child: Text(l10n.diagnosticsLog),
         ),
       ],
     );

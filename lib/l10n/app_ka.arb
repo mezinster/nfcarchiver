@@ -207,5 +207,13 @@
   "nfcMifareUnsupported": "როგორც ჩანს, ეს Mifare Classic ბარათია. თქვენი ტელეფონის NFC ჩიპი მას ვერ წაიკითხავს.",
   "nfcForeignCard": "ეს ბარათი დაბლოკილია გასაღებებით, რომლებიც აპს არ აქვს.",
   "somethingWentWrong": "რაღაც შეცდომა მოხდა. დეტალები დიაგნოსტიკის ჟურნალშია.",
-  "details": "დეტალები"
+  "details": "დეტალები",
+  "diagnosticsLog": "დიაგნოსტიკის ჟურნალი",
+  "diagnosticsEmpty": "ჯერ არაფერი ჩაწერილა.",
+  "diagnosticsFilterAll": "ყველა",
+  "diagnosticsFilterProblems": "გაფრთხილებები და შეცდომები",
+  "diagnosticsShare": "ჟურნალის გაზიარება",
+  "diagnosticsClear": "ჟურნალის გასუფთავება",
+  "diagnosticsClearConfirm": "წაიშალოს დიაგნოსტიკის ჟურნალი ამ მოწყობილობიდან?",
+  "diagnosticsClearAction": "გასუფთავება"
 }
