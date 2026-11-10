@@ -61,6 +61,8 @@ Each feature follows: `data/` (repository) → `presentation/providers/` (Riverp
 - **`archive/`** — `ArchiveNotifier` uses sealed class states (`ArchiveInitial` → `ArchiveFileSelected` → `ArchiveConfiguring` → `ArchivePreparing` → `ArchiveReady` → `ArchiveWriting` → `ArchiveComplete`). Supports `rechunkForDetectedCapacity()` when tag is smaller than expected.
 - **`restore/`** — `RestoreNotifier` with states for scanning, collecting chunks into `RestoreSession` by UUID, handling CRC errors with rescan capability.
 
+- **Diagnostics log** — persisted to `getApplicationSupportDirectory()/logs/diagnostics.log`, rotated at 512 KB to `diagnostics.1.log` (one previous file kept); viewable, shareable and clearable from About → Diagnostics log. Only info/warn/error reach the file: debug carries Chameleon frame hex, i.e. card contents, and stays in memory/console. **Never log** file names, paths, file contents, payload bytes, passwords or restored text (archive IDs and tag UIDs are fine); `FileSystemException` paths are stripped centrally in `errorDetail`. Any caught exception that becomes user-visible goes through `log.report`, and the screen shows a localized message — an `NfcFailure` for NFC errors, `somethingWentWrong` otherwise — never raw exception, `PlatformException` or stack text. The published privacy policy (`site-docs/.../privacy.md`, linked from App Store Connect) describes this log, so **the docs deploy (`deploy-docs.yml`) must go out before the app release carrying this feature**.
+
 ### State Management
 
 Riverpod with `StateNotifier` pattern using sealed classes for type-safe state transitions:

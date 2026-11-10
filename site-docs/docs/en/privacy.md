@@ -47,7 +47,7 @@ If you forget the password, nobody can recover the file, including us.
 
 ## Diagnostic logs
 
-The app keeps a short diagnostic log in memory on your device. It is not written to any server and is gone when the app closes. Nothing is ever sent unless you share it yourself, for example a card inspection report that you choose to share.
+The app keeps a diagnostic log on your device: what it did and any errors it hit, so problems can be investigated. It is stored in a small file that is rotated automatically, and it never contains your files, file names or passwords. It is never sent anywhere. It leaves your device only if you share it yourself — from **About → Diagnostics log**, where you can also clear it at any time.
 
 ## Third-party services
 
