@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io' show FileSystemException;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show PlatformException;
@@ -174,6 +175,10 @@ class Logger {
 /// Exception text for [LogEntry.detail]: PlatformException fields on separate
 /// lines, otherwise `toString()`, then the stack; capped to
 /// [Logger.maxDetailChars].
+///
+/// A [FileSystemException] is rendered WITHOUT its path: `toString()` embeds
+/// the full path, i.e. the user's file name, and a shared log must be safe to
+/// send to the developer.
 String errorDetail(Object error, StackTrace? stack) {
   final b = StringBuffer();
   if (error is PlatformException) {
@@ -181,6 +186,12 @@ String errorDetail(Object error, StackTrace? stack) {
       ..writeln('code: ${error.code}')
       ..writeln('message: ${error.message}')
       ..write('details: ${error.details}');
+  } else if (error is FileSystemException) {
+    b.write('${error.runtimeType}: ${error.message}');
+    final os = error.osError;
+    if (os != null) {
+      b.write(' (OS error: ${os.message}, errno = ${os.errorCode})');
+    }
   } else {
     b.write(error.toString());
   }

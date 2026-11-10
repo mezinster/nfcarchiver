@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_archiver/core/log/logger.dart';
@@ -116,6 +118,21 @@ void main() {
     log.info('s', 'i');
     expect(got.length, 1);
     expect(got.single.message, 'i');
+  });
+
+  test('report() never writes a FileSystemException path into the log', () {
+    log.report(
+      's',
+      'open failed',
+      const PathNotFoundException('/secret/dir/tax-return-2026.pdf',
+          OSError('No such file or directory', 2), 'Cannot open file'),
+    );
+    final d = log.snapshot().last.detail!;
+    expect(d, contains('PathNotFoundException'));
+    expect(d, contains('Cannot open file'));
+    expect(d, contains('errno = 2'));
+    expect(d, isNot(contains('tax-return')));
+    expect(d, isNot(contains('/secret')));
   });
 }
 
