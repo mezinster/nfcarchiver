@@ -57,6 +57,14 @@ class ReaderController extends StateNotifier<ReaderState> {
           isConnected: false,
         ));
 
+  /// One breadcrumb per reader change (not per rebuild: listeners never write).
+  @override
+  set state(ReaderState value) {
+    log.info('reader', 'switched',
+        {'kind': value.kind.name, 'connected': value.isConnected});
+    super.state = value;
+  }
+
   final CardReader Function() _makePhone;
   final CardReader Function(String deviceId) _makeChameleon;
 

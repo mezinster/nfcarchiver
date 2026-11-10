@@ -131,6 +131,39 @@ class RestoreSessionInfo {
   double get progress => totalChunks > 0 ? receivedCount / totalChunks : 0.0;
 }
 
+/// Breadcrumb fields for the log, from an explicit allow-list: counts, flags,
+/// archive ID. Never a file name, path, password or message text.
+Map<String, Object?>? _breadcrumbData(RestoreState s) => switch (s) {
+      RestoreScanning() => {
+          'sessions': s.sessions.length,
+          if (s.lastScannedChunk != null) ...{
+            'archiveId': s.lastScannedChunk!.archiveId,
+            'chunk': s.lastScannedChunk!.chunkIndex,
+            'chunks': s.lastScannedChunk!.totalChunks,
+            'new': s.lastScannedChunk!.isNew,
+          },
+          if (s.lastErrorKind != null) 'errorKind': s.lastErrorKind!.name,
+        },
+      RestoreReady() => {
+          'archiveId': s.session.archiveIdString,
+          'chunks': s.session.totalChunks,
+          'needsPassword': s.needsPassword,
+        },
+      RestoreInProgress() => {'archiveId': s.archiveId},
+      RestoreComplete() => {
+          'chunks': s.result.totalChunks,
+          'size': s.result.data.length,
+          'encrypted': s.result.wasEncrypted,
+          'compressed': s.result.wasCompressed,
+        },
+      RestoreError() => {
+          'hasMessage': s.message != null,
+          'canRetry': s.canRetry,
+          'corrupted': s.corruptedChunks.length,
+        },
+      RestoreInitial() => null,
+    };
+
 /// Notifier for restore state management.
 class RestoreNotifier extends StateNotifier<RestoreState> {
   RestoreNotifier({RestoreRepository? repository})
@@ -138,6 +171,14 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
         super(const RestoreInitial());
 
   final RestoreRepository _repository;
+
+  /// Every transition leaves a breadcrumb. One per scanned tag or restore
+  /// step, never per tick.
+  @override
+  set state(RestoreState value) {
+    log.info('restore', 'state ${value.runtimeType}', _breadcrumbData(value));
+    super.state = value;
+  }
 
   /// Start scanning for tags. Loads persisted sessions from disk first.
   Future<void> startScanning() async {

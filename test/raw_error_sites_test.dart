@@ -16,7 +16,8 @@ class _ThrowingArchiveRepo implements ArchiveRepository {
   final Object error;
   @override
   dynamic noSuchMethod(Invocation i) {
-    if (i.memberName == #createArchive) return Future<ArchiveResult>.error(error);
+    if (i.memberName == #createArchive)
+      return Future<ArchiveResult>.error(error);
     return super.noSuchMethod(i);
   }
 }
@@ -26,7 +27,8 @@ class _ThrowingRestoreRepo implements RestoreRepository {
   final Object error;
   @override
   dynamic noSuchMethod(Invocation i) {
-    if (i.memberName == #restoreArchive) return Future<RestoreResult>.error(error);
+    if (i.memberName == #restoreArchive)
+      return Future<RestoreResult>.error(error);
     return super.noSuchMethod(i);
   }
 }
@@ -61,14 +63,17 @@ class _ConfiguringArchive extends ArchiveNotifier {
 }
 
 void main() {
-  test('ArchiveNotifier: an unexpected exception stores no raw text and is logged',
+  test(
+      'ArchiveNotifier: an unexpected exception stores no raw text and is logged',
       () async {
-    final n = _ConfiguringArchive(_ThrowingArchiveRepo(StateError('secret-detail')));
+    final n =
+        _ConfiguringArchive(_ThrowingArchiveRepo(StateError('secret-detail')));
     n.configuring();
     await n.prepareArchive();
     final s = n.state as ArchiveError;
     expect(s.message, isNull);
-    expect(log.snapshot().last.detail, contains('secret-detail'));
+    expect(log.snapshot().lastWhere((e) => e.detail != null).detail,
+        contains('secret-detail'));
   });
 
   test('ArchiveNotifier: an ArchiveException message is kept', () async {
@@ -79,14 +84,16 @@ void main() {
     expect((n.state as ArchiveError).message, 'File not found: x');
   });
 
-  test('RestoreNotifier: an unexpected exception stores no raw text and is logged',
+  test(
+      'RestoreNotifier: an unexpected exception stores no raw text and is logged',
       () async {
     final n = _ReadyRestore(_ThrowingRestoreRepo(StateError('secret-detail')));
     n.ready();
     await n.restoreArchive();
     final s = n.state as RestoreError;
     expect(s.message, isNull);
-    expect(log.snapshot().last.detail, contains('secret-detail'));
+    expect(log.snapshot().lastWhere((e) => e.detail != null).detail,
+        contains('secret-detail'));
   });
 
   test('RestoreNotifier: a RestoreException message is kept', () async {
@@ -97,7 +104,8 @@ void main() {
     expect((n.state as RestoreError).message, 'Bad data');
   });
 
-  test('FileManagerNotifier: loadFiles failure stores no raw text and is logged',
+  test(
+      'FileManagerNotifier: loadFiles failure stores no raw text and is logged',
       () async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -106,7 +114,8 @@ void main() {
     await n.loadFiles();
     final s = n.state as FileManagerError;
     expect(s.message, isNull);
-    expect(log.snapshot().last.detail, contains('secret-detail'));
+    expect(log.snapshot().lastWhere((e) => e.detail != null).detail,
+        contains('secret-detail'));
   });
 }
 

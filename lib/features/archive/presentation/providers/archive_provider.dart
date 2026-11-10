@@ -145,6 +145,43 @@ class ArchiveError extends ArchiveState {
   final bool canRetry;
 }
 
+/// Breadcrumb fields for the log, built per state class from an explicit
+/// allow-list: sizes, counts, tag type, option flags, archive ID. Never a file
+/// name, path, password, text content or message text (an error message can
+/// embed a path). A state class not listed here logs nothing.
+Map<String, Object?>? _breadcrumbData(ArchiveState s) {
+  Map<String, Object?> chunks(ArchiveResult r, int index, Set<int> written) => {
+        if (r.chunks.isNotEmpty) 'archiveId': r.chunks.first.archiveIdString,
+        'chunk': index,
+        'chunks': r.chunks.length,
+        'written': written.length,
+        'originalSize': r.originalSize,
+        'processedSize': r.processedSize,
+        'compressed': r.wasCompressed,
+        'encrypted': r.wasEncrypted,
+      };
+  return switch (s) {
+    ArchiveFileSelected() => {'size': s.fileSize},
+    ArchiveTextSelected() => {'size': s.textSize},
+    ArchiveConfiguring() => {
+        'size': s.fileSize,
+        'tagType': s.tagType.name,
+        'compress': s.compress,
+        'encrypt': s.encrypt,
+        'text': s.isTextMode,
+      },
+    ArchiveReady() => chunks(s.result, s.currentChunkIndex, s.writtenChunks),
+    ArchiveWriting() => chunks(s.result, s.currentChunkIndex, s.writtenChunks),
+    ArchiveComplete() => {
+        if (s.result.chunks.isNotEmpty)
+          'archiveId': s.result.chunks.first.archiveIdString,
+        'tags': s.totalTags,
+      },
+    ArchiveError() => {'hasMessage': s.message != null, 'canRetry': s.canRetry},
+    ArchiveInitial() || ArchivePreparing() => null,
+  };
+}
+
 /// Notifier for archive creation state.
 class ArchiveNotifier extends StateNotifier<ArchiveState> {
   ArchiveNotifier({ArchiveRepository? repository})
@@ -153,6 +190,14 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
 
   final ArchiveRepository _repository;
   String? _password;
+
+  /// Every transition leaves a breadcrumb. Emitted per user-visible step
+  /// (select, configure, prepare, one chunk written), never per tick.
+  @override
+  set state(ArchiveState value) {
+    log.info('archive', 'state ${value.runtimeType}', _breadcrumbData(value));
+    super.state = value;
+  }
 
   /// Select a file to archive.
   void selectFile({
