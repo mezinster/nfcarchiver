@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:nfc_manager/ndef_record.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/nfc_manager_android.dart';
@@ -39,6 +40,28 @@ abstract interface class NdefIO {
 NdefMessage ndefMessageOrEmpty(NdefMessage? message) =>
     message ?? const NdefMessage(records: []);
 
+/// True for Core NFC's "NDEF tag does not contain any NDEF message"
+/// (`NFCError` code 403) as nfc_manager surfaces it.
+///
+/// nfc_manager 4.2.1's own discovery path already skips code 403
+/// (NfcManagerPlugin.swift:767-768), but the explicit `ndefReadNdef` (line 121)
+/// does not, and its Pigeon `wrapError` puts the whole NSError description in
+/// `PlatformException.code` — hence the substring match.
+bool isEmptyNdefError(Object error) =>
+    error is PlatformException &&
+    error.code.contains('Domain=NFCError Code=403');
+
+/// Runs an iOS NDEF read, treating a blank tag (null or 403) as an empty
+/// message and rethrowing anything else.
+Future<NdefMessage> readOrEmpty(Future<NdefMessage?> Function() read) async {
+  try {
+    return ndefMessageOrEmpty(await read());
+  } catch (e) {
+    if (isEmptyNdefError(e)) return ndefMessageOrEmpty(null);
+    rethrow;
+  }
+}
+
 /// iOS reports writability as a tri-state. Only [NdefStatusIos.readWrite]
 /// accepts a write; treating `readOnly` or `notSupported` as writable would let
 /// the codec attempt a write the tag then rejects.
@@ -76,8 +99,7 @@ class IosNdefIO implements NdefIO {
   bool get isWritable => isWritableIosStatus(_ndef.status);
 
   @override
-  Future<NdefMessage> read() async =>
-      ndefMessageOrEmpty(await _ndef.readNdef());
+  Future<NdefMessage> read() => readOrEmpty(_ndef.readNdef);
 
   @override
   Future<void> write(NdefMessage message) => _ndef.writeNdef(message);
