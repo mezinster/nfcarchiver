@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../features/nfc/domain/nfc_failure.dart';
 import '../constants/nfar_format.dart';
 
 /// Information about a detected NFC tag.
@@ -137,11 +138,12 @@ class NfcReadInvalidFormat extends NfcReadResult {
 /// Error reading from tag.
 class NfcReadError extends NfcReadResult {
   const NfcReadError({
-    required this.message,
+    required this.failure,
     this.tagInfo,
   });
 
-  final String message;
+  /// What went wrong, for the screen to translate; the exception is logged.
+  final NfcFailure failure;
   final NfcTagInfo? tagInfo;
 }
 
@@ -184,10 +186,11 @@ class NfcWriteNotWritable extends NfcWriteResult {
 /// Error writing to tag.
 class NfcWriteError extends NfcWriteResult {
   const NfcWriteError({
-    required this.message,
+    required this.failure,
     this.tagInfo,
   });
 
-  final String message;
+  /// What went wrong, for the screen to translate; the exception is logged.
+  final NfcFailure failure;
   final NfcTagInfo? tagInfo;
 }

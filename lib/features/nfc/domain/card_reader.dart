@@ -3,6 +3,7 @@ import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
 import '../../../core/chameleon/chameleon_device.dart';
 import '../data/nfc_repository.dart';
+import 'nfc_failure.dart';
 
 /// Why a scan ended by itself, as opposed to failing and being retried.
 enum ScanStop {
@@ -74,11 +75,14 @@ abstract class CardReader {
 
   Future<bool> isAvailable();
 
+  /// [onError] carries a typed [NfcFailure], never exception text: the
+  /// reader logs the exception itself (`log.report`) before reporting.
+  ///
   /// [onStopped] reports that the scan ended and must NOT be re-armed by
   /// itself — today only iOS's sheet does that (Cancel, timeout).
   Future<void Function()> startReadSession({
     required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
-    required void Function(String message) onError,
+    required void Function(NfcFailure failure) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
     void Function(ScanStop reason)? onStopped,
     String alertMessage,
@@ -94,7 +98,7 @@ abstract class CardReader {
     required Chunk chunk,
     required NfcTagType configuredTagType,
     required void Function(NfcTagInfo tagInfo) onSuccess,
-    required void Function(String message) onError,
+    required void Function(NfcFailure failure) onError,
     void Function(int requiredSize, int detectedCapacity, NfcTagInfo? tagInfo)?
         onTagTooSmall,
     void Function(String tappedMedium, String configuredMedium,

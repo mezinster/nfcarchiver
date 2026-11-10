@@ -941,5 +941,49 @@
         "description": "Total units"
       }
     }
+  },
+  "nfcNoArchiveData": "No NFC Archiver data on this tag",
+  "@nfcNoArchiveData": {
+    "description": "The tapped tag was read but holds no NFAR chunk (blank or foreign content)"
+  },
+  "nfcNoArchiveDataHint": "Try another tag from this archive.",
+  "@nfcNoArchiveDataHint": {
+    "description": "Hint shown under nfcNoArchiveData"
+  },
+  "nfcReadFailed": "Couldn't read this tag",
+  "@nfcReadFailed": {
+    "description": "A tag could not be read (I/O or platform failure)"
+  },
+  "nfcReadFailedHint": "Hold it still against the phone and try again.",
+  "@nfcReadFailedHint": {
+    "description": "Hint shown under nfcReadFailed"
+  },
+  "nfcWriteFailed": "Couldn't write this tag. Hold it still and try again.",
+  "@nfcWriteFailed": {
+    "description": "A tag could not be written"
+  },
+  "nfcTagNotWritable": "This tag is read-only.",
+  "@nfcTagNotWritable": {
+    "description": "The tapped tag is read-only"
+  },
+  "nfcNotNdefFormatted": "This tag doesn't support NDEF. Use a pre-formatted NDEF tag.",
+  "@nfcNotNdefFormatted": {
+    "description": "The tapped tag exposes no NDEF-capable technology"
+  },
+  "nfcMifareUnsupported": "This looks like a Mifare Classic card. Your phone's NFC chip can't read it.",
+  "@nfcMifareUnsupported": {
+    "description": "A Mifare Classic card on a phone whose NFC controller can't read it"
+  },
+  "nfcForeignCard": "This card is locked with keys the app doesn't have.",
+  "@nfcForeignCard": {
+    "description": "A Mifare Classic card keyed with keys the app doesn't have (Chameleon reader)"
+  },
+  "somethingWentWrong": "Something went wrong. Details are in the diagnostics log.",
+  "@somethingWentWrong": {
+    "description": "Generic error; the exception detail goes only to the diagnostics log"
+  },
+  "details": "Details",
+  "@details": {
+    "description": "Button/action that shows the technical details of an error"
   }
 }

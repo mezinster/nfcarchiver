@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/nfar_format.dart';
+import '../../../../core/log/logger.dart';
 import '../../../../core/models/chunk.dart';
 import '../../../../core/models/nfc_tag_info.dart';
+import '../../data/nfc_repository.dart' show NfcNotAvailableException;
 import '../../data/phone_nfc_reader.dart';
 import '../../domain/card_reader.dart';
+import '../../domain/nfc_failure.dart';
 import 'reader_provider.dart';
 
 /// Provider for NFC availability.
@@ -67,13 +70,16 @@ class NfcSessionStopped extends NfcSessionState {
 }
 
 /// NFC session encountered an error.
+///
+/// Carries a typed [failure], not text: the screen translates it with
+/// `nfcFailureText`, and the exception behind it is in the diagnostics log.
 class NfcSessionError extends NfcSessionState {
   const NfcSessionError({
-    required this.message,
+    required this.failure,
     this.tagInfo,
   });
 
-  final String message;
+  final NfcFailure failure;
   final NfcTagInfo? tagInfo;
 }
 
@@ -128,7 +134,8 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
   /// Start a read session.
   Future<void> startReadSession({String? message}) async {
     if (!await _repository.isAvailable()) {
-      state = const NfcSessionError(message: 'NFC is not available');
+      state = const NfcSessionError(
+          failure: NfcFailure(NfcFailureKind.nfcUnavailable));
       return;
     }
 
@@ -143,8 +150,8 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
         onChunkRead: (chunk, tagInfo) {
           state = NfcSessionReadSuccess(chunk: chunk, tagInfo: tagInfo);
         },
-        onError: (errorMessage) {
-          state = NfcSessionError(message: errorMessage);
+        onError: (failure) {
+          state = NfcSessionError(failure: failure);
         },
         onTagDiscovered: (tagInfo) {
           // Could update state to show tag detected
@@ -155,8 +162,14 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
           state = NfcSessionStopped(reason);
         },
       );
-    } catch (e) {
-      state = NfcSessionError(message: e.toString());
+    } on NfcNotAvailableException {
+      // NFC switched off between the availability check and the arm.
+      log.warn('nfc', 'Read session: NFC not available');
+      state = const NfcSessionError(
+          failure: NfcFailure(NfcFailureKind.nfcUnavailable));
+    } catch (e, st) {
+      log.report('nfc', 'Read session failed to start', e, st);
+      state = const NfcSessionError(failure: NfcFailure(NfcFailureKind.unknown));
     }
   }
 
@@ -167,7 +180,8 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
     String? message,
   }) async {
     if (!await _repository.isAvailable()) {
-      state = const NfcSessionError(message: 'NFC is not available');
+      state = const NfcSessionError(
+          failure: NfcFailure(NfcFailureKind.nfcUnavailable));
       return;
     }
 
@@ -187,8 +201,8 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
             bytesWritten: chunk.totalSize,
           );
         },
-        onError: (errorMessage) {
-          state = NfcSessionError(message: errorMessage);
+        onError: (failure) {
+          state = NfcSessionError(failure: failure);
         },
         onTagTooSmall: (requiredSize, detectedCapacity, tagInfo) {
           state = NfcSessionTagTooSmall(
@@ -210,8 +224,14 @@ class NfcSessionNotifier extends StateNotifier<NfcSessionState> {
           state = NfcSessionStopped(reason);
         },
       );
-    } catch (e) {
-      state = NfcSessionError(message: e.toString());
+    } on NfcNotAvailableException {
+      // NFC switched off between the availability check and the arm.
+      log.warn('nfc', 'Write session: NFC not available');
+      state = const NfcSessionError(
+          failure: NfcFailure(NfcFailureKind.nfcUnavailable));
+    } catch (e, st) {
+      log.report('nfc', 'Write session failed to start', e, st);
+      state = const NfcSessionError(failure: NfcFailure(NfcFailureKind.unknown));
     }
   }
 

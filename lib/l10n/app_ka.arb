@@ -196,5 +196,16 @@
   "inspectClose": "დახურვა",
   "inspectNeedsChameleon": "ბარათის დათვალიერებას სჭირდება Chameleon — ტელეფონის NFC-ს არ აქვს პირდაპირი წვდომა ბარათთან.",
   "inspectReading": "იკითხება {done} / {total}…",
-  "inspectRead": "წაკითხულია {done} / {total}"
+  "inspectRead": "წაკითხულია {done} / {total}",
+  "nfcNoArchiveData": "ამ ტეგზე NFC Archiver-ის მონაცემები არ არის",
+  "nfcNoArchiveDataHint": "სცადეთ ამ არქივის სხვა ტეგი.",
+  "nfcReadFailed": "ტეგის წაკითხვა ვერ მოხერხდა",
+  "nfcReadFailedHint": "გააჩერეთ ის ტელეფონთან უძრავად და სცადეთ ხელახლა.",
+  "nfcWriteFailed": "ტეგზე ჩაწერა ვერ მოხერხდა. გააჩერეთ უძრავად და სცადეთ ხელახლა.",
+  "nfcTagNotWritable": "ეს ტეგი მხოლოდ წასაკითხია.",
+  "nfcNotNdefFormatted": "ეს ტეგი NDEF-ს არ უჭერს მხარს. გამოიყენეთ NDEF-ად წინასწარ დაფორმატებული ტეგი.",
+  "nfcMifareUnsupported": "როგორც ჩანს, ეს Mifare Classic ბარათია. თქვენი ტელეფონის NFC ჩიპი მას ვერ წაიკითხავს.",
+  "nfcForeignCard": "ეს ბარათი დაბლოკილია გასაღებებით, რომლებიც აპს არ აქვს.",
+  "somethingWentWrong": "რაღაც შეცდომა მოხდა. დეტალები დიაგნოსტიკის ჟურნალშია.",
+  "details": "დეტალები"
 }

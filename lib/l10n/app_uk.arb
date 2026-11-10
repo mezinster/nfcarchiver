@@ -196,5 +196,16 @@
   "inspectClose": "Закрити",
   "inspectNeedsChameleon": "Для огляду картки потрібен Chameleon — NFC телефону не має прямого доступу до картки.",
   "inspectReading": "Читання {done} з {total}…",
-  "inspectRead": "Прочитано {done} з {total}"
+  "inspectRead": "Прочитано {done} з {total}",
+  "nfcNoArchiveData": "На цій мітці немає даних NFC Archiver",
+  "nfcNoArchiveDataHint": "Спробуйте іншу мітку з цього архіву.",
+  "nfcReadFailed": "Не вдалося прочитати мітку",
+  "nfcReadFailedHint": "Тримайте її нерухомо біля телефона і спробуйте знову.",
+  "nfcWriteFailed": "Не вдалося записати мітку. Тримайте її нерухомо і спробуйте знову.",
+  "nfcTagNotWritable": "Ця мітка доступна лише для читання.",
+  "nfcNotNdefFormatted": "Ця мітка не підтримує NDEF. Використовуйте мітку, відформатовану під NDEF.",
+  "nfcMifareUnsupported": "Схоже, це картка Mifare Classic. NFC-чип вашого телефона не може її прочитати.",
+  "nfcForeignCard": "Ця картка захищена ключами, яких немає в застосунку.",
+  "somethingWentWrong": "Щось пішло не так. Подробиці — у журналі діагностики.",
+  "details": "Докладніше"
 }

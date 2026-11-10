@@ -189,5 +189,16 @@
   "inspectClose": "Zamknij",
   "inspectNeedsChameleon": "Zbadanie karty wymaga Chameleona — NFC telefonu nie ma bezpośredniego dostępu do karty.",
   "inspectReading": "Odczyt {done} z {total}…",
-  "inspectRead": "Odczytano {done} z {total}"
+  "inspectRead": "Odczytano {done} z {total}",
+  "nfcNoArchiveData": "Na tym tagu nie ma danych NFC Archiver",
+  "nfcNoArchiveDataHint": "Spróbuj innego tagu z tego archiwum.",
+  "nfcReadFailed": "Nie udało się odczytać tagu",
+  "nfcReadFailedHint": "Przytrzymaj go nieruchomo przy telefonie i spróbuj ponownie.",
+  "nfcWriteFailed": "Nie udało się zapisać tagu. Przytrzymaj go nieruchomo i spróbuj ponownie.",
+  "nfcTagNotWritable": "Ten tag jest tylko do odczytu.",
+  "nfcNotNdefFormatted": "Ten tag nie obsługuje NDEF. Użyj tagu sformatowanego jako NDEF.",
+  "nfcMifareUnsupported": "To wygląda na kartę Mifare Classic. Układ NFC Twojego telefonu nie może jej odczytać.",
+  "nfcForeignCard": "Ta karta jest zablokowana kluczami, których aplikacja nie ma.",
+  "somethingWentWrong": "Coś poszło nie tak. Szczegóły są w dzienniku diagnostycznym.",
+  "details": "Szczegóły"
 }

@@ -17,6 +17,7 @@ import '../domain/ndef_formatter.dart';
 import '../domain/ndef_io.dart';
 import '../domain/ios_nfc_session.dart';
 import '../domain/ndef_tag_codec.dart';
+import '../domain/nfc_failure.dart';
 import '../domain/polling_options.dart';
 import '../domain/tag_codec.dart';
 import 'nfc_capabilities.dart';
@@ -36,6 +37,22 @@ bool tagMediumMismatches({
   final tappedMedium =
       tappedIsMifare ? TagMedium.mifareClassic : TagMedium.ndef;
   return tappedMedium != configuredMedium;
+}
+
+/// What iOS's system sheet says when a tag fails.
+///
+/// Fixed English, like every other sheet message: the sheet is a system
+/// surface, and the raw exception that used to appear here belongs in the log.
+@visibleForTesting
+String iosSheetText(NfcFailure failure, {bool writing = false}) {
+  switch (failure.kind) {
+    case NfcFailureKind.noArchiveData:
+      return 'No NFC Archiver data on this tag';
+    case NfcFailureKind.tagNotWritable:
+      return 'This tag is read-only.';
+    default:
+      return writing ? "Couldn't write this tag" : "Couldn't read this tag";
+  }
 }
 
 /// Repository for NFC operations.
@@ -59,7 +76,7 @@ class NfcRepository {
   /// outlive the arm that opened it) reports to the current screen.
   ({
     void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
-    void Function(String message) onError,
+    void Function(NfcFailure failure) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
     void Function(ScanStop reason)? onStopped,
   })? _readHandlers;
@@ -163,13 +180,14 @@ class NfcRepository {
   /// Start an NFC session for reading chunks.
   ///
   /// [onChunkRead] is called when a chunk is successfully read.
-  /// [onError] is called when an error occurs.
+  /// [onError] is called with a typed failure; the exception behind it, if
+  /// any, is logged here first and never reaches the caller.
   /// [onTagDiscovered] is called when any tag is discovered (before reading).
   ///
   /// Returns a function to stop the session.
   Future<void Function()> startReadSession({
     required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
-    required void Function(String message) onError,
+    required void Function(NfcFailure failure) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
     void Function(ScanStop reason)? onStopped,
     String alertMessage = 'Hold your device near an NFC tag',
@@ -223,9 +241,9 @@ class NfcRepository {
         // A failure ends iOS's sheet before it is reported: reporting re-arms.
         // A good read is left open for the screen to end with endTag, since
         // only the screen knows whether the chunk is new or a duplicate.
-        Future<void> fail(String message) async {
-          await _ios.end(message: message, problem: true);
-          handlers.onError(message);
+        Future<void> fail(NfcFailure failure) async {
+          await _ios.end(message: iosSheetText(failure), problem: true);
+          handlers.onError(failure);
         }
 
         try {
@@ -240,7 +258,10 @@ class NfcRepository {
 
           final codec = _codecFor(tag);
           if (codec == null) {
-            await fail(messageFor(_ndefUnavailableReason(tag)));
+            final reason = _ndefUnavailableReason(tag);
+            Logger.instance.info('nfc.read', 'No usable technology on tag',
+                {'uid': tagInfo.identifier, 'reason': reason.name});
+            await fail(failureFor(reason));
             return;
           }
           final chunk = await codec.readChunk(tag);
@@ -250,13 +271,16 @@ class NfcRepository {
           _staleTagPolicy.succeeded(SessionKind.read);
 
           if (chunk == null) {
-            await fail('Tag does not contain valid archive data');
+            Logger.instance.info(
+                'nfc.read', 'No NFAR chunk on tag', {'uid': tagInfo.identifier});
+            await fail(const NfcFailure(NfcFailureKind.noArchiveData));
             return;
           }
           Logger.instance.info('nfc.read', 'chunk read', {'index': chunk.chunkIndex});
           handlers.onChunkRead(chunk, tagInfo);
-        } catch (e) {
-          await fail('Failed to read tag: $e');
+        } catch (e, st) {
+          Logger.instance.report('nfc.read', 'Tag read failed', e, st);
+          await fail(const NfcFailure(NfcFailureKind.readFailed));
         }
       },
       onSessionErrorIos: (error) async {
@@ -277,7 +301,8 @@ class NfcRepository {
         if (stop != null && handlers?.onStopped != null) {
           handlers!.onStopped!(stop);
         } else {
-          handlers?.onError(error.message);
+          // The ios session error line above holds the code and message.
+          handlers?.onError(const NfcFailure(NfcFailureKind.unknown));
         }
       },
     ).catchError((Object e) {
@@ -295,7 +320,8 @@ class NfcRepository {
   /// tapped tag whose medium (NDEF vs Mifare Classic) doesn't match it is
   /// rejected via [onTagTypeMismatch] before any write is attempted.
   /// [onSuccess] is called when the chunk is successfully written.
-  /// [onError] is called when an error occurs.
+  /// [onError] is called with a typed failure; the exception behind it, if
+  /// any, is logged here first and never reaches the caller.
   /// [onTagTooSmall] is called when the tag doesn't have enough capacity.
   /// [onTagTypeMismatch] is called when the tapped tag's medium doesn't match
   /// [configuredTagType].
@@ -305,7 +331,7 @@ class NfcRepository {
     required Chunk chunk,
     required NfcTagType configuredTagType,
     required void Function(NfcTagInfo tagInfo) onSuccess,
-    required void Function(String message) onError,
+    required void Function(NfcFailure failure) onError,
     void Function(int requiredSize, int detectedCapacity, NfcTagInfo? tagInfo)?
         onTagTooSmall,
     void Function(String tappedMedium, String configuredMedium,
@@ -354,8 +380,11 @@ class NfcRepository {
             log.info('nfc.write', 'codec selected', {'codec': codec?.name});
 
             if (codec == null) {
-              final message = messageFor(_ndefUnavailableReason(tag));
-              await fail(message, () => onError(message));
+              final failure = failureFor(_ndefUnavailableReason(tag));
+              log.info('nfc.write', 'No usable technology on tag',
+                  {'uid': tagInfo.identifier, 'reason': failure.kind.name});
+              await fail(iosSheetText(failure, writing: true),
+                  () => onError(failure));
               return;
             }
 
@@ -378,7 +407,7 @@ class NfcRepository {
                 if (onTagTypeMismatch != null) {
                   onTagTypeMismatch(codec.name, configuredTagType.name, tagInfo);
                 } else {
-                  onError(message);
+                  onError(const NfcFailure(NfcFailureKind.writeFailed));
                 }
               });
               return;
@@ -400,8 +429,10 @@ class NfcRepository {
             if (codec is NdefTagCodec) {
               final ndef = ndefIoFor(tag)!;
               if (!ndef.isWritable) {
-                await fail('Tag is not writable',
-                    () => onError('Tag is not writable'));
+                const failure = NfcFailure(NfcFailureKind.tagNotWritable);
+                log.info('nfc.write', 'Tag is read-only', {'uid': tagInfo.identifier});
+                await fail(iosSheetText(failure, writing: true),
+                    () => onError(failure));
                 return;
               }
 
@@ -413,7 +444,7 @@ class NfcRepository {
                   if (onTagTooSmall != null) {
                     onTagTooSmall(requiredSize, ndef.maxSize, tagInfo);
                   } else {
-                    onError(message);
+                    onError(const NfcFailure(NfcFailureKind.writeFailed));
                   }
                 });
                 return;
@@ -447,7 +478,7 @@ class NfcRepository {
                   if (onTagTooSmall != null) {
                     onTagTooSmall(chunk.totalSize, capacity, tagInfo);
                   } else {
-                    onError(message);
+                    onError(const NfcFailure(NfcFailureKind.writeFailed));
                   }
                 });
                 return;
@@ -462,10 +493,16 @@ class NfcRepository {
             // Left open: the screen ends iOS's sheet with its own "written"
             // message (endTag), the way the restore screen does for reads.
             onSuccess(tagInfo);
+          } on TagNotWritableException catch (e, st) {
+            log.report('nfc.write', 'Tag is read-only', e, st);
+            const failure = NfcFailure(NfcFailureKind.tagNotWritable);
+            await fail(iosSheetText(failure, writing: true),
+                () => onError(failure));
           } catch (e, st) {
-            log.error('nfc.write', 'write failed', {'error': e, 'stack': st});
-            await fail('Failed to write tag: $e',
-                () => onError('Failed to write tag: $e'));
+            log.report('nfc.write', 'Tag write failed', e, st);
+            const failure = NfcFailure(NfcFailureKind.writeFailed);
+            await fail(iosSheetText(failure, writing: true),
+                () => onError(failure));
           }
         },
         onSessionErrorIos: (error) async {
@@ -485,7 +522,8 @@ class NfcRepository {
           if (stopReason != null && onStopped != null) {
             onStopped(stopReason);
           } else {
-            onError(error.message);
+            // The ios session error line above holds the code and message.
+            onError(const NfcFailure(NfcFailureKind.unknown));
           }
         },
       ).catchError((Object e) {
@@ -510,7 +548,8 @@ class NfcRepository {
     Duration timeout = const Duration(seconds: 30),
   }) async {
     if (!await isAvailable()) {
-      return const NfcReadError(message: 'NFC is not available');
+      return const NfcReadError(
+          failure: NfcFailure(NfcFailureKind.nfcUnavailable));
     }
 
     final completer = Completer<NfcReadResult>();
@@ -521,8 +560,9 @@ class NfcRepository {
     timeoutTimer = Timer(timeout, () {
       if (!completer.isCompleted) {
         stopSession?.call();
+        Logger.instance.info('nfc.read', 'Timeout waiting for NFC tag');
         completer.complete(
-          const NfcReadError(message: 'Timeout waiting for NFC tag'),
+          const NfcReadError(failure: NfcFailure(NfcFailureKind.readFailed)),
         );
       }
     });
@@ -539,17 +579,18 @@ class NfcRepository {
             ));
           }
         },
-        onError: (message) {
+        onError: (failure) {
           timeoutTimer?.cancel();
           if (!completer.isCompleted) {
             stopSession?.call();
-            completer.complete(NfcReadError(message: message));
+            completer.complete(NfcReadError(failure: failure));
           }
         },
       );
-    } catch (e) {
+    } catch (e, st) {
       timeoutTimer.cancel();
-      return NfcReadError(message: e.toString());
+      Logger.instance.report('nfc.read', 'Read session failed to start', e, st);
+      return const NfcReadError(failure: NfcFailure(NfcFailureKind.unknown));
     }
 
     return completer.future;
@@ -564,7 +605,8 @@ class NfcRepository {
     Duration timeout = const Duration(seconds: 30),
   }) async {
     if (!await isAvailable()) {
-      return const NfcWriteError(message: 'NFC is not available');
+      return const NfcWriteError(
+          failure: NfcFailure(NfcFailureKind.nfcUnavailable));
     }
 
     final completer = Completer<NfcWriteResult>();
@@ -575,8 +617,9 @@ class NfcRepository {
     timeoutTimer = Timer(timeout, () {
       if (!completer.isCompleted) {
         stopSession?.call();
+        Logger.instance.info('nfc.write', 'Timeout waiting for NFC tag');
         completer.complete(
-          const NfcWriteError(message: 'Timeout waiting for NFC tag'),
+          const NfcWriteError(failure: NfcFailure(NfcFailureKind.writeFailed)),
         );
       }
     });
@@ -595,17 +638,18 @@ class NfcRepository {
             ));
           }
         },
-        onError: (message) {
+        onError: (failure) {
           timeoutTimer?.cancel();
           if (!completer.isCompleted) {
             stopSession?.call();
-            completer.complete(NfcWriteError(message: message));
+            completer.complete(NfcWriteError(failure: failure));
           }
         },
       );
-    } catch (e) {
+    } catch (e, st) {
       timeoutTimer.cancel();
-      return NfcWriteError(message: e.toString());
+      Logger.instance.report('nfc.write', 'Write session failed to start', e, st);
+      return const NfcWriteError(failure: NfcFailure(NfcFailureKind.unknown));
     }
 
     return completer.future;

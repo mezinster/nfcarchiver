@@ -189,5 +189,16 @@
   "inspectClose": "Закрыць",
   "inspectNeedsChameleon": "Для агляду карты патрэбны Chameleon — NFC тэлефона не мае прамога доступу да карты.",
   "inspectReading": "Чытанне {done} з {total}…",
-  "inspectRead": "Прачытана {done} з {total}"
+  "inspectRead": "Прачытана {done} з {total}",
+  "nfcNoArchiveData": "На гэтай метцы няма даных NFC Archiver",
+  "nfcNoArchiveDataHint": "Паспрабуйце іншую метку з гэтага архіва.",
+  "nfcReadFailed": "Не ўдалося прачытаць метку",
+  "nfcReadFailedHint": "Трымайце яе нерухома каля тэлефона і паспрабуйце зноў.",
+  "nfcWriteFailed": "Не ўдалося запісаць метку. Трымайце яе нерухома і паспрабуйце зноў.",
+  "nfcTagNotWritable": "Гэта метка даступная толькі для чытання.",
+  "nfcNotNdefFormatted": "Гэта метка не падтрымлівае NDEF. Выкарыстоўвайце метку, адфарматаваную пад NDEF.",
+  "nfcMifareUnsupported": "Падобна, гэта картка Mifare Classic. NFC-чып вашага тэлефона не можа яе прачытаць.",
+  "nfcForeignCard": "Гэта картка абаронена ключамі, якіх няма ў праграмы.",
+  "somethingWentWrong": "Нешта пайшло не так. Падрабязнасці — у журнале дыягностыкі.",
+  "details": "Падрабязней"
 }

@@ -156,8 +156,12 @@ class FakeChameleonDevice implements ChameleonDevice {
     _connected = false;
   }
 
+  /// scanTag() calls so far — one per reader poll iteration.
+  int scanCalls = 0;
+
   @override
   Future<ScannedTag?> scanTag() async {
+    scanCalls++;
     if (!_cardPresent) return null;
     // A 7-byte UID starts with the 0x88 cascade tag in anticollision level 1;
     // a 4-byte UID does not. Card code keys "is this a Classic" off the SAK,

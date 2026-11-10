@@ -122,7 +122,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         // see IosNfcSession).
         _startNfcSession();
       } else if (next is NfcSessionError) {
-        ref.read(restoreProvider.notifier).scanError(next.message);
+        ref.read(restoreProvider.notifier).scanError(
+            nfcFailureText(next.failure, AppLocalizations.of(context)!));
         // Continue scanning despite error — but PACED and BOUNDED.
         //
         // Restarting immediately is safe with the phone's radio, where a

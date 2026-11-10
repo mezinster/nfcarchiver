@@ -27,3 +27,11 @@ abstract interface class TagCodec {
   /// Write a chunk. Throws on failure.
   Future<void> writeChunk(NfcTag tag, Chunk chunk);
 }
+
+/// Thrown by [TagCodec.writeChunk] when the tag is read-only.
+///
+/// A dedicated type so the repository can report `tagNotWritable` without
+/// matching on message text. Still a [StateError], as it always was.
+class TagNotWritableException extends StateError {
+  TagNotWritableException() : super('Tag is not writable');
+}

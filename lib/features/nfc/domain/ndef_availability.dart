@@ -11,6 +11,8 @@
 /// what is usually a retry.
 library;
 
+import 'nfc_failure.dart';
+
 enum NdefUnavailableReason {
   /// The tag exposes NFC-A technology, so it is a real tag the reader talked
   /// to — NDEF detection simply did not finish. Retrying the tap usually works.
@@ -40,19 +42,14 @@ NdefUnavailableReason classifyNdefUnavailable({
   return NdefUnavailableReason.notNdefFormatted;
 }
 
-/// User-facing text for [reason].
-///
-/// English-only for now: errors reach the UI as plain strings through
-/// `NfcSessionError.message`, so localizing them needs a typed error code and a
-/// UI-side mapping across the whole NFC error surface, not just these two.
-String messageFor(NdefUnavailableReason reason) {
+/// The typed failure for [reason]; the screen turns it into localized text.
+NfcFailure failureFor(NdefUnavailableReason reason) {
   switch (reason) {
     case NdefUnavailableReason.detectionFailed:
-      return "Couldn't read the tag — hold it still against the phone and try again.";
+      return const NfcFailure(NfcFailureKind.detectionFailed);
     case NdefUnavailableReason.notNdefFormatted:
-      return 'Tag does not support NDEF. Please use a pre-formatted NDEF tag.';
+      return const NfcFailure(NfcFailureKind.notNdefFormatted);
     case NdefUnavailableReason.mifareUnsupported:
-      return "This looks like a Mifare Classic card. Your phone's NFC chip "
-          "can't read them.";
+      return const NfcFailure(NfcFailureKind.mifareUnsupported);
   }
 }

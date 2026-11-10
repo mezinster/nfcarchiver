@@ -93,10 +93,12 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
           SnackBar(content: Text(message)),
         );
       } else if (next is NfcSessionError) {
-        // Error writing
-        ref.read(archiveProvider.notifier).writeError(next.message);
+        // Error writing: translated here; the exception is in the log.
+        final message =
+            nfcFailureText(next.failure, AppLocalizations.of(context)!);
+        ref.read(archiveProvider.notifier).writeError(message);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.message)),
+          SnackBar(content: Text(message)),
         );
       }
     });
