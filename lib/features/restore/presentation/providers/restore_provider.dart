@@ -20,11 +20,16 @@ class RestoreScanning extends RestoreState {
     this.sessions = const [],
     this.lastScannedChunk,
     this.lastError,
+    this.lastErrorNeutral = false,
   });
 
   final List<RestoreSessionInfo> sessions;
   final ScannedChunkInfo? lastScannedChunk;
   final String? lastError;
+
+  /// [lastError] is an expected outcome (a tag with no archive data), not a
+  /// fault: shown as a notice, not an error.
+  final bool lastErrorNeutral;
 }
 
 /// Archive is complete, ready to restore.
@@ -181,13 +186,14 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
   }
 
   /// Handle scan error.
-  void scanError(String message) {
+  void scanError(String message, {bool neutral = false}) {
     final current = state;
     if (current is RestoreScanning) {
       state = RestoreScanning(
         sessions: current.sessions,
         lastScannedChunk: current.lastScannedChunk,
         lastError: message,
+        lastErrorNeutral: neutral,
       );
     }
   }

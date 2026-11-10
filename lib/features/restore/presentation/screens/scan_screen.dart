@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/log/logger.dart';
+import '../../../diagnostics/presentation/diagnostics_screen.dart';
 import '../../../nfc/nfc.dart';
 import '../providers/restore_provider.dart';
 
@@ -110,8 +112,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                     : (l10n?.chunkAlreadyScanned(number, chunk.totalChunks) ?? ''),
                 problem: !info.isNew,
               );
-        } catch (e) {
-          ref.read(restoreProvider.notifier).scanError(e.toString());
+        } catch (e, st) {
+          log.report('restore', 'processChunk failed', e, st);
+          ref
+              .read(restoreProvider.notifier)
+              .scanError(AppLocalizations.of(context)!.somethingWentWrong);
         }
 
         // That chunk completed the archive: the screen is about to leave for
@@ -122,8 +127,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         // see IosNfcSession).
         _startNfcSession();
       } else if (next is NfcSessionError) {
-        ref.read(restoreProvider.notifier).scanError(
-            nfcFailureText(next.failure, AppLocalizations.of(context)!));
+        final text =
+            nfcFailureText(next.failure, AppLocalizations.of(context)!);
+        if (isNeutral(next.failure)) {
+          // A tag with no archive data is not a fault: it does not use up the
+          // error budget. Still paced, so a reader that reports it instantly
+          // cannot spin.
+          ref.read(restoreProvider.notifier).scanError(text, neutral: true);
+          Future<void>.delayed(_retryFloor, () {
+            if (mounted) _startNfcSession();
+          });
+          return;
+        }
+        ref.read(restoreProvider.notifier).scanError(text);
         // Continue scanning despite error — but PACED and BOUNDED.
         //
         // Restarting immediately is safe with the phone's radio, where a
@@ -166,6 +182,47 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         ],
       ),
       body: _buildBody(context, state, nfcState),
+    );
+  }
+
+  Widget _buildNotice(BuildContext context, RestoreScanning state) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final neutral = state.lastErrorNeutral;
+    final fg = neutral ? scheme.onSurfaceVariant : scheme.onErrorContainer;
+    final message = state.lastError!;
+    final String? hint = neutral
+        ? l10n.nfcNoArchiveDataHint
+        : (message == l10n.nfcReadFailed ? l10n.nfcReadFailedHint : null);
+    return Card(
+      color: neutral ? scheme.surfaceContainerHighest : scheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(neutral ? Icons.info_outline : Icons.warning, color: fg),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(message, style: TextStyle(color: fg)),
+                  if (hint != null)
+                    Text(hint, style: TextStyle(color: fg, fontSize: 12)),
+                  if (!neutral)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () => context.push(diagnosticsRoute),
+                        child: Text(l10n.details),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -346,32 +403,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             const SizedBox(height: 16),
           ],
 
-          // Error message
+          // Error message, or a neutral notice
           if (state.lastError != null) ...[
-            Card(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning,
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        state.lastError!,
-                        style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildNotice(context, state),
             const SizedBox(height: 16),
           ],
 
