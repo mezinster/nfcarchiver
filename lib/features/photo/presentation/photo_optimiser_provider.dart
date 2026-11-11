@@ -228,8 +228,10 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
     }
   }
 
+  /// Safe after dispose: `RepeatButton` calls it from a microtask, which can
+  /// land after the screen (and this notifier) went away.
   void endHold() {
-    if (!_holding) return;
+    if (_disposed || !_holding) return;
     _holding = false;
     _schedule();
   }

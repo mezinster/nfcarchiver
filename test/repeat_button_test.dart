@@ -92,7 +92,23 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: SizedBox()));
     await tester.pump(const Duration(seconds: 3));
     expect(total, 1);
+    expect(holdEnds, 1, reason: 'a hold cut short by dispose still ends');
     expect(tester.takeException(), isNull);
+    await g.up();
+    await tester.pump();
+    expect(holdEnds, 1);
+  });
+
+  testWidgets('disposing before the first repeat ends no hold', (tester) async {
+    await tester.pumpWidget(button());
+    final g =
+        await tester.startGesture(tester.getCenter(find.byIcon(Icons.add)));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.pump(const Duration(seconds: 1));
+    expect(total, 0);
+    expect(holdStarts, 0);
+    expect(holdEnds, 0);
     await g.up();
   });
 

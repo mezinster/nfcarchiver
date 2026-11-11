@@ -513,6 +513,48 @@ void main() {
     expect(continueButton(tester).onPressed, isNotNull);
   });
 
+  testWidgets('a stepper removed mid-hold ends the hold; later steps re-fit',
+      (tester) async {
+    final s = FakeJpegSession(4000, 3000, size: linear);
+    final c = container(photo: big, session: s);
+    c.listen(photoOptimiserProvider, (_, __) {}); // outlives the widgets
+    await pumpScreen(tester, c);
+
+    final g =
+        await tester.startGesture(tester.getCenter(find.byIcon(Icons.add)));
+    await tester.pump(const Duration(milliseconds: 1000));
+    expect(c.read(photoOptimiserProvider).busy, isTrue);
+
+    // The stepper goes away while the finger is still down.
+    await tester.pumpWidget(
+        UncontrolledProviderScope(container: c, child: const SizedBox()));
+    await settle(tester);
+    await g.up();
+    expect(c.read(photoOptimiserProvider).busy, isFalse,
+        reason: 'the hold ended, so the fit ran');
+
+    final before = s.calls.length;
+    c.read(photoOptimiserProvider.notifier).setTags(20);
+    await settle(tester);
+    expect(s.calls.length, greaterThan(before), reason: 'a later step re-fits');
+    expect(c.read(photoOptimiserProvider).busy, isFalse);
+  });
+
+  testWidgets('endHold after the notifier is gone does nothing',
+      (tester) async {
+    final c = container(photo: big);
+    final sub = c.listen(photoOptimiserProvider, (_, __) {});
+    await settle(tester);
+    final notifier = c.read(photoOptimiserProvider.notifier);
+    notifier.beginHold();
+    sub.close();
+    await settle(tester); // the auto-dispose runs
+    expect(c.exists(photoOptimiserProvider), isFalse);
+    notifier.endHold(); // must not touch a disposed StateNotifier
+    await settle(tester);
+    expect(tester.takeException(), isNull);
+  });
+
   Future<void> enterCount(WidgetTester tester, String text,
       {bool ok = true}) async {
     await tester.tap(find.byKey(const Key('photoTagCount')));

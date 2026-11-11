@@ -27,8 +27,9 @@ class RepeatButton extends StatefulWidget {
   /// Called before the first repeated step of a hold.
   final VoidCallback? onHoldStart;
 
-  /// Called when a hold that repeated is released or cancelled (not when the
-  /// button is disposed mid-hold).
+  /// Called once when a hold that repeated ends: released, cancelled, or cut
+  /// short by the button leaving the tree. Always called from a microtask,
+  /// never synchronously from the gesture or from dispose.
   final VoidCallback? onHoldEnd;
 
   static const initialDelay = Duration(milliseconds: 400);
@@ -54,6 +55,9 @@ class _RepeatButtonState extends State<RepeatButton> {
   Duration _elapsed = Duration.zero;
   bool _repeated = false;
 
+  /// Between [RepeatButton.onHoldStart] and [RepeatButton.onHoldEnd].
+  bool _holding = false;
+
   void _down() {
     _timer?.cancel();
     _repeated = false;
@@ -65,6 +69,7 @@ class _RepeatButtonState extends State<RepeatButton> {
     if (!mounted) return;
     if (!_repeated) {
       _repeated = true;
+      _holding = true;
       widget.onHoldStart?.call();
     }
     widget.onStep(widget.step * RepeatButton.multiplierAfter(_elapsed));
@@ -76,7 +81,18 @@ class _RepeatButtonState extends State<RepeatButton> {
   void _release() {
     _timer?.cancel();
     _timer = null;
-    if (_repeated) widget.onHoldEnd?.call();
+    _endHold();
+  }
+
+  /// Ends a started hold exactly once, however it ends: release, cancel, or
+  /// the button leaving the tree. Deferred to a microtask because the last
+  /// two can arrive during tree teardown (the tap recogniser cancels from its
+  /// own dispose), where the listener must not be touched.
+  void _endHold() {
+    if (!_holding) return;
+    _holding = false;
+    final onHoldEnd = widget.onHoldEnd;
+    if (onHoldEnd != null) scheduleMicrotask(onHoldEnd);
   }
 
   void _tap() {
@@ -88,6 +104,7 @@ class _RepeatButtonState extends State<RepeatButton> {
   @override
   void dispose() {
     _timer?.cancel();
+    _endHold();
     super.dispose();
   }
 
