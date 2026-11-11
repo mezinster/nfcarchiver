@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../mifare/card_layout.dart';
 import '../nfc/type2.dart';
 import 'card_dump.dart';
 import 'nfar_describe.dart';
@@ -79,8 +80,11 @@ String formatUnitRow(DumpUnit u) {
 }
 
 String formatIdentity(DumpMeta meta, IdentityDiagnosis? diag) {
-  final medium =
-      meta.ntagType == null ? 'Mifare Classic 1K' : ntagLabel(meta.ntagType!);
+  final medium = meta.ntagType != null
+      ? ntagLabel(meta.ntagType!)
+      : meta.cardSize == MifareCardSize.k4
+          ? 'Mifare Classic 4K'
+          : 'Mifare Classic 1K';
   final lines = <String>[
     'Medium    $medium (SAK ${_byte(meta.sak)})',
     'UID       ${_hex(meta.uid)}',
@@ -93,7 +97,7 @@ String formatIdentity(DumpMeta meta, IdentityDiagnosis? diag) {
     return lines.join('\n');
   }
 
-  // ATQA is a fixed 2-byte field (Classic 1K answers 04 00, LSB first). A reader
+  // ATQA is a fixed 2-byte field (Classic 1K/4K answers 04 00/02 00, LSB first). A reader
   // that returns anything else garbled the WUPA frame, and an unlabelled odd
   // value reads as a real card property in a report meant for bug reports — one
   // real tap rendered "ATQA 3F" while the anticollision right after it was clean.
@@ -110,10 +114,10 @@ String formatIdentity(DumpMeta meta, IdentityDiagnosis? diag) {
   );
 
   // A 7-byte cascade UID is entirely normal on NTAG; it is only a fault when
-  // the SAK says this should be a 4-byte Mifare Classic 1K.
+  // the SAK says this should be a 4-byte Mifare Classic.
   if (diag.isCascade) {
     lines.add(meta.isClassic
-        ? 'Verdict   7-byte UID (cascade tag) — not a 4-byte Mifare Classic 1K'
+        ? 'Verdict   7-byte UID (cascade tag) — not a 4-byte Mifare Classic'
         : 'Verdict   7-byte UID (cascade tag) — normal for NTAG');
   } else if (!diag.bccValid) {
     lines.add(

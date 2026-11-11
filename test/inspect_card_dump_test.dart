@@ -131,6 +131,49 @@ void main() {
     });
   });
 
+  group('Classic 4K', () {
+    test('dumps 256 units with real 4K sector numbering and trailers',
+        () async {
+      final r = await dumpCard(FakeChameleonDevice.classic4k(), _noop());
+      expect(r.meta.totalUnits, 256);
+      expect(r.units.length, 256);
+      expect(r.units[143].kind, UnitKind.trailer);
+      expect(r.units[255].kind, UnitKind.trailer);
+      expect(r.units[127].kind, UnitKind.trailer);
+      expect(r.units[144].sector, 33);
+      expect(r.units[144].kind, UnitKind.data);
+      expect(r.units[128].sector, 32);
+      expect(r.units[0].kind, UnitKind.manufacturer);
+    });
+
+    test('emulated 4K (0x38) is dumped too', () async {
+      final r = await dumpCard(FakeChameleonDevice.classic4k(sak: 0x38), _noop());
+      expect(r.units.length, 256);
+    });
+
+    test('a 2K card (SAK 0x19) is unsupported, and the message names it',
+        () async {
+      await expectLater(
+        dumpCard(FakeChameleonDevice.classic4k(sak: 0x19), _noop()),
+        throwsA(
+          isA<UnsupportedTagException>()
+              .having((e) => e.message, 'message', contains('0x19'))
+              .having((e) => e.message, 'message', contains('4K')),
+        ),
+      );
+    });
+
+    test('a card pulled mid-dump marks the rest, up to block 255', () async {
+      final r = await dumpCard(
+        FakeChameleonDevice.classic4k()..failFromBlock(200),
+        _noop(),
+      );
+      expect(r.cardLost, isTrue);
+      expect(r.units.length, 256);
+      expect(r.units.last.failure, UnitFailure.notRead);
+    });
+  });
+
   group('routing', () {
     test('an unsupported SAK is rejected, and the message names it', () async {
       final dev = FakeChameleonDevice.classic1k()..overrideSak(0x20);

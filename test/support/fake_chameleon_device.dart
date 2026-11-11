@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:nfc_archiver/core/chameleon/chameleon_device.dart';
 import 'package:nfc_archiver/core/mifare/card_layout.dart';
-import 'package:nfc_archiver/core/mifare/sak.dart';
 import 'package:nfc_archiver/core/nfc/ndef_bytes.dart';
 import 'package:nfc_archiver/core/nfc/type2.dart';
 
@@ -19,6 +18,7 @@ import 'package:nfc_archiver/core/nfc/type2.dart';
 class FakeChameleonDevice implements ChameleonDevice {
   FakeChameleonDevice._({
     required this.sak,
+    required this.isClassicCard,
     required int blockCount,
     required this.totalPages,
     Map<int, Uint8List>? sectorKeys,
@@ -44,6 +44,7 @@ class FakeChameleonDevice implements ChameleonDevice {
   }) =>
       FakeChameleonDevice._(
         sak: 0x08,
+        isClassicCard: true,
         blockCount: 64,
         totalPages: 0,
         sectorKeys: sectorKeys,
@@ -62,6 +63,7 @@ class FakeChameleonDevice implements ChameleonDevice {
   }) =>
       FakeChameleonDevice._(
         sak: sak,
+        isClassicCard: true,
         blockCount: 256,
         totalPages: 0,
         sectorKeys: sectorKeys,
@@ -71,12 +73,18 @@ class FakeChameleonDevice implements ChameleonDevice {
   /// An NTAG215: 135 pages of 4 bytes, SAK 0x00, 7-byte (cascade) UID.
   factory FakeChameleonDevice.ntag215({int seed = 0}) => FakeChameleonDevice._(
         sak: 0x00,
+        isClassicCard: false,
         blockCount: 0,
         totalPages: 135,
         seed: seed,
       );
 
   int sak;
+
+  /// Whether this is a Classic card, fixed by the factory — NOT derived from
+  /// [sak], so `classic4k(sak: 0x19)` is a Classic card presenting an
+  /// unsupported SAK (a 2K), rather than turning into an NTAG.
+  final bool isClassicCard;
   final int totalPages;
   final Map<int, Uint8List> _sectorKeys;
   final List<Uint8List> _blocks;
@@ -101,10 +109,7 @@ class FakeChameleonDevice implements ChameleonDevice {
   final List<int> readLog = [];
   final List<int> writeLog = [];
 
-  bool get _isClassic {
-    final kind = classifySak(sak);
-    return kind == TagKind.classic1k || kind == TagKind.classic4k;
-  }
+  bool get _isClassic => isClassicCard;
 
   // ---- test knobs -----------------------------------------------------------
 
@@ -151,7 +156,7 @@ class FakeChameleonDevice implements ChameleonDevice {
   /// unnecessary.
   void writeNfar(Uint8List chunk) {
     if (_isClassic) {
-      final size = cardSizeFor(classifySak(sak))!;
+      final size = _blocks.length > 64 ? MifareCardSize.k4 : MifareCardSize.k1;
       for (final w in chunkToBlocks(chunk, size: size)) {
         setBlock(w.block, w.data);
       }
