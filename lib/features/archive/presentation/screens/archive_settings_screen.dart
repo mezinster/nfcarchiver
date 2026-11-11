@@ -10,11 +10,6 @@ import '../../../nfc/domain/tag_type_availability.dart';
 import '../../../nfc/presentation/providers/reader_provider.dart';
 import '../providers/archive_provider.dart';
 
-/// Where a no-longer-offered Mifare selection lands. Matches
-/// [selectedTagTypeProvider]'s own default, so the fallback is the same choice
-/// the user would have started from.
-const _fallbackTagType = NfcTagType.ntag216;
-
 /// Screen for configuring archive settings.
 class ArchiveSettingsScreen extends ConsumerStatefulWidget {
   const ArchiveSettingsScreen({super.key});
@@ -64,33 +59,18 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     // A reader that could do Mifare may have been swapped for one that cannot,
-    // leaving a selection the list no longer offers — a radio group with
-    // nothing selected, and an archive chunked for a medium this reader cannot
-    // write. Only acted on once the capability is actually KNOWN: during the
-    // first frame's load `mifareAvailable` is false for every reader, and
-    // resetting then would clear a legitimate Mifare choice.
-    if (mifareAvailability.hasValue &&
-        !mifareAvailable &&
-        tagType.medium == TagMedium.mifareClassic) {
+    // or the 4K developer switch turned off, leaving a selection the list no
+    // longer offers — a radio group with nothing selected, and an archive
+    // chunked for a medium this reader cannot write. Only acted on once the
+    // capability is actually KNOWN (see [replacementTagType]).
+    final replacement = mifareAvailability.hasValue
+        ? replacementTagType(tagType,
+            mifareAvailable: mifareAvailable, mifare4kEnabled: mifare4kEnabled)
+        : null;
+    if (replacement != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ref.read(selectedTagTypeProvider.notifier).state = _fallbackTagType;
-        _updateConfig(ref);
-      });
-    }
-
-    // The developer switch was turned off with 4K selected: fall back to the
-    // 1K medium the reader can still write (or NTAG216 if it cannot do Mifare).
-    // Gated on the capability having loaded, like the reset above: while it
-    // loads `mifareAvailable` is false, which must not drop a 4K choice.
-    if (mifareAvailability.hasValue &&
-        tagType == NfcTagType.mifareClassic4k &&
-        !mifare4kEnabled) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ref.read(selectedTagTypeProvider.notifier).state = mifareAvailable
-            ? NfcTagType.mifareClassic1k
-            : _fallbackTagType;
+        ref.read(selectedTagTypeProvider.notifier).state = replacement;
         _updateConfig(ref);
       });
     }
@@ -277,7 +257,8 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                     ),
                     _EstimateRow(
                       label: l10n.estimatedProcessedSize,
-                      value: formatFileSize(config.estimate!.estimatedProcessedSize),
+                      value: formatFileSize(
+                          config.estimate!.estimatedProcessedSize),
                     ),
                     _EstimateRow(
                       label: l10n.tagsNeeded,
@@ -333,7 +314,6 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
       context.go('/archive/write');
     }
   }
-
 }
 
 class _EstimateRow extends StatelessWidget {

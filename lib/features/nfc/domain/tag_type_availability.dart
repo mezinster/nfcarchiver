@@ -27,3 +27,33 @@ List<NfcTagType> selectableTagTypes({
         .where((t) => t.medium != TagMedium.mifareClassic || mifareAvailable)
         .where((t) => t != NfcTagType.mifareClassic4k || mifare4kEnabled)
         .toList(growable: false);
+
+/// Where a no-longer-offered selection lands. Matches
+/// `selectedTagTypeProvider`'s own default, so the fallback is the same choice
+/// the user would have started from.
+const fallbackTagType = NfcTagType.ntag216;
+
+/// The tag type to switch to when [current] is no longer offered, or null when
+/// it still is. Shared by every screen that sizes an archive, so none of them
+/// can promise a count for a medium another screen will then swap out.
+///
+/// - a Mifare Classic type the reader cannot write → [fallbackTagType];
+/// - 4K with the developer switch off → 1K if the reader can do Mifare, else
+///   [fallbackTagType].
+///
+/// Callers apply it only once the reader capability is actually KNOWN: while
+/// it loads, `mifareAvailable` reads false for every reader, and acting then
+/// would clear a legitimate Mifare choice.
+NfcTagType? replacementTagType(
+  NfcTagType current, {
+  required bool mifareAvailable,
+  required bool mifare4kEnabled,
+}) {
+  if (!mifareAvailable && current.medium == TagMedium.mifareClassic) {
+    return fallbackTagType;
+  }
+  if (current == NfcTagType.mifareClassic4k && !mifare4kEnabled) {
+    return NfcTagType.mifareClassic1k;
+  }
+  return null;
+}

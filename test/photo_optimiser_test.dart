@@ -44,6 +44,9 @@ class _SlowSession extends FakeJpegSession {
   }
 }
 
+/// Stands in for the 4K developer switch, so a test can flip it mid-screen.
+final fake4k = StateProvider<bool>((_) => false);
+
 void main() {
   late Directory temp;
   setUp(() {
@@ -64,17 +67,22 @@ void main() {
     PendingPhoto photo = original,
     Future<JpegEncoderSession> Function(String path)? opener,
     JpegEncoderSession? session,
+    bool mifareAvailable = false,
+    bool mifare4k = false,
+    NfcTagType tagType = NfcTagType.ntag216,
   }) {
     final s = session ?? FakeJpegSession(4000, 3000, size: linear);
     final c = ProviderContainer(overrides: [
       pendingPhotoProvider.overrideWith((ref) => photo),
       jpegSessionOpenerProvider.overrideWithValue(opener ?? (_) async => s),
       photoTempDirProvider.overrideWithValue(() async => temp),
-      mifareClassicAvailableProvider.overrideWith((ref) async => false),
-      mifare4kEnabledProvider.overrideWithValue(false),
+      mifareClassicAvailableProvider
+          .overrideWith((ref) async => mifareAvailable),
+      mifare4kEnabledProvider.overrideWith((ref) => ref.watch(fake4k)),
     ]);
     addTearDown(c.dispose);
-    c.read(selectedTagTypeProvider.notifier).state = NfcTagType.ntag216;
+    c.read(fake4k.notifier).state = mifare4k;
+    c.read(selectedTagTypeProvider.notifier).state = tagType;
     return c;
   }
 
@@ -359,6 +367,76 @@ void main() {
     }
     await settle(tester);
     expect(tagCount(1), findsOneWidget);
+  });
+
+  bool chipSelected(WidgetTester tester, String label) => tester
+      .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, label))
+      .selected;
+
+  testWidgets(
+      '4K with the switch off and no Mifare reader falls back to '
+      'NTAG216, and the count holds', (tester) async {
+    final c = container(tagType: NfcTagType.mifareClassic4k);
+    await pumpScreen(tester, c);
+
+    expect(find.widgetWithText(ChoiceChip, 'Mifare Classic 4K'), findsNothing);
+    expect(chipSelected(tester, 'NTAG216'), isTrue);
+    expect(c.read(photoOptimiserProvider).tagType, NfcTagType.ntag216);
+    expect(tagCount(6), findsOneWidget);
+    expect(find.text('800×600 · q60 · 4.7 KB'), findsOneWidget);
+
+    await tapContinue(tester);
+    expect(c.read(selectedTagTypeProvider), NfcTagType.ntag216);
+    final a = c.read(archiveProvider) as ArchiveFileSelected;
+    final estimate = ArchiveRepository.instance.estimateFromSize(
+      dataSize: a.fileSize,
+      fileName: a.fileName,
+      tagType: NfcTagType.ntag216,
+      encrypt: true,
+      compress: false,
+    );
+    expect(estimate.chunksNeeded, lessThanOrEqualTo(6));
+  });
+
+  testWidgets('4K with the switch off and a Mifare reader falls back to 1K',
+      (tester) async {
+    final c =
+        container(tagType: NfcTagType.mifareClassic4k, mifareAvailable: true);
+    await pumpScreen(tester, c);
+
+    expect(chipSelected(tester, 'Mifare Classic 1K'), isTrue);
+    // 1K: 720 B per tag. 640 px / q70 needs 7 tags = 4,985 B: 800 px, q62.
+    expect(tagCount(7), findsOneWidget);
+    expect(find.text('800×600 · q62 · 4.8 KB'), findsOneWidget);
+
+    await tapContinue(tester);
+    expect(c.read(selectedTagTypeProvider), NfcTagType.mifareClassic1k);
+    final a = c.read(archiveProvider) as ArchiveFileSelected;
+    final estimate = ArchiveRepository.instance.estimateFromSize(
+      dataSize: a.fileSize,
+      fileName: a.fileName,
+      tagType: NfcTagType.mifareClassic1k,
+      encrypt: true,
+      compress: false,
+    );
+    expect(estimate.chunksNeeded, lessThanOrEqualTo(7));
+  });
+
+  testWidgets('turning the 4K switch off while open re-fits for 1K',
+      (tester) async {
+    final c = container(
+        tagType: NfcTagType.mifareClassic4k,
+        mifareAvailable: true,
+        mifare4k: true);
+    await pumpScreen(tester, c);
+    expect(chipSelected(tester, 'Mifare Classic 4K'), isTrue);
+
+    c.read(fake4k.notifier).state = false;
+    await settle(tester);
+
+    expect(chipSelected(tester, 'Mifare Classic 1K'), isTrue);
+    expect(c.read(photoOptimiserProvider).tagType, NfcTagType.mifareClassic1k);
+    expect(c.read(photoOptimiserProvider).busy, isFalse);
   });
 
   testWidgets('leaving the screen closes the session', (tester) async {

@@ -9,7 +9,10 @@ import 'package:path/path.dart' as p;
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/log/logger.dart';
 import '../../../core/services/archive_sizing.dart';
+import '../../../core/providers/dev_options_provider.dart';
 import '../../archive/presentation/providers/archive_provider.dart';
+import '../../nfc/domain/tag_type_availability.dart';
+import '../../nfc/presentation/providers/reader_provider.dart';
 import '../data/photo_temp.dart';
 import '../data/platform_jpeg_session.dart';
 import '../domain/optimised_file_name.dart';
@@ -221,6 +224,17 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
     _schedule(now: true);
   }
 
+  /// Moves off a tag type the reader or the 4K switch no longer offers, by
+  /// the rule Archive settings applies ([replacementTagType]).
+  void normaliseTagType({
+    required bool mifareAvailable,
+    required bool mifare4kEnabled,
+  }) {
+    final replacement = replacementTagType(state.tagType,
+        mifareAvailable: mifareAvailable, mifare4kEnabled: mifare4kEnabled);
+    if (replacement != null) setTagType(replacement);
+  }
+
   /// Switches to manual mode, starting from the current result's settings.
   void setManual({int? side, int? quality}) {
     if (state.error != PhotoError.none || _session == null) return;
@@ -346,5 +360,22 @@ final photoOptimiserProvider = StateNotifierProvider.autoDispose<
     PhotoOptimiserNotifier, PhotoOptimiserState>((ref) {
   final photo = ref.read(pendingPhotoProvider);
   if (photo == null) throw StateError('no pending photo');
-  return PhotoOptimiserNotifier(ref, photo);
+  final notifier = PhotoOptimiserNotifier(ref, photo);
+
+  // The same normalisation Archive settings applies: fitting for a medium the
+  // reader (or the 4K switch) no longer offers would promise a tag count that
+  // settings then breaks by swapping the medium. Re-applied whenever either
+  // input changes while the screen is open.
+  void normalise() {
+    final mifare = ref.read(mifareClassicAvailableProvider);
+    if (!mifare.hasValue) return;
+    notifier.normaliseTagType(
+        mifareAvailable: mifare.requireValue,
+        mifare4kEnabled: ref.read(mifare4kEnabledProvider));
+  }
+
+  ref.listen(mifareClassicAvailableProvider, (_, __) => normalise());
+  ref.listen(mifare4kEnabledProvider, (_, __) => normalise());
+  normalise();
+  return notifier;
 });
