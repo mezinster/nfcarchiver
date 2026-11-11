@@ -7,7 +7,7 @@
  * inside the archive and is recoverable from the tags.
  */
 
-const MAX_FILENAME_BYTES = 255;
+export const MAX_FILENAME_BYTES = 255;
 
 export function wrapWithFilename(data: Uint8Array, fileName: string): Uint8Array {
   let nameBytes = new TextEncoder().encode(fileName);
