@@ -137,3 +137,11 @@ test('the report concatenates identity, NFAR and every row', () => {
   assert.match(report, /auth failed/i);
   assert.ok(report.split('\n').length > 5);
 });
+
+test('a 4K card is named and its rows carry the real sector', () => {
+  const meta: DumpMeta = { ...CLASSIC_META, medium: 'mifare-classic-4k', sak: 0x38, totalUnits: 256 };
+  assert.match(formatIdentity(meta, DIAG), /Medium {4}Mifare Classic 4K \(SAK 0x38\)/);
+  const row = formatUnitRow({ index: 144, sector: 33, kind: 'data', bytes: new Uint8Array(16) });
+  assert.match(row, /^s33 b144/);
+  assert.match(formatIdentity(meta, { ...DIAG, uidCl1: new Uint8Array([0x88, 1, 2, 3]), isCascade: true }), /not a 4-byte Mifare Classic 4K/);
+});

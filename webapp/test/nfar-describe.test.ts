@@ -107,3 +107,15 @@ test('unknown flag bits are warned about', () => {
   if (!d.present) return;
   assert.ok(d.warnings.some((w) => /unknown flag/.test(w)), JSON.stringify(d.warnings));
 });
+
+test('a 3,000 B chunk is valid against a 4K capacity but flagged against 1K', () => {
+  const bytes = chunkBytes(new Uint8Array(3000 - TOTAL_OVERHEAD).fill(7));
+  assert.equal(bytes.length, 3000);
+  const on4k = describeNfar(bytes, 3440);
+  assert.equal(on4k.present, true);
+  if (!on4k.present) return;
+  assert.equal(on4k.crcValid, true);
+  assert.deepEqual(on4k.warnings, []);
+  const on1k = describeNfar(bytes, 752);
+  assert.ok(on1k.present && on1k.warnings.some((w) => /exceeds/.test(w)));
+});

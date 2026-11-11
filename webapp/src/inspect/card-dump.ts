@@ -12,7 +12,8 @@
  * left the field, so the dump stops and marks the remainder rather than grinding
  * through dozens more failing round trips.
  */
-import { BLOCK_SIZE } from '../mifare/card-layout.js';
+import { BLOCK_SIZE, isSectorTrailer, sectorOf, type CardSize } from '../mifare/card-layout.js';
+import { cardSizeFor, classifySak } from '../mifare/sak.js';
 import { detectNtagType, ntagTotalPages, type NtagType } from '../nfc/type2.js';
 import { FACTORY_KEY_A, type ChameleonDevice } from '../transport/chameleon-device.js';
 import { CardAuthError, TagTimeoutError, UnsupportedTagError } from '../transport/transport.js';
@@ -32,7 +33,7 @@ export interface DumpUnit {
 }
 
 export interface DumpMeta {
-  medium: 'mifare-classic-1k' | NtagType;
+  medium: 'mifare-classic-1k' | 'mifare-classic-4k' | NtagType;
   sak: number;
   uid: Uint8Array;
   totalUnits: number;
@@ -47,7 +48,7 @@ export interface DumpResult {
   cardLost: boolean;
 }
 
-const CLASSIC_BLOCKS = 64;
+const CLASSIC_BLOCKS: Record<CardSize, number> = { '1k': 64, '4k': 256 };
 const PAGES_PER_READ = 4;
 
 export interface DumpCallbacks {
@@ -64,26 +65,30 @@ export async function dumpCard(
 ): Promise<DumpResult> {
   const tag = await dev.scanTag();
   if (tag === null) throw new TagTimeoutError('No card in the field — hold one on the reader');
-  if (tag.sak === 0x08) return dumpClassic(dev, tag, cb, signal);
-  if (tag.sak === 0x00) return dumpNtag(dev, tag, cb, signal);
+  const kind = classifySak(tag.sak);
+  const size = cardSizeFor(kind);
+  if (size !== null) return dumpClassic(dev, tag, size, cb, signal);
+  if (kind === 'ntag') return dumpNtag(dev, tag, cb, signal);
   throw new UnsupportedTagError(
-    `Unsupported tag (SAK 0x${tag.sak.toString(16)}) — Mifare Classic 1K and NTAG213/215/216 can be inspected`,
+    `Unsupported tag (SAK 0x${tag.sak.toString(16)}) — Mifare Classic 1K, Mifare Classic 4K and NTAG213/215/216 can be inspected`,
   );
 }
 
 function classicKind(block: number): UnitKind {
   if (block === 0) return 'manufacturer';
-  return block % 4 === 3 ? 'trailer' : 'data';
+  return isSectorTrailer(block) ? 'trailer' : 'data';
 }
 
 async function dumpClassic(
   dev: ChameleonDevice,
   tag: { uid: Uint8Array; sak: number },
+  size: CardSize,
   cb: DumpCallbacks,
   signal?: AbortSignal,
 ): Promise<DumpResult> {
+  const blocks = CLASSIC_BLOCKS[size];
   const meta: DumpMeta = {
-    medium: 'mifare-classic-1k', sak: tag.sak, uid: tag.uid, totalUnits: CLASSIC_BLOCKS,
+    medium: size === '4k' ? 'mifare-classic-4k' : 'mifare-classic-1k', sak: tag.sak, uid: tag.uid, totalUnits: blocks,
   };
   cb.onMeta?.(meta);
   const onUnit = cb.onUnit;
@@ -91,9 +96,9 @@ async function dumpClassic(
   let aborted = false;
   let cardLost = false;
 
-  for (let block = 0; block < CLASSIC_BLOCKS; block++) {
+  for (let block = 0; block < blocks; block++) {
     if (signal?.aborted) { aborted = true; break; }
-    const base = { index: block, sector: Math.floor(block / 4), kind: classicKind(block) };
+    const base = { index: block, sector: sectorOf(block), kind: classicKind(block) };
     let unit: DumpUnit;
     try {
       const bytes = await dev.readBlock(block, FACTORY_KEY_A);
@@ -105,18 +110,18 @@ async function dumpClassic(
         // The card has almost certainly left the field. Report this block and
         // every remaining one as not-read, then stop.
         cardLost = true;
-        for (let rest = block; rest < CLASSIC_BLOCKS; rest++) {
+        for (let rest = block; rest < blocks; rest++) {
           const u: DumpUnit = {
-            index: rest, sector: Math.floor(rest / 4), kind: classicKind(rest), failure: 'not-read',
+            index: rest, sector: sectorOf(rest), kind: classicKind(rest), failure: 'not-read',
           };
           units.push(u);
-          onUnit(u, rest + 1, CLASSIC_BLOCKS);
+          onUnit(u, rest + 1, blocks);
         }
         break;
       }
     }
     units.push(unit);
-    onUnit(unit, block + 1, CLASSIC_BLOCKS);
+    onUnit(unit, block + 1, blocks);
   }
   return { meta, units, aborted, cardLost };
 }
