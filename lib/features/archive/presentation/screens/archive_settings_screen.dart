@@ -28,14 +28,22 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
     super.initState();
     // Initialize settings
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final tagType = ref.read(selectedTagTypeProvider);
-      final compress = ref.read(compressionEnabledProvider);
-      final encrypt = ref.read(encryptionEnabledProvider);
-      ref.read(archiveProvider.notifier).configure(
-            tagType: tagType,
-            compress: compress,
-            encrypt: encrypt,
-          );
+      if (mounted) _updateConfig(ref);
+    });
+  }
+
+  /// A new file or text selected while this screen stays mounted — a share
+  /// arriving with Archive settings open routes here again, and go_router
+  /// keeps this State — must be configured like on first entry, or the
+  /// screen shows no estimate and Start has nothing to prepare.
+  void _configureNewSelection(ArchiveState? previous, ArchiveState next) {
+    if (next is! ArchiveFileSelected && next is! ArchiveTextSelected) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final now = ref.read(archiveProvider);
+      if (now is ArchiveFileSelected || now is ArchiveTextSelected) {
+        _updateConfig(ref);
+      }
     });
   }
 
@@ -47,6 +55,7 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ArchiveState>(archiveProvider, _configureNewSelection);
     final state = ref.watch(archiveProvider);
     final tagType = ref.watch(selectedTagTypeProvider);
     final compress = ref.watch(compressionEnabledProvider);
