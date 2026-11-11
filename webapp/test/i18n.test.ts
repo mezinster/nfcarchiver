@@ -227,3 +227,15 @@ test('the reader-name span is not statically translated', () => {
   assert.ok(el, 'no #reader-name span in index.html');
   assert.ok(!el[0].includes('data-i18n'), `#reader-name must not be statically translated: ${el[0]}`);
 });
+
+test('photo optimiser entries render', () => {
+  setPluralLocale('en');
+  assert.equal(en.photoDoesNotFit(1, 3), "Doesn't fit in 1 card — needs at least 3 cards");
+  assert.equal(en.photoQuality(70), 'Quality 70');
+  setPluralLocale('ru');
+  assert.equal(ru.photoDoesNotFit(2, 5), 'Не помещается в 2 карты — нужно не меньше 5 карт');
+  assert.equal(ru.photoDoesNotFit(1, 21), 'Не помещается в 1 карту — нужно не меньше 21 карты');
+  setPluralLocale('pl');
+  assert.equal(pl.photoDoesNotFit(1, 2), 'Nie mieści się na 1 karcie — potrzeba co najmniej 2 kart');
+  setPluralLocale('en');
+});

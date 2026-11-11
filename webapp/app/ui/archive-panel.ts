@@ -13,6 +13,12 @@ import { pickSource, type SourceMode } from '../source.js';
 import { humanSize } from './files-view.js';
 import { isMifare4kEnabled, onMifare4kChange } from '../dev-flags.js';
 import { log } from '../../src/log/logger.js';
+import { candidateSides } from '../../src/photo/fit.js';
+import {
+  PhotoOptimiser, HoldRepeater, applyPhotoChoice, archiveGate, isImageFile, previewDimensions,
+  type PhotoOptimiserState, type Clock,
+} from './photo-optimiser.js';
+import { CanvasJpegSession } from './canvas-jpeg.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -130,13 +136,21 @@ export function initArchivePanel(): void {
     ($('text') as HTMLTextAreaElement).value,
   );
 
+  // Declared before its first use in updateCounter; assigned in the photo section.
+  let photo: PhotoOptimiser | null = null;
+  const gate = () => archiveGate({
+    connected: isConnected(), lockOwner: readerLock.current(), mode, photoOpen: photo !== null,
+  });
+
   let counterTimer: ReturnType<typeof setTimeout> | undefined;
   let estimateGen = 0;
   const updateCounter = async (): Promise<void> => {
     const gen = ++estimateGen;
     const src = currentSource();
     const el = $('cardcount');
-    if (!src) { el.replaceChildren(); return; }
+    // While the optimiser is open the estimate would count the original, as
+    // picked, against the optimiser's own figure: hide it until Use / Keep.
+    if (!src || !gate().showEstimate) { el.replaceChildren(); return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const encrypted = ($('apass') as HTMLInputElement).value.length > 0;
     const count = await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: selectedPayloadSize() });
@@ -152,13 +166,187 @@ export function initArchivePanel(): void {
   };
   const scheduleCounter = () => { clearTimeout(counterTimer); counterTimer = setTimeout(updateCounter, 200); };
 
-  $('file').addEventListener('change', async () => {
-    const f = ($('file') as HTMLInputElement).files?.[0];
-    fileBytes = f ? new Uint8Array(await f.arrayBuffer()) : null;
-    fileName = f?.name ?? '';
-    $('file-pick').toggleAttribute('data-has-file', f !== undefined);
+  const showFile = (): void => {
+    $('file-pick').toggleAttribute('data-has-file', fileBytes !== null);
     $('file-name').textContent = fileName;
-    $('file-size').textContent = f ? humanSize(f.size) : '';
+    $('file-size').textContent = fileBytes ? humanSize(fileBytes.length) : '';
+  };
+
+  // ---------- photo optimiser ----------
+  // The logic lives in photo-optimiser.ts behind its IO seam; this is only DOM.
+  const clock: Clock = {
+    setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+    clearTimeout: (h) => window.clearTimeout(h as number),
+  };
+  let previewUrl: string | null = null;
+  let previewBytes: Uint8Array | null = null;
+  let sizesFor = '';
+
+  const syncPhotoVisibility = (): void => {
+    $('photo-opt').hidden = photo === null || mode !== 'file';
+    // Opening or closing the optimiser, or switching mode, moves the gate.
+    syncArchiveButton();
+  };
+  const closePhoto = (): void => {
+    photo?.dispose();
+    photo = null;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+    previewBytes = null;
+    sizesFor = '';
+    const img = $('photo-preview') as HTMLImageElement;
+    img.removeAttribute('src');
+    img.hidden = true;
+    syncPhotoVisibility();
+  };
+
+  const renderPhoto = (st: PhotoOptimiserState): void => {
+    const failed = st.error !== 'none';
+    const opened = st.width > 0;
+    $('photo-busy').hidden = !st.busy || failed;
+    const img = $('photo-preview') as HTMLImageElement;
+    if (st.result && st.result.bytes !== previewBytes) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewBytes = st.result.bytes;
+      previewUrl = URL.createObjectURL(new Blob([st.result.bytes as BlobPart], { type: 'image/jpeg' }));
+      img.src = previewUrl;
+    }
+    img.hidden = failed || st.result === null || previewUrl === null;
+    const r = st.result;
+    if (r && !failed) {
+      const d = previewDimensions(st.width, st.height, r.maxSide);
+      $('photo-label').textContent = `${d.width}×${d.height} · q${r.quality} · ${humanSize(r.bytes.length)}`;
+    } else {
+      $('photo-label').textContent = '';
+    }
+    const note = $('photo-note');
+    const lines: string[] = [];
+    if (failed) lines.push(t.photoCannotRead);
+    else if (st.tooLarge && !st.busy) lines.push(t.photoSideTooLarge);
+    else if (r && !st.busy) {
+      if (!r.fits) lines.push(t.photoDoesNotFit(st.tags, st.needed ?? st.tags));
+      if (st.largerThanOriginal) lines.push(t.photoLargerThanOriginal);
+    }
+    note.textContent = lines.join('\n');
+    if (failed) note.setAttribute('data-tone', 'error'); else note.removeAttribute('data-tone');
+
+    $('photo-controls').hidden = failed || !opened;
+    const tagsInput = $('photo-tags') as HTMLInputElement;
+    tagsInput.max = String(st.cap);
+    if (document.activeElement !== tagsInput) tagsInput.value = String(st.tags);
+    $('photo-cap').textContent = `/ ${st.cap}`;
+    $('photo-minus').setAttribute('aria-disabled', String(st.tags <= 1));
+    $('photo-plus').setAttribute('aria-disabled', String(st.tags >= st.cap));
+
+    const longest = Math.max(st.width, st.height);
+    const sizes = $('photo-sizes');
+    const key = `${longest}|${t.photoOriginalSize}`;
+    if (opened && key !== sizesFor) {
+      sizesFor = key;
+      const sides = candidateSides(longest);
+      sizes.replaceChildren(...sides.map((side, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip';
+        b.dataset['side'] = String(side);
+        b.textContent = i === 0 ? t.photoOriginalSize : String(side);
+        return b;
+      }));
+    }
+    const manual = st.mode === 'manual';
+    const side = manual ? st.manualSide : r?.maxSide ?? null;
+    for (const b of Array.from(sizes.querySelectorAll<HTMLButtonElement>('button'))) {
+      b.setAttribute('aria-pressed', String(Number(b.dataset['side']) === side));
+    }
+    const quality = (manual ? st.manualQuality : r?.quality) ?? 70;
+    const slider = $('photo-quality') as HTMLInputElement;
+    if (document.activeElement !== slider) slider.value = String(quality);
+    $('photo-quality-label').textContent = t.photoQuality(Number(slider.value));
+    $('photo-auto').hidden = !manual;
+    ($('photo-use') as HTMLButtonElement).disabled = st.busy || failed || r === null;
+  };
+
+  const openPhoto = (f: File): void => {
+    closePhoto();
+    const opt = new PhotoOptimiser({
+      openSession: (blob) => CanvasJpegSession.open(blob),
+      clock,
+      onChange: (st) => { if (photo === opt) renderPhoto(st); },
+      warn: (msg, data) => log.warn('photo', msg, data),
+    }, { source: f, fileName: f.name, originalSize: f.size, payloadSize: selectedPayloadSize() });
+    photo = opt;
+    renderPhoto(opt.state);
+    syncPhotoVisibility();
+    void opt.open();
+  };
+
+  const stepper = (id: string, dir: number): void => {
+    const btn = $(id);
+    const repeater = new HoldRepeater(clock, {
+      onStep: (d) => photo?.step(d),
+      onHoldStart: () => photo?.beginHold(),
+      onHoldEnd: () => photo?.endHold(),
+    });
+    btn.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      try { btn.setPointerCapture(e.pointerId); } catch { /* the release still arrives on the button */ }
+      repeater.press(dir);
+    });
+    btn.addEventListener('pointerup', () => repeater.release());
+    btn.addEventListener('pointercancel', () => repeater.cancel());
+    btn.addEventListener('lostpointercapture', () => repeater.cancel());
+    btn.addEventListener('contextmenu', (e) => e.preventDefault()); // a long touch is a hold, not a menu
+    // Keyboard activation (Enter/Space) arrives as a click with no pointer.
+    btn.addEventListener('click', (e) => { if (e.detail === 0) photo?.step(dir); });
+  };
+  stepper('photo-minus', -1);
+  stepper('photo-plus', 1);
+  $('photo-tags').addEventListener('change', () => {
+    const n = Number.parseInt(($('photo-tags') as HTMLInputElement).value, 10);
+    if (Number.isFinite(n)) photo?.setTags(n);
+    if (photo) renderPhoto(photo.state); // shows the clamped value, or restores it after invalid input
+  });
+  $('photo-sizes').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-side]');
+    if (b) photo?.setManual({ side: Number(b.dataset['side']) });
+  });
+  $('photo-quality').addEventListener('input', () => {
+    const q = Number(($('photo-quality') as HTMLInputElement).value);
+    $('photo-quality-label').textContent = t.photoQuality(q);
+    photo?.setManual({ quality: q });
+  });
+  $('photo-auto').addEventListener('click', () => photo?.backToAuto());
+  $('photo-use').addEventListener('click', () => {
+    const choice = photo?.use() ?? null;
+    if (!choice || !fileBytes) return;
+    const compress = $('compress') as HTMLInputElement;
+    const next = applyPhotoChoice({ data: fileBytes, fileName, compress: compress.checked }, choice);
+    fileBytes = next.data;
+    fileName = next.fileName;
+    compress.checked = next.compress;
+    log.info('photo', 'Optimised photo selected');
+    closePhoto();
+    showFile();
+    void updateCounter();
+  });
+  $('photo-keep').addEventListener('click', () => {
+    photo?.keepOriginal();
+    closePhoto();
+    void updateCounter(); // the estimate for the original comes back
+  });
+  onLocaleChange(() => { if (photo) renderPhoto(photo.state); });
+
+  let pickGen = 0;
+  $('file').addEventListener('change', async () => {
+    const gen = ++pickGen;
+    const f = ($('file') as HTMLInputElement).files?.[0];
+    closePhoto();
+    const bytes = f ? new Uint8Array(await f.arrayBuffer()) : null;
+    if (gen !== pickGen) return; // a newer pick replaced this one
+    fileBytes = bytes;
+    fileName = f?.name ?? '';
+    showFile();
+    if (f && isImageFile(f.name, f.type)) openPhoto(f);
     void updateCounter();
   });
 
@@ -168,6 +356,7 @@ export function initArchivePanel(): void {
     $('source-text-btn').setAttribute('aria-pressed', String(m === 'text'));
     $('file-pick').hidden = m !== 'file';
     $('text-source').hidden = m !== 'text';
+    syncPhotoVisibility();
     void updateCounter();
   };
   $('source-file-btn').addEventListener('click', () => setMode('file'));
@@ -175,18 +364,24 @@ export function initArchivePanel(): void {
   // The estimate's words come from `t`; re-render them on a language switch.
   onLocaleChange(() => { void updateCounter(); });
   for (const id of ['text', 'compress', 'apass']) $(id).addEventListener('input', scheduleCounter);
-  $('target-tag').addEventListener('change', scheduleCounter);
-  // Applies the persisted switch now, and again whenever it flips.
-  if (syncTargetTagForReader()) scheduleCounter();
-  onMifare4kChange(() => { if (syncTargetTagForReader()) scheduleCounter(); });
-
-  const syncArchiveButton = (): void => {
-    const owner = readerLock.current();
-    const btn = $('archive') as HTMLButtonElement;
-    btn.disabled = !isConnected() || owner !== null;
-    btn.title = owner !== null && owner !== 'archive' ? t.readerBusyElsewhere : '';
-    $('archive-hint').textContent = isConnected() ? '' : t.connectReaderFirst;
+  // The optimiser fits for the selected tag type, so it re-fits on every change.
+  const onTagTypeChange = (): void => {
+    scheduleCounter();
+    photo?.setPayloadSize(selectedPayloadSize());
   };
+  $('target-tag').addEventListener('change', onTagTypeChange);
+  // Applies the persisted switch now, and again whenever it flips.
+  if (syncTargetTagForReader()) onTagTypeChange();
+  onMifare4kChange(() => { if (syncTargetTagForReader()) onTagTypeChange(); });
+
+  function syncArchiveButton(): void {
+    const owner = readerLock.current();
+    const g = gate();
+    const btn = $('archive') as HTMLButtonElement;
+    btn.disabled = g.disabled;
+    btn.title = owner !== null && owner !== 'archive' ? t.readerBusyElsewhere : '';
+    $('archive-hint').textContent = g.hint === null ? '' : t[g.hint];
+  }
   readerLock.onChange(syncArchiveButton);
   // Same reason as restore-panel's: a `t`-derived title is invisible to
   // applyStaticText(), so it must be re-derived on a locale change.
@@ -201,7 +396,10 @@ export function initArchivePanel(): void {
     // The fallback changes the basis of the card-count estimate (720 B/chunk ->
     // NTAG215's), and a programmatic `sel.value = …` fires no change event, so
     // the counter would otherwise keep showing the old figure until the first tap.
-    if (syncTargetTagForReader()) scheduleCounter();
+    if (syncTargetTagForReader()) onTagTypeChange();
+    // The same NTAG type has a different payload under Web NFC (factory CC) than
+    // under the Chameleon, so a reader hand-off can move the budget on its own.
+    photo?.setPayloadSize(selectedPayloadSize());
     // Guarded the same way the pre-existing archiveReady write was: while a
     // write is in progress, this element carries live progress/error text
     // (see ArchiveOrchestrator's io.setStatus calls) that a reader hand-off
@@ -277,6 +475,9 @@ export function initArchivePanel(): void {
     // Acquire only after the cheap rejections, or an early return would leak
     // the lock and wedge the reader for every other panel.
     if (!src) { setStatus(t.archivePickFirst); return; }
+    // The button is disabled while a file-mode optimiser is open (archiveGate);
+    // a text-mode run leaves a hidden one alone.
+    if (gate().disabled) return;
     const compress = ($('compress') as HTMLInputElement).checked;
     const pass = ($('apass') as HTMLInputElement).value;
 
