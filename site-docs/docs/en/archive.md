@@ -6,6 +6,14 @@ Archiving splits a file into chunks and writes one chunk to each tag. You need a
 
 On the home screen tap **Create Archive**. Choose **File** and tap to pick a file with the system file picker, or choose **Text** to type a short text instead. Then tap **Configure Archive**.
 
+## Archiving a photo { #archiving-a-photo }
+
+Tap **Choose photo** on the Create Archive screen, or share a photo from Photos, Gallery or Files into NFC Archiver (a shared file that is not a photo opens **Archive settings** directly). If you share several items, only the first one is used. On iPhone, if the app does not open by itself after sharing, open it and the photo is picked up.
+
+The **Optimise photo** screen then shrinks the photo to fit your tags. Under **Tags to use**, the best quality that fits is found automatically; tap **Manual** to choose the number yourself (and **Back to auto** to return). Tap **Skip (keep original)** to archive the photo unchanged, or **Continue** to accept the result.
+
+Location and camera data are removed from the optimised photo.
+
 ## 2. Choose the settings
 
 ![Archive settings: tag types](../assets/screenshots/android-archive-settings.png){ width="300" }

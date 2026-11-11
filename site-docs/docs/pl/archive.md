@@ -6,6 +6,14 @@ Archiwizacja dzieli plik na fragmenty i zapisuje po jednym fragmencie na każdy 
 
 Na ekranie głównym dotknij **Utwórz archiwum**. Wybierz **Plik** i dotknij, aby wybrać plik w systemowym oknie wyboru, albo wybierz **Tekst**, aby wpisać krótki tekst. Następnie dotknij **Konfiguruj archiwum**.
 
+## Archiwizacja zdjęcia { #archiving-a-photo }
+
+Na ekranie tworzenia archiwum stuknij **Wybierz zdjęcie** albo udostępnij zdjęcie z Zdjęć, Galerii lub Plików do NFC Archiver (udostępniony plik, który nie jest zdjęciem, od razu otwiera ustawienia archiwum). Jeśli udostępnisz kilka elementów, używany jest tylko pierwszy. Na iPhonie, jeśli aplikacja nie otworzy się sama po udostępnieniu, otwórz ją — zdjęcie zostanie podjęte.
+
+Ekran **Optymalizuj zdjęcie** zmniejsza zdjęcie tak, by zmieściło się na Twoich tagach. W polu **Liczba tagów** najlepsza mieszcząca się jakość jest dobierana automatycznie; stuknij **Ręcznie**, aby wybrać liczbę samodzielnie (i **Wróć do auto**, aby wrócić). Stuknij **Pomiń (zachowaj oryginał)**, aby zarchiwizować zdjęcie bez zmian, albo **Dalej**, aby przyjąć wynik.
+
+Z zoptymalizowanego zdjęcia usuwane są dane o lokalizacji i aparacie.
+
 ## 2. Wybierz ustawienia
 
 ![Ustawienia archiwum: typy tagów](../assets/screenshots/android-archive-settings.png){ width="300" }
