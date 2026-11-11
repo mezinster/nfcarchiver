@@ -86,7 +86,8 @@ void main() {
     return c;
   }
 
-  Future<void> pumpScreen(WidgetTester tester, ProviderContainer c) async {
+  Future<void> pumpScreen(WidgetTester tester, ProviderContainer c,
+      {Size size = const Size(800, 1600), double textScale = 1.0}) async {
     final router = GoRouter(
       initialLocation: '/archive/optimise',
       routes: [
@@ -104,12 +105,17 @@ void main() {
         ),
       ],
     );
-    await tester.binding.setSurfaceSize(const Size(800, 1600));
+    await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(UncontrolledProviderScope(
       container: c,
       child: MaterialApp.router(
         routerConfig: router,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -437,6 +443,139 @@ void main() {
     expect(chipSelected(tester, 'Mifare Classic 1K'), isTrue);
     expect(c.read(photoOptimiserProvider).tagType, NfcTagType.mifareClassic1k);
     expect(c.read(photoOptimiserProvider).busy, isFalse);
+  });
+
+  for (final size in const [Size(390, 844), Size(320, 568)]) {
+    for (final scale in const [1.0, 2.0]) {
+      testWidgets(
+          'at ${size.width.toInt()}×${size.height.toInt()}, text ×$scale, '
+          'Continue is on screen and works', (tester) async {
+        final c = container();
+        await pumpScreen(tester, c, size: size, textScale: scale);
+
+        expect(tester.takeException(), isNull, reason: 'no overflow');
+        final button = find.text('Continue');
+        expect(button.hitTestable(), findsOneWidget);
+        final screen = Offset.zero & size;
+        final rect = tester.getRect(button);
+        expect(
+            screen.contains(rect.topLeft) && screen.contains(rect.bottomRight),
+            isTrue,
+            reason: 'Continue at $rect must lie inside $screen');
+
+        await tapContinue(tester);
+        expect(c.read(archiveProvider), isA<ArchiveFileSelected>());
+        expect(find.text('settings-page'), findsOneWidget);
+      });
+    }
+  }
+
+  /// 32,000 B named `IMG_1.HEIC` needs 40 NTAG216 tags: the cap.
+  const big =
+      PendingPhoto(path: '/photos/IMG_1.HEIC', name: 'IMG_1.HEIC', size: 32000);
+
+  testWidgets('holding "+" runs to the cap and fits once after release',
+      (tester) async {
+    // The encodes a direct jump to 40 tags costs, for comparison.
+    final ref = FakeJpegSession(4000, 3000, size: linear);
+    final rc = container(photo: big, session: ref);
+    rc.listen(photoOptimiserProvider, (_, __) {}); // keeps it alive
+    await settle(tester);
+    final refBefore = ref.calls.length;
+    rc.read(photoOptimiserProvider.notifier).setTags(40);
+    await settle(tester);
+    final oneFit = ref.calls.length - refBefore;
+    expect(oneFit, greaterThan(0));
+
+    final s = FakeJpegSession(4000, 3000, size: linear);
+    final c = container(photo: big, session: s);
+    await pumpScreen(tester, c);
+    expect(c.read(photoOptimiserProvider).cap, 40);
+    expect(tagCount(6), findsOneWidget);
+    final before = s.calls.length;
+
+    final g =
+        await tester.startGesture(tester.getCenter(find.byIcon(Icons.add)));
+    await tester.pump(const Duration(milliseconds: 1500));
+    expect(s.calls.length, before, reason: 'no fit while held');
+    expect(c.read(photoOptimiserProvider).tags, greaterThan(6),
+        reason: 'the count moves on screen while held');
+    await tester.pump(const Duration(milliseconds: 2000));
+    expect(tagCount(40), findsOneWidget);
+    expect(s.calls.length, before, reason: 'no fit while held');
+    expect(continueButton(tester).onPressed, isNull,
+        reason: 'Continue waits for the fit');
+
+    await g.up();
+    await settle(tester);
+    expect(tagCount(40), findsOneWidget);
+    expect(s.calls.length - before, oneFit, reason: 'one fit after release');
+    expect(continueButton(tester).onPressed, isNotNull);
+  });
+
+  Future<void> enterCount(WidgetTester tester, String text,
+      {bool ok = true}) async {
+    await tester.tap(find.byKey(const Key('photoTagCount')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.enterText(find.byType(TextField), text);
+    await tester.tap(find.text(ok ? 'OK' : 'Cancel'));
+    await settle(tester);
+  }
+
+  testWidgets('typing the count sets it and re-fits', (tester) async {
+    final s = FakeJpegSession(4000, 3000, size: linear);
+    final c = container(photo: big, session: s);
+    await pumpScreen(tester, c);
+    final before = s.calls.length;
+
+    await enterCount(tester, '25');
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(tagCount(25), findsOneWidget);
+    expect(s.calls.length, greaterThan(before), reason: 're-fit');
+    expect(c.read(photoOptimiserProvider).busy, isFalse);
+  });
+
+  testWidgets('a typed count is clamped to [1, cap]', (tester) async {
+    final c = container(photo: big);
+    await pumpScreen(tester, c);
+
+    await enterCount(tester, '0');
+    expect(tagCount(1), findsOneWidget);
+    await enterCount(tester, '999');
+    expect(tagCount(40), findsOneWidget);
+  });
+
+  testWidgets('empty input or Cancel leaves the count alone', (tester) async {
+    final c = container(photo: big);
+    await pumpScreen(tester, c);
+
+    await enterCount(tester, '');
+    expect(tagCount(6), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    await enterCount(tester, '12', ok: false);
+    expect(tagCount(6), findsOneWidget);
+  });
+
+  const largerHint = 'The original file is smaller — Skip keeps it.';
+
+  testWidgets('says so when the optimised photo outgrows the original',
+      (tester) async {
+    // Every encode is 3,000 B; the original is 2,000 B.
+    final c = container(
+      photo: const PendingPhoto(
+          path: '/photos/small.jpg', name: 'IMG_1.jpg', size: 2000),
+      session: FakeJpegSession(270, 480, size: (_, __) => 3000),
+    );
+    await pumpScreen(tester, c);
+    expect(find.text(largerHint), findsOneWidget);
+  });
+
+  testWidgets('no hint when the optimised photo is smaller', (tester) async {
+    final c = container();
+    await pumpScreen(tester, c);
+    expect(find.text('800×600 · q60 · 4.7 KB'), findsOneWidget);
+    expect(find.text(largerHint), findsNothing);
   });
 
   testWidgets('leaving the screen closes the session', (tester) async {

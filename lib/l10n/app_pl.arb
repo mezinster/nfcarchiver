@@ -224,6 +224,8 @@
   "photoBackToAuto": "Wróć do auto",
   "photoSkip": "Pomiń (zachowaj oryginał)",
   "photoContinue": "Dalej",
+  "ok": "OK",
+  "photoLargerThanOriginal": "Oryginalny plik jest mniejszy — „Pomiń” go zachowa.",
   "photoCannotRead": "Tego zdjęcia nie można tu odczytać. Użyj „Pomiń”, aby zarchiwizować oryginalny plik.",
   "choosePhoto": "Wybierz zdjęcie",
   "shareDiscardTitle": "Rozpocząć nowe archiwum?",

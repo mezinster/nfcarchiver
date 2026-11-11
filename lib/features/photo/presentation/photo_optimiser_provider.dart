@@ -163,6 +163,7 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
   JpegEncoderSession? _session;
   bool _disposed = false;
   Timer? _debounce;
+  bool _holding = false;
   int _gen = 0;
   Future<void> _chain = Future<void>.value();
   final Map<(NfcTagType, int), PhotoFitResult> _autoFits = {};
@@ -213,6 +214,23 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
     final tags = n.clamp(1, state.cap);
     if (tags == state.tags) return;
     state = state.copyWith(tags: tags);
+    _schedule();
+  }
+
+  /// A held stepper: [setTags] moves the count on screen but fits nothing
+  /// until [endHold], so a long hold costs one fit, not one per step.
+  void beginHold() {
+    _holding = true;
+    _debounce?.cancel();
+    _gen++; // a fit already under way is stale now
+    if (_session != null && state.error == PhotoError.none) {
+      state = state.copyWith(busy: true);
+    }
+  }
+
+  void endHold() {
+    if (!_holding) return;
+    _holding = false;
     _schedule();
   }
 
@@ -292,6 +310,7 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
     final gen = ++_gen;
     _debounce?.cancel();
     state = state.copyWith(busy: true);
+    if (_holding) return; // endHold schedules the fit
     void run() => _chain = _chain.then((_) => _fit(gen));
     if (now) {
       run();

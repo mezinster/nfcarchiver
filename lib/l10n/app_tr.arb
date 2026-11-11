@@ -231,6 +231,8 @@
   "photoBackToAuto": "Otomatiğe dön",
   "photoSkip": "Atla (orijinali koru)",
   "photoContinue": "Devam",
+  "ok": "Tamam",
+  "photoLargerThanOriginal": "Orijinal dosya daha küçük — Atla onu korur.",
   "photoCannotRead": "Bu fotoğraf burada okunamıyor. Orijinal dosyayı arşivlemek için Atla'yı kullanın.",
   "choosePhoto": "Fotoğraf seç",
   "shareDiscardTitle": "Yeni bir arşiv başlatılsın mı?",

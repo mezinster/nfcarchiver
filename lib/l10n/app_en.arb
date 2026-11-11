@@ -1104,6 +1104,14 @@
   "@photoContinue": {
     "description": "Optimiser: archive the optimised photo"
   },
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic confirm button in a dialog"
+  },
+  "photoLargerThanOriginal": "The original file is smaller — Skip keeps it.",
+  "@photoLargerThanOriginal": {
+    "description": "Optimiser: the optimised photo is not smaller than the original file, so Skip is the better choice"
+  },
   "photoCannotRead": "This photo can't be read here. Use Skip to archive the original file.",
   "@photoCannotRead": {
     "description": "Optimiser: the photo cannot be decoded or encoded"
