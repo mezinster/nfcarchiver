@@ -201,6 +201,33 @@ void main() {
       expect(predicate, contains('.@count &gt;= 1'));
     });
 
+    // The extension picks the attachment to take with the same test the
+    // activation rule applies, so a link + photo share takes the photo and
+    // `count` counts only items it could have taken. Textual guard: the two
+    // live in different languages.
+    test('the attachment filter mirrors the activation rule', () {
+      final predicate = RegExp(
+        r'<key>NSExtensionActivationRule</key>\s*<string>(.*?)</string>',
+        dotAll: true,
+      ).firstMatch(extensionFile('Info.plist'))!.group(1)!;
+      const any = r'ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO ';
+      expect(
+        predicate,
+        contains('$any&quot;public.image&quot; OR '
+            '$any&quot;public.file-url&quot; OR '
+            '($any&quot;public.data&quot; AND '
+            'NOT ($any&quot;public.url&quot;) AND '
+            'NOT ($any&quot;public.plain-text&quot;))'),
+      );
+      final swift = extensionFile('ShareViewController.swift');
+      expect(
+        swift,
+        contains('return any(.image) || any(.fileURL)\n'
+            '      || (any(.data) && !any(.url) && !any(.plainText))'),
+      );
+      expect(swift, contains('.filter(Self.qualifies)'));
+    });
+
     // App Store validation rejects an extension whose versions differ from
     // the app's (ITMS-90473), so both read the same Flutter build settings.
     test('carries the app\'s version and build number', () {
@@ -209,8 +236,32 @@ void main() {
       expect(plist, contains('<string>\$(FLUTTER_BUILD_NUMBER)</string>'));
     });
 
+    // The app reads the inbox from the same container the extension writes,
+    // so it names the group through the same Info.plist key and value.
+    test('the app names the same App Group as the extension', () {
+      final key = RegExp(r'<key>NFARAppGroup</key>\s*<string>(.*?)</string>');
+      final app = key.firstMatch(infoPlist);
+      final ext = key.firstMatch(extensionFile('Info.plist'));
+      expect(app, isNotNull, reason: 'Runner Info.plist lacks NFARAppGroup');
+      expect(ext, isNotNull);
+      expect(app!.group(1), ext!.group(1));
+      expect(app.group(1), r'group.$(NFAR_BUNDLE_ID)');
+    });
+
     test('the app registers the URL scheme the extension opens', () {
       expect(infoPlist, contains('<string>nfcarchiver-share</string>'));
+    });
+
+    // Flutter enables deep linking by default: nfcarchiver-share://shared
+    // would become a go_router route, racing the inbox take and navigating
+    // away from a write or scan screen before the busy guard can ask. The app
+    // has no deep links; the URL only wakes it.
+    test('Flutter deep linking is off, so the share URL is not a route', () {
+      expect(
+        RegExp(r'<key>FlutterDeepLinkingEnabled</key>\s*<false/>')
+            .hasMatch(infoPlist),
+        isTrue,
+      );
     });
 
     // The paid team and the entitlements come in through the xcconfigs, the

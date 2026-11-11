@@ -35,6 +35,70 @@ void main() {
     expect(intent.hasMatch(queries()), isTrue);
   });
 
+  // Share-in: other apps hand the app one photo or file through the system
+  // share sheet. These are the activity's own intent filters, not the
+  // <queries> entries above, which are about sharing out.
+  group('MainActivity', () {
+    String activity() {
+      final match = RegExp(
+        r'<activity\s+android:name="\.MainActivity"(.*?)</activity>',
+        dotAll: true,
+      ).firstMatch(manifest);
+      expect(match, isNotNull, reason: 'no .MainActivity');
+      return match!.group(0)!;
+    }
+
+    List<String> filters() => RegExp(
+          r'<intent-filter>(.*?)</intent-filter>',
+          dotAll: true,
+        ).allMatches(activity()).map((m) => m.group(1)!).toList();
+
+    for (final action in ['SEND', 'SEND_MULTIPLE']) {
+      test('receives ACTION_$action of images and any file', () {
+        final filter = filters().where((f) => f.contains(
+            '<action android:name="android.intent.action.$action"/>'));
+        expect(filter, hasLength(1), reason: 'one $action filter');
+        final body = filter.single;
+        expect(
+          body,
+          contains('<category android:name="android.intent.category.DEFAULT"/>'),
+        );
+        expect(body, contains('<data android:mimeType="image/*"/>'));
+        expect(body, contains('<data android:mimeType="*/*"/>'));
+      });
+    }
+
+    // singleTask: a share from another app's chooser reaches the one
+    // running instance through onNewIntent. singleTop let the chooser start a
+    // second activity + engine in the sender's task, whose startup cleared
+    // the first instance's temp files and whose busy guard could not see it.
+    test('uses launchMode singleTask with an empty taskAffinity', () {
+      expect(activity(), contains('android:launchMode="singleTask"'));
+      expect(activity(), isNot(contains('android:launchMode="singleTop"')));
+      expect(activity(), contains('android:taskAffinity=""'));
+    });
+
+    test('keeps the NDEF_DISCOVERED filter for archive chunks', () {
+      final ndef = filters().where((f) => f.contains(
+          '<action android:name="android.nfc.action.NDEF_DISCOVERED"/>'));
+      expect(ndef, hasLength(1));
+      expect(
+        ndef.single,
+        contains('<data android:mimeType="application/vnd.nfcarchiver.chunk"/>'),
+      );
+    });
+  });
+
+  // Shared content arrives as a content:// URI with a one-off read grant, so
+  // receiving it needs no media permission.
+  test('requests no READ_MEDIA_* permission', () {
+    final requests = RegExp(
+      r'<uses-permission\s+android:name="android\.permission\.READ_MEDIA_\w+"'
+      r'(?![^>]*tools:node="remove")[^>]*/>',
+    );
+    expect(requests.hasMatch(manifest), isFalse);
+  });
+
   for (final permission in [
     'READ_MEDIA_IMAGES',
     'READ_MEDIA_VIDEO',

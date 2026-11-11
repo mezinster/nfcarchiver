@@ -15,6 +15,7 @@ import 'features/archive/presentation/screens/file_picker_screen.dart';
 import 'features/archive/presentation/screens/write_progress_screen.dart';
 import 'features/restore/presentation/screens/restore_progress_screen.dart';
 import 'features/restore/presentation/screens/scan_screen.dart';
+import 'features/share_in/share_in_listener.dart';
 import 'shared/theme/app_theme.dart';
 import 'shared/widgets/home_screen.dart';
 import 'shared/widgets/privacy_policy_screen.dart';
@@ -115,6 +116,9 @@ class NfcArchiverApp extends ConsumerWidget {
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
       routerConfig: _router,
+      // Above the Navigator: it routes shared items through [_router].
+      builder: (context, child) =>
+          ShareInListener(router: _router, child: child!),
       // Localization
       locale: userLocale,
       localizationsDelegates: const [

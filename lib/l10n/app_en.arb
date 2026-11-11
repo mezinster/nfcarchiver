@@ -1060,7 +1060,7 @@
       }
     }
   },
-  "photoDoesNotFit": "Doesn't fit in {tags} tags — needs at least {needed}",
+  "photoDoesNotFit": "{tags, plural, =1{Doesn't fit in 1 tag} other{Doesn't fit in {tags} tags}} — {needed, plural, =1{needs at least 1 tag} other{needs at least {needed} tags}}",
   "@photoDoesNotFit": {
     "description": "Optimiser: the photo does not fit the chosen tag count",
     "placeholders": {
@@ -1104,12 +1104,61 @@
   "@photoContinue": {
     "description": "Optimiser: archive the optimised photo"
   },
+  "ok": "OK",
+  "@ok": {
+    "description": "Generic confirm button in a dialog"
+  },
+  "photoLargerThanOriginal": "The original file is smaller — Skip keeps it.",
+  "@photoLargerThanOriginal": {
+    "description": "Optimiser: the optimised photo is not smaller than the original file, so Skip is the better choice"
+  },
   "photoCannotRead": "This photo can't be read here. Use Skip to archive the original file.",
   "@photoCannotRead": {
     "description": "Optimiser: the photo cannot be decoded or encoded"
   },
+  "photoFewerTags": "Fewer tags",
+  "@photoFewerTags": {
+    "description": "Optimiser: screen-reader label of the button that lowers the tag count"
+  },
+  "photoMoreTags": "More tags",
+  "@photoMoreTags": {
+    "description": "Optimiser: screen-reader label of the button that raises the tag count"
+  },
+  "photoEditTagCount": "Double-tap to type the number",
+  "@photoEditTagCount": {
+    "description": "Optimiser: screen-reader hint on the tag count, which opens a dialog to type it"
+  },
   "choosePhoto": "Choose photo",
   "@choosePhoto": {
     "description": "Button to pick a photo for optimised archiving"
+  },
+  "shareDiscardTitle": "Start a new archive?",
+  "@shareDiscardTitle": {
+    "description": "Title of the dialog shown when a file is shared into the app while an archive or restore is in progress"
+  },
+  "shareDiscardBody": "An archive is being written. Starting a new archive discards it.",
+  "@shareDiscardBody": {
+    "description": "Body of the dialog shown when a shared file would replace work in progress"
+  },
+  "shareDiscardRestoreBody": "A restore is in progress. Starting a new archive stops it; the tags scanned so far are kept and you can continue later.",
+  "@shareDiscardRestoreBody": {
+    "description": "Body of the dialog shown when a shared file arrives while a restore is in progress"
+  },
+  "shareDiscardConfirm": "Discard and continue",
+  "@shareDiscardConfirm": {
+    "description": "Button that discards the work in progress and takes the shared file"
+  },
+  "shareOnlyFirst": "Only the first of {count} items was taken — NFC Archiver archives one file at a time.",
+  "@shareOnlyFirst": {
+    "description": "Snackbar when several items were shared at once; only the first is used",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareCouldNotRead": "The shared item couldn't be read.",
+  "@shareCouldNotRead": {
+    "description": "Snackbar when an item shared into the app could not be read"
   }
 }

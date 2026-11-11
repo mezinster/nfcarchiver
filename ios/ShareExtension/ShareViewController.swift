@@ -22,8 +22,11 @@ final class ShareViewController: UIViewController {
     guard !started else { return }
     started = true
 
+    // Only attachments the activation rule accepts count, and the first of
+    // them is taken: a share of a web link plus a photo must take the photo.
     let attachments = (extensionContext?.inputItems as? [NSExtensionItem] ?? [])
       .flatMap { $0.attachments ?? [] }
+      .filter(Self.qualifies)
     guard let first = attachments.first else {
       fail(ShareError.nothingShared)
       return
@@ -42,6 +45,17 @@ final class ShareViewController: UIViewController {
   }
 
   // MARK: - Receiving
+
+  /// The per-attachment test of `NSExtensionActivationRule` in Info.plist,
+  /// verbatim: any type conforming to public.image, OR any to
+  /// public.file-url, OR (any to public.data AND none to public.url AND none
+  /// to public.plain-text). Keep the two in step.
+  static func qualifies(_ provider: NSItemProvider) -> Bool {
+    let types = provider.registeredTypeIdentifiers.compactMap { UTType($0) }
+    func any(_ type: UTType) -> Bool { types.contains { $0.conforms(to: type) } }
+    return any(.image) || any(.fileURL)
+      || (any(.data) && !any(.url) && !any(.plainText))
+  }
 
   private func receive(
     _ provider: NSItemProvider, count: Int, completion: @escaping (Error?) -> Void
@@ -134,8 +148,10 @@ final class ShareViewController: UIViewController {
       try fm.moveItem(at: staging, to: inbox)
       return nil
     } catch {
+      // Not the FileManager error: its userInfo carries App Group paths, and
+      // cancelRequest(withError:) hands the error to the host app.
       try? fm.removeItem(at: staging)
-      return error
+      return ShareError.writeFailed
     }
   }
 
@@ -166,8 +182,10 @@ final class ShareViewController: UIViewController {
     }
   }
 
+  /// Only a plain `ShareError` leaves the extension: system errors (item
+  /// provider, file system) can carry paths in their userInfo.
   private func fail(_ error: Error) {
-    extensionContext?.cancelRequest(withError: error)
+    extensionContext?.cancelRequest(withError: error as? ShareError ?? ShareError.unsupported)
   }
 }
 
@@ -175,4 +193,5 @@ private enum ShareError: Error {
   case nothingShared
   case unsupported
   case noAppGroup
+  case writeFailed
 }

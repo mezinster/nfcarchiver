@@ -6,6 +6,14 @@ Arşivleme bir dosyayı parçalara böler ve her etikete bir parça yazar. Uygul
 
 Ana ekranda **Arşiv Oluştur**'a dokunun. **Dosya**'yı seçip sistem dosya seçicisiyle bir dosya seçmek için dokunun ya da kısa bir metin yazmak için **Metin**'i seçin. Ardından **Arşivi Yapılandır**'a dokunun.
 
+## Fotoğraf arşivleme { #archiving-a-photo }
+
+Arşiv oluşturma ekranında **Fotoğraf seç**'e dokunun veya Fotoğraflar, Galeri ya da Dosyalar'dan bir fotoğrafı NFC Archiver'a paylaşın (fotoğraf olmayan bir dosya doğrudan arşiv ayarlarını açar). Birden fazla öğe paylaşırsanız yalnızca ilki kullanılır. iPhone'da paylaşımdan sonra uygulama kendiliğinden açılmazsa uygulamayı açın, fotoğraf alınır.
+
+**Fotoğrafı optimize et** ekranı fotoğrafı etiketlerinize sığacak şekilde küçültür. Fotoğrafın kaç etiket kaplayabileceğini **Kullanılacak etiket** ile belirleyin; bunlara sığan en iyi kalite otomatik bulunur. Boyutu ve kaliteyi kendiniz ayarlamak için bunları **Manuel** bölümünden seçin (geri dönmek için **Otomatiğe dön**'e dokunun). Fotoğrafı olduğu gibi arşivlemek için **Atla (orijinali koru)**, sonucu kabul etmek için **Devam**'a dokunun.
+
+Optimize edilen fotoğraftan konum ve kamera bilgileri kaldırılır.
+
 ## 2. Ayarları seçin
 
 ![Arşiv ayarları: etiket türleri](../assets/screenshots/android-archive-settings.png){ width="300" }

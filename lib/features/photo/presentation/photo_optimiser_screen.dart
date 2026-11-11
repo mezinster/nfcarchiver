@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
@@ -6,6 +7,7 @@ import 'package:nfc_archiver/l10n/app_localizations.dart';
 import '../../../core/log/logger.dart';
 import '../../../core/providers/dev_options_provider.dart';
 import '../../../shared/utils/format_utils.dart';
+import '../../../shared/widgets/repeat_button.dart';
 import '../../diagnostics/presentation/diagnostics_screen.dart';
 import '../../nfc/domain/tag_type_availability.dart';
 import '../../nfc/presentation/providers/reader_provider.dart';
@@ -19,7 +21,8 @@ class PhotoOptimiserScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    if (ref.read(pendingPhotoProvider) == null) {
+    final photo = ref.read(pendingPhotoProvider);
+    if (photo == null) {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.optimisePhotoTitle)),
         body: Center(child: Text(l10n.noFileSelected)),
@@ -44,10 +47,36 @@ class PhotoOptimiserScreen extends ConsumerWidget {
           onPressed: () => context.go('/archive'),
         ),
       ),
+      // Pinned outside the scroll view: at phone width and large text a Row
+      // of Skip and Continue overflowed and clipped Continue off-screen.
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton(
+                onPressed:
+                    st.canContinue ? () => _continue(context, ref) : null,
+                child: Text(l10n.photoContinue, textAlign: TextAlign.center),
+              ),
+              const SizedBox(height: 4),
+              TextButton(
+                onPressed: () {
+                  notifier.skip();
+                  context.go('/archive/settings');
+                },
+                child: Text(l10n.photoSkip, textAlign: TextAlign.center),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _Preview(state: st),
+          _Preview(state: st, originalSize: photo.size),
           const SizedBox(height: 8),
           SizedBox(
             height: 4,
@@ -86,19 +115,39 @@ class PhotoOptimiserScreen extends ConsumerWidget {
             Text(l10n.tagsToUse, style: theme.textTheme.titleSmall),
             Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.remove),
-                  // Read at tap time: two taps in one frame must both count.
-                  onPressed: () => notifier
-                      .setTags(ref.read(photoOptimiserProvider).tags - 1),
+                RepeatButton(
+                  icon: Icons.remove,
+                  semanticLabel: l10n.photoFewerTags,
+                  step: -1,
+                  // Read at step time: two taps in one frame must both count.
+                  onStep: (d) => notifier
+                      .setTags(ref.read(photoOptimiserProvider).tags + d),
+                  onHoldStart: notifier.beginHold,
+                  onHoldEnd: notifier.endHold,
                 ),
-                Text('${st.tags}',
-                    key: const Key('photoTagCount'),
-                    style: theme.textTheme.titleLarge),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => notifier
-                      .setTags(ref.read(photoOptimiserProvider).tags + 1),
+                Semantics(
+                  button: true,
+                  hint: l10n.photoEditTagCount,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => _typeCount(context, ref),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      child: Text('${st.tags}',
+                          key: const Key('photoTagCount'),
+                          style: theme.textTheme.titleLarge),
+                    ),
+                  ),
+                ),
+                RepeatButton(
+                  icon: Icons.add,
+                  semanticLabel: l10n.photoMoreTags,
+                  step: 1,
+                  onStep: (d) => notifier
+                      .setTags(ref.read(photoOptimiserProvider).tags + d),
+                  onHoldStart: notifier.beginHold,
+                  onHoldEnd: notifier.endHold,
                 ),
               ],
             ),
@@ -112,27 +161,22 @@ class PhotoOptimiserScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             if (st.longestSide > 0) _ManualControls(state: st),
           ],
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              TextButton(
-                onPressed: () {
-                  notifier.skip();
-                  context.go('/archive/settings');
-                },
-                child: Text(l10n.photoSkip),
-              ),
-              const Spacer(),
-              FilledButton(
-                onPressed:
-                    st.canContinue ? () => _continue(context, ref) : null,
-                child: Text(l10n.photoContinue),
-              ),
-            ],
-          ),
         ],
       ),
     );
+  }
+
+  /// Asks for the tag count; clamped to [1, cap], empty or invalid input
+  /// changes nothing.
+  Future<void> _typeCount(BuildContext context, WidgetRef ref) async {
+    final st = ref.read(photoOptimiserProvider);
+    final n = await showDialog<int>(
+      context: context,
+      builder: (_) => _TagCountDialog(initial: st.tags, cap: st.cap),
+    );
+    if (n == null || !context.mounted) return;
+    final cap = ref.read(photoOptimiserProvider).cap;
+    ref.read(photoOptimiserProvider.notifier).setTags(n.clamp(1, cap));
   }
 
   Future<void> _continue(BuildContext context, WidgetRef ref) async {
@@ -157,10 +201,62 @@ class PhotoOptimiserScreen extends ConsumerWidget {
   }
 }
 
+/// Asks for the tag count. Pops the typed number, or null for Cancel and for
+/// empty input; the caller clamps it.
+class _TagCountDialog extends StatefulWidget {
+  const _TagCountDialog({required this.initial, required this.cap});
+
+  final int initial;
+  final int cap;
+
+  @override
+  State<_TagCountDialog> createState() => _TagCountDialogState();
+}
+
+class _TagCountDialogState extends State<_TagCountDialog> {
+  // Owned by the dialog: disposing it when showDialog's future completes
+  // would pull it from under the exit animation.
+  late final _controller = TextEditingController(text: '${widget.initial}');
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(int.tryParse(_controller.text));
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(l10n.tagsToUse),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: InputDecoration(helperText: '1–${widget.cap}'),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        TextButton(onPressed: _submit, child: Text(l10n.ok)),
+      ],
+    );
+  }
+}
+
 class _Preview extends StatelessWidget {
-  const _Preview({required this.state});
+  const _Preview({required this.state, required this.originalSize});
 
   final PhotoOptimiserState state;
+
+  /// The original file's byte length.
+  final int originalSize;
 
   @override
   Widget build(BuildContext context) {
@@ -185,6 +281,14 @@ class _Preview extends StatelessWidget {
         if (result != null) ...[
           const SizedBox(height: 8),
           Text(_label(result), style: Theme.of(context).textTheme.bodyMedium),
+          if (result.bytes.length >= originalSize) ...[
+            const SizedBox(height: 4),
+            Text(
+              AppLocalizations.of(context)!.photoLargerThanOriginal,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ],
       ],
     );
