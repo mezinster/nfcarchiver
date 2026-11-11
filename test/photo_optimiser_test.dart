@@ -347,7 +347,7 @@ void main() {
     await pumpScreen(tester, c);
 
     expect(tagCount(62), findsOneWidget);
-    expect(find.text("Doesn't fit in 62 tags — needs at least 124"),
+    expect(find.text("Doesn't fit in 62 tags — needs at least 124 tags"),
         findsOneWidget);
     expect(continueButton(tester).onPressed, isNotNull,
         reason: 'Continue stays on the smallest result');

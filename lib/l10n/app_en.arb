@@ -1060,7 +1060,7 @@
       }
     }
   },
-  "photoDoesNotFit": "Doesn't fit in {tags} tags — needs at least {needed}",
+  "photoDoesNotFit": "{tags, plural, =1{Doesn't fit in 1 tag} other{Doesn't fit in {tags} tags}} — {needed, plural, =1{needs at least 1 tag} other{needs at least {needed} tags}}",
   "@photoDoesNotFit": {
     "description": "Optimiser: the photo does not fit the chosen tag count",
     "placeholders": {
@@ -1116,7 +1116,7 @@
   "@shareDiscardTitle": {
     "description": "Title of the dialog shown when a file is shared into the app while an archive or restore is in progress"
   },
-  "shareDiscardBody": "Some tags of the current archive are already written. Starting a new archive discards it.",
+  "shareDiscardBody": "An archive is being written. Starting a new archive discards it.",
   "@shareDiscardBody": {
     "description": "Body of the dialog shown when a shared file would replace work in progress"
   },

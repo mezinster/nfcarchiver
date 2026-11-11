@@ -284,7 +284,7 @@ void main() {
       final shell = await _pumpShell(tester, inbox: inbox, archive: writing());
 
       expect(find.text('Start a new archive?'), findsOneWidget);
-      expect(find.textContaining('already written'), findsOneWidget);
+      expect(find.textContaining('being written'), findsOneWidget);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
@@ -327,7 +327,7 @@ void main() {
 
     expect(find.text('Start a new archive?'), findsOneWidget);
     expect(find.textContaining('A restore is in progress'), findsOneWidget);
-    expect(find.textContaining('already written'), findsNothing);
+    expect(find.textContaining('being written'), findsNothing);
     await tester.tap(find.text('Discard and continue'));
     await tester.pumpAndSettle();
     expect(container.container.read(restoreProvider), isA<RestoreInitial>());
