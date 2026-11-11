@@ -211,6 +211,8 @@ It bypasses `nfc_manager` entirely (it uses `lib/core/chameleon/`), so it exerci
 
 `CODE_SIGN_ENTITLEMENTS` is therefore indirected through `$(NFAR_CODE_SIGN_ENTITLEMENTS)`, defaulted in `ios/Flutter/Debug.xcconfig` and `Release.xcconfig`. To build on a free account, create the gitignored `ios/Flutter/LocalOverrides.xcconfig` containing `NFAR_CODE_SIGN_ENTITLEMENTS =` (empty), your `DEVELOPMENT_TEAM`, and an `NFAR_BUNDLE_ID` of your own (`com.nfcarchiver.app` is registered to the paid team, so a Personal Team cannot claim it). You lose Core NFC and keep the Chameleon — which, per the table above, is the only path to Mifare Classic anyway.
 
+**The share extension needs one more line there:** `EXCLUDED_SOURCE_FILE_NAMES = ShareExtension.appex`. The build signs without it — a Personal Team accepts the extension and its App Group (Xcode 26.3, 2026-11-11) — but with Runner's entitlements blanked the app is not in the App Group, so the extension would sit in the share sheet writing an inbox the app can never read. The line keeps `ShareExtension.appex` out of Runner's "Embed App Extensions" phase. The extension target is still built and signed (one more App ID on the free team), just not shipped inside the app. Share-in is lost on a free team; the build is not.
+
 **Only `Debug.xcconfig` includes that override.** `Release.xcconfig` (shared with Profile) hardcodes the entitlements path, so the workaround cannot leak into a shipped IPA. Keep it that way — an IPA that silently lost the entitlement ships an app whose NFC is dead, and nobody finds out until after App Review.
 
 ### Installing on your own iPhone
@@ -232,7 +234,7 @@ xcrun devicectl device install app --device <id> \
   ../build/ios_dd_aot/Build/Products/Debug-iphoneos/Runner.app
 ```
 
-Check the result before installing: `App.framework/App` is several MB (~8 MB) and `flutter_assets/` has **no** `kernel_blob.bin`. Re-run both commands every 7 days, when the free-team profile expires.
+Check the result before installing: `App.framework/App` is several MB (~8 MB) and `flutter_assets/` has **no** `kernel_blob.bin`. `Runner.app/PlugIns/ShareExtension.appex` is there on the paid team and absent with the free-team overrides above. Re-run both commands every 7 days, when the free-team profile expires.
 
 ## F-Droid Build Notes
 

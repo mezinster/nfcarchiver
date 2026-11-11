@@ -25,6 +25,7 @@
 // therefore costs nothing and is the only way a free account can carry the app
 // around — which is the whole point of a Bluetooth reader.
 NFAR_CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
+NFAR_SHARE_EXT_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements
 NFAR_BUNDLE_ID = com.nfcarchiver.app
 // The paid team that signs and ships the app. Set here, never in the target
 // settings of project.pbxproj: target settings beat xcconfig values and would

@@ -23,6 +23,15 @@
 // follow anyone into a shipped build.
 NFAR_CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
 
+// The share extension's entitlements: the App Group (group.$(NFAR_BUNDLE_ID))
+// it hands shared files to the app through. Indirected like Runner's so a
+// local build can change them, though a Personal Team signs App Groups fine
+// (Xcode 26.3). On a free team the app's own entitlements are blanked above,
+// so the app is not in the group and could never see what the extension
+// writes; LocalOverrides.xcconfig therefore leaves the extension out of the
+// app instead — see "Signing on a free Apple ID" in CLAUDE.md.
+NFAR_SHARE_EXT_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements
+
 // The app's identity, indirected for the same reason. A bundle ID can be
 // registered to exactly one team. The original com.nfcarchiver.nfcArchiver
 // belongs to an unrelated team, so even the paid team was refused it:
