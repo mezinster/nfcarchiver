@@ -52,6 +52,23 @@ for the manual real-device checklist (BLE pairing, round-trip, cross-read).
   `docs/superpowers/specs/2026-11-11-mifare-classic-4k-design.md`.
 - **Archive files or text**, with GZIP compression and AES-256-GCM + PBKDF2
   encryption, filename preservation, and a live "≈ N cards" estimate.
+- **Optimise photo:** picking an image (`image/*`, or a jpg/jpeg/png/heic/heif/
+  webp/gif name) opens an "Optimise photo" section above the estimate that
+  shrinks it to fit N cards — a port of the Flutter app's optimiser with the
+  same presets, auto-fit rule (largest side reaching q≥50, else q≥30, else
+  "doesn't fit") and budget (`cards × payload − filename wrapper − 44 B`, from
+  `src/photo/`). The starting count is what a 640 px / q70 probe needs; the
+  stepper repeats while held (400 ms, then 300 → 100 → 50 ms, steps of 10 after
+  3 s) and re-fits once, 250 ms after release; Manual picks a size chip and a
+  quality, Back to auto returns to the fit. **Use optimised photo** swaps in the
+  JPEG under a `.jpg` name with compression off; **Keep original** leaves the
+  pick untouched. Changing the tag type re-fits. Encoding is the browser's own
+  canvas (`app/ui/canvas-jpeg.ts`: `createImageBitmap` with EXIF orientation,
+  drawn on white, `toBlob('image/jpeg')`, then `stripJpegMetadata`); the logic
+  is DOM-free in `app/ui/photo-optimiser.ts` behind a `PhotoOptimiserIO` seam.
+  HEIC decodes only where the browser can (Safari); elsewhere the section says
+  the photo can't be read and Keep original archives it as is. No new
+  dependencies.
 - **Multi-archive restore:** scan a mixed pile of cards, see every detected archive
   (encryption status + completeness), and pick a complete one to restore.
 - **Inspect card** — dumps the presented card in a modal: identity (ATQA, UID,
@@ -199,6 +216,7 @@ webapp/
     filename.ts                # Android-compatible filename wrapper
     mifare/card-layout.ts      # chunk ↔ Mifare Classic 1K/4K blocks (1K: 47 usable = 752 B; 4K: 215 usable = 3,440 B)
     nfc/ndef.ts, nfc/type2.ts  # NDEF MIME record + Type-2 TLV framing for NTAG
+    photo/                     # photo fit, JPEG metadata stripper, byte budget (port of lib/features/photo/domain)
     inspect/                   # read-only card inspector core
       card-dump.ts             # raw per-block/page dump of a Classic or NTAG card
       nfar-describe.ts         # tolerant NFAR header decode (reports, never throws)
