@@ -190,6 +190,13 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
 
   final ArchiveRepository _repository;
   String? _password;
+  NfcTagType? _configuredTagType;
+
+  /// The medium the archive was configured for, or null before one is
+  /// prepared. A re-chunk must size payloads for this medium: the phone
+  /// radio reports no tag type for a Mifare Classic card, so the tapped
+  /// tag's own info cannot be trusted to say.
+  TagMedium? get configuredMedium => _configuredTagType?.medium;
 
   /// Every transition leaves a breadcrumb. Emitted per user-visible step
   /// (select, configure, prepare, one chunk written), never per tick.
@@ -315,6 +322,7 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
         );
       }
 
+      _configuredTagType = current.tagType;
       state = ArchiveReady(
         result: result,
         currentChunkIndex: 0,
@@ -474,6 +482,7 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
   /// Reset to initial state.
   void reset() {
     _password = null;
+    _configuredTagType = null;
     state = const ArchiveInitial();
   }
 }

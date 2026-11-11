@@ -81,7 +81,11 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
 
     // The developer switch was turned off with 4K selected: fall back to the
     // 1K medium the reader can still write (or NTAG216 if it cannot do Mifare).
-    if (tagType == NfcTagType.mifareClassic4k && !mifare4kEnabled) {
+    // Gated on the capability having loaded, like the reset above: while it
+    // loads `mifareAvailable` is false, which must not drop a 4K choice.
+    if (mifareAvailability.hasValue &&
+        tagType == NfcTagType.mifareClassic4k &&
+        !mifare4kEnabled) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ref.read(selectedTagTypeProvider.notifier).state = mifareAvailable

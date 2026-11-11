@@ -78,12 +78,17 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
         }
       } else if (next is NfcSessionTagTooSmall) {
         // Tag is too small - offer to rechunk
-        ref.read(archiveProvider.notifier).cancelWriting();
+        final archive = ref.read(archiveProvider.notifier);
+        // The archive's configured medium, not the tapped tag's: the phone
+        // radio leaves a Mifare 1K's tag type null, which read as NDEF (680 B
+        // instead of 720 B). NDEF only when no archive exists.
+        final medium = archive.configuredMedium ?? TagMedium.ndef;
+        archive.cancelWriting();
         _showRechunkDialog(
           context,
           next.detectedCapacity,
           next.requiredSize,
-          next.tagInfo?.effectiveTagType.medium ?? TagMedium.ndef,
+          medium,
         );
       } else if (next is NfcSessionTagTypeMismatch) {
         // Tapped tag's medium doesn't match the configured tag type. Stop
