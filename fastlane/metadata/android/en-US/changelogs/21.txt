@@ -1,0 +1,6 @@
+Photo archiving, share into the app
+- New: Choose photo and an Optimise photo screen that shrinks a photo to fit the number of tags you pick (location and camera data removed)
+- New: share a photo or file from other apps into NFC Archiver
+- New: diagnostics log in About, viewable and shareable
+- Changed: a blank or foreign tag now says "No NFC Archiver data on this tag"
+- Fixed: About listed tag types the app does not support
