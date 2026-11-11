@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/nfar_format.dart';
+import '../../../../core/providers/dev_options_provider.dart';
 import '../../../../shared/utils/format_utils.dart';
 import '../../../nfc/domain/tag_type_availability.dart';
 import '../../../nfc/presentation/providers/reader_provider.dart';
@@ -59,6 +60,7 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
     // which on iOS is the only way to reach the medium at all.
     final mifareAvailability = ref.watch(mifareClassicAvailableProvider);
     final mifareAvailable = mifareAvailability.valueOrNull ?? false;
+    final mifare4kEnabled = ref.watch(mifare4kEnabledProvider);
     final l10n = AppLocalizations.of(context)!;
 
     // A reader that could do Mifare may have been swapped for one that cannot,
@@ -73,6 +75,22 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ref.read(selectedTagTypeProvider.notifier).state = _fallbackTagType;
+        _updateConfig(ref);
+      });
+    }
+
+    // The developer switch was turned off with 4K selected: fall back to the
+    // 1K medium the reader can still write (or NTAG216 if it cannot do Mifare).
+    // Gated on the capability having loaded, like the reset above: while it
+    // loads `mifareAvailable` is false, which must not drop a 4K choice.
+    if (mifareAvailability.hasValue &&
+        tagType == NfcTagType.mifareClassic4k &&
+        !mifare4kEnabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(selectedTagTypeProvider.notifier).state = mifareAvailable
+            ? NfcTagType.mifareClassic1k
+            : _fallbackTagType;
         _updateConfig(ref);
       });
     }
@@ -130,7 +148,8 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                     child: Column(
                       children: [
                         for (final type in selectableTagTypes(
-                            mifareAvailable: mifareAvailable))
+                            mifareAvailable: mifareAvailable,
+                            mifare4kEnabled: mifare4kEnabled))
                           RadioListTile<NfcTagType>(
                             title: Text(type.name),
                             subtitle: Text(l10n.bytesCapacity(type.capacity)),

@@ -208,5 +208,9 @@
   "diagnosticsShare": "Падзяліцца журналам",
   "diagnosticsClear": "Ачысціць журнал",
   "diagnosticsClearConfirm": "Выдаліць журнал дыягностыкі з гэтай прылады?",
-  "diagnosticsClearAction": "Ачысціць"
+  "diagnosticsClearAction": "Ачысціць",
+  "developerOptions": "Параметры распрацоўшчыка",
+  "developerOptionsUnlocked": "Параметры распрацоўшчыка ўключаны",
+  "mifare4kToggle": "Mifare Classic 4K",
+  "mifare4kToggleSubtitle": "Эксперыментальна — яшчэ не правярана на сапраўднай карце"
 }

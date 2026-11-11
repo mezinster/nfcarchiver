@@ -5,6 +5,7 @@ import 'package:nfc_archiver/core/chameleon/chameleon_device.dart';
 import 'package:nfc_archiver/core/constants/nfar_format.dart';
 import 'package:nfc_archiver/core/log/logger.dart';
 import 'package:nfc_archiver/core/mifare/card_layout.dart';
+import 'package:nfc_archiver/core/models/nfc_tag_info.dart';
 import 'package:nfc_archiver/core/models/chunk.dart';
 import 'package:nfc_archiver/features/nfc/data/chameleon_reader.dart';
 import 'package:nfc_archiver/features/nfc/domain/card_reader.dart';
@@ -21,8 +22,8 @@ void _writeChunkToCard(FakeChameleonDevice dev, Uint8List bytes) {
   }
 }
 
-ChameleonReader _reader(FakeChameleonDevice dev) =>
-    ChameleonReader(dev, pollInterval: Duration.zero);
+ChameleonReader _reader(FakeChameleonDevice dev, {bool allow4k = false}) =>
+    ChameleonReader(dev, pollInterval: Duration.zero, allow4k: () => allow4k);
 
 void main() {
   test('ChameleonReader is a CardReader that supports raw access', () {
@@ -373,6 +374,158 @@ void main() {
     expect(dev.isConnected, isTrue);
     await reader.disconnect();
     expect(dev.disconnectCalls, 1);
+  });
+
+  group('Mifare Classic 4K', () {
+    Future<Chunk?> readOnce(FakeChameleonDevice dev,
+        {bool allow4k = false, List<NfcFailureKind>? errors}) async {
+      await dev.connect();
+      Chunk? got;
+      final stop = await _reader(dev, allow4k: allow4k).startReadSession(
+        onChunkRead: (c, _) => got = c,
+        onError: (f) => errors?.add(f.kind),
+      );
+      await pumpUntil(() => got != null || (errors?.isNotEmpty ?? false));
+      stop();
+      return got;
+    }
+
+    Future<
+            ({
+              NfcTagInfo? ok,
+              NfcFailure? err,
+              List<int> tooSmall,
+            })>
+        writeOnce(FakeChameleonDevice dev, Chunk chunk,
+            {required bool allow4k}) async {
+      await dev.connect();
+      NfcTagInfo? ok;
+      NfcFailure? err;
+      final tooSmall = <int>[];
+      final stop = await _reader(dev, allow4k: allow4k).startWriteSession(
+        chunk: chunk,
+        configuredTagType: NfcTagType.mifareClassic4k,
+        onSuccess: (i) => ok = i,
+        onError: (f) => err = f,
+        onTagTooSmall: (req, cap, _) => tooSmall.addAll([req, cap]),
+      );
+      await pumpUntil(() => ok != null || err != null || tooSmall.isNotEmpty);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      stop();
+      return (ok: ok, err: err, tooSmall: tooSmall);
+    }
+
+    for (final sak in [0x18, 0x38, 0x98]) {
+      test(
+          '3,000 B chunk writes and reads back on SAK 0x${sak.toRadixString(16)}',
+          () async {
+        final dev = FakeChameleonDevice.classic4k(sak: sak);
+        final chunk = aChunk(payloadLength: 3000 - NfarHeaderSize.total);
+        final r = await writeOnce(dev, chunk, allow4k: true);
+        expect(r.ok, isNotNull);
+        expect(r.ok!.tagType, NfcTagType.mifareClassic4k);
+
+        final got = await readOnce(dev, allow4k: true);
+        expect(got!.toBytes(), equals(chunk.toBytes()));
+      });
+    }
+
+    test('switch off: a 4K-sized chunk is reported too small, nothing written',
+        () async {
+      final dev = FakeChameleonDevice.classic4k();
+      final r =
+          await writeOnce(dev, aChunk(payloadLength: 3000), allow4k: false);
+      expect(r.tooSmall, [3000 + NfarHeaderSize.total, cardCapacityBytes]);
+      expect(r.ok, isNull);
+      expect(r.err, isNull);
+      expect(dev.writeLog, isEmpty);
+    });
+
+    test('switch off: a card written with it on still restores', () async {
+      final dev = FakeChameleonDevice.classic4k();
+      final chunk = aChunk(payloadLength: 3000);
+      await writeOnce(dev, chunk, allow4k: true);
+      final got = await readOnce(dev, allow4k: false);
+      expect(got!.toBytes(), equals(chunk.toBytes()));
+    });
+
+    test('a non-factory key in a touched sector fails before any write',
+        () async {
+      final dev = FakeChameleonDevice.classic4k(
+        sectorKeys: {
+          33: Uint8List.fromList(const [1, 2, 3, 4, 5, 6])
+        },
+      );
+      final r =
+          await writeOnce(dev, aChunk(payloadLength: 3000), allow4k: true);
+      expect(r.ok, isNull);
+      expect(r.err!.kind, NfcFailureKind.foreignCard);
+      expect(dev.writeLog, isEmpty);
+    });
+
+    test('a chunk within 752 B on a 4K card does no pre-check reads', () async {
+      final dev = FakeChameleonDevice.classic4k();
+      final chunk = aChunk(payloadLength: 300);
+      final r = await writeOnce(dev, chunk, allow4k: true);
+      expect(r.ok, isNotNull);
+      expect(dev.writeLog,
+          equals(chunkToBlocks(chunk.toBytes()).map((w) => w.block)),
+          reason: 'identical to the 1K block list');
+      expect(dev.readLog, equals(dev.writeLog),
+          reason: 'only the verify pass reads');
+    });
+
+    test('a chunk within 752 B on a 1K card: same blocks, no pre-check',
+        () async {
+      final dev = FakeChameleonDevice.classic1k();
+      final chunk = aChunk(payloadLength: 300);
+      final r = await writeOnce(dev, chunk, allow4k: true);
+      expect(r.ok, isNotNull);
+      expect(dev.writeLog,
+          equals(chunkToBlocks(chunk.toBytes()).map((w) => w.block)));
+      expect(dev.readLog, equals(dev.writeLog));
+    });
+
+    test('a 2K card (SAK 0x19) is unsupported on read and on write', () async {
+      final errors = <NfcFailureKind>[];
+      final got = await readOnce(FakeChameleonDevice.classic4k(sak: 0x19),
+          allow4k: true, errors: errors);
+      expect(got, isNull);
+      expect(errors, [NfcFailureKind.readFailed]);
+
+      final dev = FakeChameleonDevice.classic4k(sak: 0x19);
+      final r = await writeOnce(dev, aChunk(), allow4k: true);
+      expect(r.ok, isNull);
+      expect(r.err!.kind, NfcFailureKind.writeFailed);
+      expect(dev.writeLog, isEmpty);
+    });
+
+    test('tag info: 4K type, capacity follows the switch', () async {
+      for (final on in [true, false]) {
+        final dev = FakeChameleonDevice.classic4k();
+        await dev.connect();
+        NfcTagInfo? info;
+        final stop = await _reader(dev, allow4k: on).startReadSession(
+          onChunkRead: (_, __) {},
+          onError: (_) {},
+          onTagDiscovered: (i) => info = i,
+        );
+        await pumpUntil(() => info != null);
+        stop();
+        expect(info!.tagType, NfcTagType.mifareClassic4k);
+        expect(info!.capacity, on ? 3440 : 752);
+      }
+    });
+
+    test('every tap logs the SAK at info level', () async {
+      log.clear();
+      addTearDown(log.clear);
+      await readOnce(FakeChameleonDevice.classic4k(sak: 0x38),
+          errors: <NfcFailureKind>[]);
+      final e = log.snapshot().where(
+          (e) => e.level == LogLevel.info && e.message == 'Tag discovered');
+      expect(e.single.formatFull(), contains('0x38'));
+    });
   });
 
   group('NTAG', () {

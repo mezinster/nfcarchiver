@@ -12,7 +12,7 @@
 import { dumpCard, type DumpUnit } from '../../src/inspect/card-dump.js';
 import { describeNfar, type NfarDescription } from '../../src/inspect/nfar-describe.js';
 import { formatIdentity, formatNfar, formatReport, formatUnitRow } from '../../src/inspect/hex-view.js';
-import { USABLE_BLOCK_INDEXES, CARD_CAPACITY_BYTES } from '../../src/mifare/card-layout.js';
+import { usableBlocks, capacityBytes, type CardSize } from '../../src/mifare/card-layout.js';
 import { decodeNdefMime } from '../../src/nfc/ndef.js';
 import { readType2Ndef } from '../../src/nfc/type2.js';
 import type { ChameleonDevice } from '../../src/transport/chameleon-device.js';
@@ -53,9 +53,11 @@ type NfarSource =
  *  an NDEF MIME record starting at page 4. Concatenating raw NTAG pages yields
  *  the TLV header, not NFAR magic, so an NTAG card would always be reported as
  *  "not NFAR" without the unwrap below. */
-function nfarBytesSoFar(units: DumpUnit[], isClassic: boolean): NfarSource {
-  const wanted = isClassic
-    ? units.filter((u) => USABLE_BLOCK_INDEXES.includes(u.index))
+function nfarBytesSoFar(units: DumpUnit[], classicSize: CardSize | null): NfarSource {
+  const isClassic = classicSize !== null;
+  const usable = isClassic ? new Set(usableBlocks(classicSize)) : null;
+  const wanted = usable
+    ? units.filter((u) => usable.has(u.index))
     : units.filter((u) => u.index >= NDEF_START_PAGE);
   const parts: Uint8Array[] = [];
   for (const u of wanted) {
@@ -116,12 +118,16 @@ export async function runInspection(
 
   let nfar: NfarDescription = { present: false, reason: 'no data read yet' };
   const seen: DumpUnit[] = [];
+  let classicSize: CardSize | null = null;
 
   try {
     const result = await dumpCard(dev, {
       // Fires before the first read, so identity is on screen in about a second
       // rather than after ~64 BLE round trips.
-      onMeta: (meta) => { io.setIdentity(formatIdentity(meta, diag)); },
+      onMeta: (meta) => {
+        classicSize = meta.medium === 'mifare-classic-4k' ? '4k' : meta.medium === 'mifare-classic-1k' ? '1k' : null;
+        io.setIdentity(formatIdentity(meta, diag));
+      },
       onUnit: (unit, done, total) => {
         seen.push(unit);
         io.appendRow(formatUnitRow(unit));
@@ -129,14 +135,13 @@ export async function runInspection(
         // Re-describe while the NFAR extent is still growing; once the declared
         // tail is covered the description stops changing.
         if (nfar.present === false || nfar.crcValid === null) {
-          const isClassic = unit.sector !== undefined;
-          const src = nfarBytesSoFar(seen, isClassic);
-          // Mifare Classic has a fixed, known capacity, so a declared length
+          const src = nfarBytesSoFar(seen, classicSize);
+          // Mifare Classic has a known capacity (from the dumped card's size), so a declared length
           // past it is worth flagging. On NTAG the chunk arrives inside an
           // NDEF envelope whose own TLV length already bounds it, so we do not
           // guess a capacity we have not read.
-          const capacityBytes = isClassic ? CARD_CAPACITY_BYTES : undefined;
-          nfar = src.kind === 'bytes' ? describeNfar(src.bytes, capacityBytes) : { present: false, reason: src.reason };
+          const cap = classicSize !== null ? capacityBytes(classicSize) : undefined;
+          nfar = src.kind === 'bytes' ? describeNfar(src.bytes, cap) : { present: false, reason: src.reason };
           io.setNfar(formatNfar(nfar));
         }
       },

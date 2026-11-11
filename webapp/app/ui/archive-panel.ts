@@ -11,6 +11,7 @@ import { humanError } from './errors.js';
 import { t, onLocaleChange } from '../i18n/index.js';
 import { pickSource, type SourceMode } from '../source.js';
 import { humanSize } from './files-view.js';
+import { isMifare4kEnabled, onMifare4kChange } from '../dev-flags.js';
 import { log } from '../../src/log/logger.js';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -26,7 +27,7 @@ function selectedPayloadSize(): number {
   if (v === 'NTAG213') return webNfc ? webNfcChunkPayload(NtagType.NTAG213) : ntagChunkPayloadSize(NtagType.NTAG213);
   if (v === 'NTAG215') return webNfc ? webNfcChunkPayload(NtagType.NTAG215) : ntagChunkPayloadSize(NtagType.NTAG215);
   if (v === 'NTAG216') return webNfc ? webNfcChunkPayload(NtagType.NTAG216) : ntagChunkPayloadSize(NtagType.NTAG216);
-  return Number(v); // "720" for Mifare Classic 1K
+  return Number(v); // "720" for Mifare Classic 1K, "3408" for 4K
 }
 
 /** Keeps `#target-tag` sane for the active reader. Web NFC exposes no capability
@@ -51,8 +52,17 @@ function syncTargetTagForReader(): boolean {
   const webNfc = activeReaderName() === 'web-nfc';
   auto.disabled = webNfc;
   mifare.disabled = webNfc;
-  if (webNfc && (sel.value === 'auto' || sel.value === '720')) {
+  // 4K is a developer option: invisible while the switch is off, and, like 1K,
+  // unusable over Web NFC.
+  const mifare4k = sel.querySelector<HTMLOptionElement>('option[value="3408"]')!;
+  mifare4k.hidden = !isMifare4kEnabled();
+  mifare4k.disabled = webNfc || !isMifare4kEnabled();
+  if (webNfc && (sel.value === 'auto' || sel.value === '720' || sel.value === '3408')) {
     sel.value = 'NTAG215';
+    return true;
+  }
+  if (sel.value === '3408' && mifare4k.hidden) {
+    sel.value = '720';
     return true;
   }
   return false;
@@ -166,6 +176,9 @@ export function initArchivePanel(): void {
   onLocaleChange(() => { void updateCounter(); });
   for (const id of ['text', 'compress', 'apass']) $(id).addEventListener('input', scheduleCounter);
   $('target-tag').addEventListener('change', scheduleCounter);
+  // Applies the persisted switch now, and again whenever it flips.
+  if (syncTargetTagForReader()) scheduleCounter();
+  onMifare4kChange(() => { if (syncTargetTagForReader()) scheduleCounter(); });
 
   const syncArchiveButton = (): void => {
     const owner = readerLock.current();

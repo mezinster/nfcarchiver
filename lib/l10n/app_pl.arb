@@ -208,5 +208,9 @@
   "diagnosticsShare": "Udostępnij dziennik",
   "diagnosticsClear": "Wyczyść dziennik",
   "diagnosticsClearConfirm": "Usunąć dziennik diagnostyczny z tego urządzenia?",
-  "diagnosticsClearAction": "Wyczyść"
+  "diagnosticsClearAction": "Wyczyść",
+  "developerOptions": "Opcje programisty",
+  "developerOptionsUnlocked": "Opcje programisty włączone",
+  "mifare4kToggle": "Mifare Classic 4K",
+  "mifare4kToggleSubtitle": "Eksperymentalne — jeszcze niezweryfikowane na prawdziwej karcie"
 }

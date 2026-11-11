@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../chameleon/cancellation_token.dart';
 import '../chameleon/chameleon_device.dart';
 import '../mifare/card_layout.dart';
+import '../mifare/sak.dart';
 import '../nfc/type2.dart';
 
 /// Raw card dump for the inspector. Reads every block (Mifare Classic) or page
@@ -73,6 +74,7 @@ class DumpMeta {
     required this.uid,
     required this.totalUnits,
     this.ntagType,
+    this.cardSize,
   });
 
   final int sak;
@@ -82,11 +84,18 @@ class DumpMeta {
   /// The chip when this is an NTAG; null for Mifare Classic.
   final NtagType? ntagType;
 
-  /// True when this is a Mifare Classic 1K.
+  /// The geometry when this is a Mifare Classic; null for NTAG.
+  final MifareCardSize? cardSize;
+
+  /// True when this is a Mifare Classic (1K or 4K).
   bool get isClassic => ntagType == null;
 
   /// The medium, for display.
-  Object get medium => ntagType ?? 'mifare-classic-1k';
+  Object get medium =>
+      ntagType ??
+      (cardSize == MifareCardSize.k4
+          ? 'mifare-classic-4k'
+          : 'mifare-classic-1k');
 }
 
 class DumpResult {
@@ -118,17 +127,17 @@ class DumpCallbacks {
   final void Function(DumpUnit unit, int done, int total) onUnit;
 }
 
-const int _classicBlocks = 64;
 const int _pagesPerRead = 4;
 
 UnitKind _classicKind(int block) {
   if (block == 0) return UnitKind.manufacturer;
-  return block % 4 == 3 ? UnitKind.trailer : UnitKind.data;
+  return isSectorTrailer(block) ? UnitKind.trailer : UnitKind.data;
 }
 
 /// Dump the card currently in the field.
 ///
-/// Routes on SAK: 0x08 is a Mifare Classic 1K, 0x00 an NTAG. Anything else
+/// Routes on SAK ([classifySak]): 0x08 is a Mifare Classic 1K, 0x18/0x38/0x98 a
+/// 4K, 0x00 an NTAG. Anything else
 /// raises [UnsupportedTagException] with the SAK in its message — for an
 /// inspector that value is the result, so callers must not flatten it.
 Future<DumpResult> dumpCard(
@@ -142,33 +151,42 @@ Future<DumpResult> dumpCard(
       'No card in the field — hold one on the reader',
     );
   }
-  if (tag.sak == 0x08) return _dumpClassic(dev, tag, cb, token);
-  if (tag.sak == 0x00) return _dumpNtag(dev, tag, cb, token);
+  final kind = classifySak(tag.sak);
+  final size = cardSizeFor(kind);
+  if (size != null) return _dumpClassic(dev, tag, size, cb, token);
+  if (kind == TagKind.ntag) return _dumpNtag(dev, tag, cb, token);
   throw UnsupportedTagException(
     'Unsupported tag (SAK 0x${tag.sak.toRadixString(16).padLeft(2, '0')}) — '
-    'Mifare Classic 1K and NTAG213/215/216 can be inspected',
+    'Mifare Classic 1K/4K and NTAG213/215/216 can be inspected',
   );
 }
 
 Future<DumpResult> _dumpClassic(
   ChameleonDevice dev,
   ScannedTag tag,
+  MifareCardSize size,
   DumpCallbacks cb,
   CancellationToken? token,
 ) async {
-  final meta = DumpMeta(sak: tag.sak, uid: tag.uid, totalUnits: _classicBlocks);
+  final blocks = size == MifareCardSize.k4 ? 256 : 64;
+  final meta = DumpMeta(
+    sak: tag.sak,
+    uid: tag.uid,
+    totalUnits: blocks,
+    cardSize: size,
+  );
   cb.onMeta?.call(meta);
 
   final units = <DumpUnit>[];
   var aborted = false;
   var cardLost = false;
 
-  for (var block = 0; block < _classicBlocks; block++) {
+  for (var block = 0; block < blocks; block++) {
     if (token?.isCancelled ?? false) {
       aborted = true;
       break;
     }
-    final sector = block ~/ 4;
+    final sector = sectorOf(block);
     final kind = _classicKind(block);
     DumpUnit unit;
     try {
@@ -198,20 +216,20 @@ Future<DumpResult> _dumpClassic(
       // field. Report this block and every remaining one, then stop rather
       // than grinding through dozens more failing round trips.
       cardLost = true;
-      for (var rest = block; rest < _classicBlocks; rest++) {
+      for (var rest = block; rest < blocks; rest++) {
         final u = DumpUnit(
           index: rest,
-          sector: rest ~/ 4,
+          sector: sectorOf(rest),
           kind: _classicKind(rest),
           failure: UnitFailure.notRead,
         );
         units.add(u);
-        cb.onUnit(u, rest + 1, _classicBlocks);
+        cb.onUnit(u, rest + 1, blocks);
       }
       break;
     }
     units.add(unit);
-    cb.onUnit(unit, block + 1, _classicBlocks);
+    cb.onUnit(unit, block + 1, blocks);
   }
 
   return DumpResult(

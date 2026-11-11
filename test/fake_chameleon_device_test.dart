@@ -86,4 +86,28 @@ void main() {
     expect((await dev.readBlock(9, factoryKeyA)).length, 16);
     expect(() => dev.readBlock(10, factoryKeyA), throwsA(isA<CardReadException>()));
   });
+
+  group('classic4k', () {
+    test('sector keys use 4K numbering: block 144 is sector 33, 143 is not',
+        () async {
+      final dev = FakeChameleonDevice.classic4k(
+        sectorKeys: {33: Uint8List.fromList(const [1, 2, 3, 4, 5, 6])},
+      );
+      await dev.connect();
+      expect(
+        () => dev.readBlock(144, factoryKeyA),
+        throwsA(isA<CardAuthException>()),
+      );
+      // Block 143 is sector 32's trailer; readable, as on 1K.
+      expect((await dev.readBlock(143, factoryKeyA)).length, 16);
+    });
+
+    test('has 256 blocks and reports the SAK it was given', () async {
+      final dev = FakeChameleonDevice.classic4k(sak: 0x38);
+      await dev.connect();
+      expect((await dev.readBlock(255, factoryKeyA)).length, 16);
+      expect((await dev.scanTag())!.sak, 0x38);
+      expect((await FakeChameleonDevice.classic4k().scanTag())!.sak, 0x18);
+    });
+  });
 }

@@ -233,3 +233,28 @@ test('an aborted inspection reports it and stops early', async () => {
   assert.ok(calls.includes('status:Stopped.'), 'the Stopped status must be reported');
   assert.ok(calls.includes('report'), 'the report must still be assembled on abort');
 });
+
+test('a 3,000 B chunk on a 4K card is described whole, CRC verified, no capacity warning', async () => {
+  const device = new FakeChameleon();
+  device.defineCard(UID, { sak: 0x38 });
+  device.place(UID);
+  const payload = new Uint8Array(3000 - 32).fill(5);
+  const bytes = encodeChunk({
+    archiveId: new Uint8Array(16).fill(0xab), totalChunks: 1, chunkIndex: 0,
+    payload, crc32: crc32(payload), flags: 0,
+  });
+  assert.equal(bytes.length, 3000);
+  for (const { block, data } of chunkToBlocks(bytes, '4k')) {
+    await device.writeBlock(block, FACTORY_KEY_A, data);
+  }
+  const texts: string[] = [];
+  const { io, rows } = stubIo();
+  const spy: InspectIO = { ...io, setNfar: (tx) => { texts.push(tx); } };
+  await runInspection(device, okRaw, spy);
+
+  assert.equal(rows.length, 256);
+  const last = texts[texts.length - 1]!;
+  assert.ok(!/not NFAR/.test(last), last);
+  assert.ok(!/exceeds/.test(last), last);
+  assert.match(last, /CRC.*(OK|valid)/i);
+});

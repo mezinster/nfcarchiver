@@ -6,6 +6,9 @@ import { crc32 } from '../src/crc32.js';
 import { ArchiveController, RestoreController, PasswordRequiredError, OverwriteRequiredError, RechunkTooLateError } from '../app/controller.js';
 import { DecryptionError } from '../src/crypto.js';
 import { NfarAssemblyError } from '../src/chunker.js';
+import { FakeChameleon } from './fake-chameleon.js';
+import { AutoTransport } from '../src/transport/auto-transport.js';
+import { CardCapacityError } from '../src/mifare/card-layout.js';
 
 const uid = (n: number) => new Uint8Array([0xa0, 0, 0, n]);
 const multiCardData = crypto.getRandomValues(new Uint8Array(2000)); // incompressible -> multiple cards
@@ -287,4 +290,65 @@ test('setTransport swaps the transport mid-session and preserves written state',
   t2.enqueueTag(uid(2)); await t2.awaitTag();
   const stored = decodeChunk(await t2.readChunk());
   assert.equal(stored.chunkIndex, 2, 'wrote the correct next chunk after the swap');
+});
+
+// ---- Mifare Classic 4K gating through the real transport ---------------------
+
+function fourKRig(flag: { on: boolean }, cards: number) {
+  const device = new FakeChameleon();
+  const transport = new AutoTransport(device, { pollMs: 1, defaultTimeoutMs: 200, allow4k: () => flag.on });
+  const uids = Array.from({ length: cards }, (_, i) => uid(0x40 + i));
+  uids.forEach((u) => device.defineCard(u, { sak: 0x38 }));
+  return { device, transport, uids };
+}
+const bigData = crypto.getRandomValues(new Uint8Array(9000));
+
+test('4K, target auto, switch off: the UI-sent 720 payload writes as 1K, no re-chunk, nothing beyond block 63', async () => {
+  const flag = { on: false };
+  const { device, transport, uids } = fourKRig(flag, 1);
+  const ctrl = new ArchiveController(transport);
+  // "auto" in the UI prepares at 720 while the switch is off.
+  await ctrl.prepare({ data: bigData, fileName: 'a.bin', compress: false, payloadSize: 720 });
+  device.place(uids[0]!);
+  const res = await ctrl.writeNextCard(undefined, true);
+  assert.equal(res.rechunkedTo, undefined);
+  for (let b = 64; b < 256; b++) {
+    assert.ok(device.blockOf(uids[0]!, b).every((x) => x === 0), `block ${b} must stay untouched`);
+  }
+});
+
+test('4K, target auto, switch on: the first 4K card re-sizes the archive to 3408', async () => {
+  const flag = { on: true };
+  const { device, transport, uids } = fourKRig(flag, 1);
+  const ctrl = new ArchiveController(transport);
+  await ctrl.prepare({ data: bigData, fileName: 'a.bin', compress: false, payloadSize: 720 });
+  device.place(uids[0]!);
+  const res = await ctrl.writeNextCard(undefined, true);
+  assert.equal(res.rechunkedTo?.payloadSize, 3408);
+});
+
+test('4K, 3408 selected then switch turned off: the first card re-sizes to 720', async () => {
+  const flag = { on: true };
+  const { device, transport, uids } = fourKRig(flag, 1);
+  const ctrl = new ArchiveController(transport);
+  await ctrl.prepare({ data: bigData, fileName: 'a.bin', compress: false, payloadSize: 3408 });
+  flag.on = false;
+  device.place(uids[0]!);
+  const res = await ctrl.writeNextCard(undefined, true);
+  assert.equal(res.rechunkedTo?.payloadSize, 720);
+  assert.ok(device.blockOf(uids[0]!, 128).every((b) => b === 0));
+});
+
+test('4K, 3408 selected, switch turned off after one card: the next card is CardCapacityError, unwritten', async () => {
+  const flag = { on: true };
+  const { device, transport, uids } = fourKRig(flag, 2);
+  const ctrl = new ArchiveController(transport);
+  await ctrl.prepare({ data: bigData, fileName: 'a.bin', compress: false, payloadSize: 3408 });
+  device.place(uids[0]!);
+  await ctrl.writeNextCard(undefined, true);
+  flag.on = false;
+  const before = device.writeCount;
+  device.place(uids[1]!);
+  await assert.rejects(() => ctrl.writeNextCard(undefined, true), CardCapacityError);
+  assert.equal(device.writeCount, before);
 });

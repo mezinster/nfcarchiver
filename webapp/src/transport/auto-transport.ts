@@ -1,11 +1,13 @@
 /**
- * Routes each presented tag to the right transport by its SAK: Mifare Classic 1K
- * (0x08) → ChameleonBleTransport, NTAG/Type-2 (0x00) → NtagTransport. The UI uses
+ * Routes each presented tag to the right transport by its SAK: Mifare Classic 1K/4K
+ * (0x08, 0x18, 0x38, 0x98) → ChameleonBleTransport, NTAG/Type-2 (0x00) → NtagTransport. The UI uses
  * this, so archive/restore work across both media transparently.
  */
 
 import type { ChameleonDevice } from './chameleon-device.js';
 import { ChameleonBleTransport } from './chameleon-ble.js';
+import { classifySak } from '../mifare/sak.js';
+import { log } from '../log/logger.js';
 import { NtagTransport } from './ntag-transport.js';
 import { TagTimeoutError, UnsupportedTagError, type PresentedTag, type Transport } from './transport.js';
 
@@ -19,7 +21,7 @@ export class AutoTransport implements Transport {
   private readonly pollMs: number;
   private readonly defaultTimeoutMs: number;
 
-  constructor(private readonly device: ChameleonDevice, opts?: { pollMs?: number; defaultTimeoutMs?: number }) {
+  constructor(private readonly device: ChameleonDevice, opts?: { pollMs?: number; defaultTimeoutMs?: number; allow4k?: () => boolean }) {
     this.classic = new ChameleonBleTransport(device, opts);
     this.ntag = new NtagTransport(device, opts);
     this.pollMs = opts?.pollMs ?? 300;
@@ -40,9 +42,12 @@ export class AutoTransport implements Transport {
       if (opts?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       const tag = await this.device.scanTag();
       if (tag !== null) {
-        if (tag.sak === 0x08) this.active = this.classic;
-        else if (tag.sak === 0x00) this.active = this.ntag;
-        else { this.active = null; throw new UnsupportedTagError(`Unsupported tag (SAK 0x${tag.sak.toString(16)})`); }
+        const sakHex = `0x${tag.sak.toString(16).padStart(2, '0')}`;
+        const kind = classifySak(tag.sak);
+        log.info('device', `Tag tapped, SAK ${sakHex}`, { sak: sakHex, kind });
+        if (kind === 'classic1k' || kind === 'classic4k') this.active = this.classic;
+        else if (kind === 'ntag') this.active = this.ntag;
+        else { this.active = null; throw new UnsupportedTagError(`Unsupported tag (SAK ${sakHex})`); }
         // The chosen delegate re-reads the present tag for capacity/type.
         return this.active.awaitTag({ ...opts, timeoutMs });
       }

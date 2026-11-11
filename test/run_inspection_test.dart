@@ -63,6 +63,32 @@ void main() {
     expect(sink.status, isNotNull);
   });
 
+  test('a 4K card reports 256 rows and names itself 4K', () async {
+    final sink = RecordingSink();
+    await runInspection(FakeChameleonDevice.classic4k(), sink);
+    expect(sink.rows.length, 256);
+    expect(sink.identity, contains('Mifare Classic 4K'));
+  });
+
+  test('a 3,000 B chunk on a 4K card is a valid chunk, CRC ok', () async {
+    final dev = FakeChameleonDevice.classic4k()
+      ..writeNfar(validChunkBytes(payloadLength: 3000));
+    final sink = RecordingSink();
+    await runInspection(dev, sink);
+    expect(sink.nfar, contains('NFAR'));
+    expect(sink.nfar, isNot(contains('not NFAR')));
+    expect(sink.nfar, isNot(contains('MISMATCH')));
+    expect(sink.nfar!.toLowerCase(), contains('ok'));
+    expect(sink.nfar!.toLowerCase(), isNot(contains('exceeds')));
+  });
+
+  test('a 4K card (SAK 0x19, a 2K) gets the unsupported message', () async {
+    final sink = RecordingSink();
+    await runInspection(FakeChameleonDevice.classic4k(sak: 0x19), sink);
+    expect(sink.status, contains('0x19'));
+    expect(sink.rows, isEmpty);
+  });
+
   test('a failed anticollision does NOT stop the dump', () async {
     // The probe is advisory: readBlock performs its own select, so a card that
     // refuses anticollision can still be dumped in full.

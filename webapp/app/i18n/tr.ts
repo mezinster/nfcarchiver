@@ -176,4 +176,8 @@ export const tr: Messages = {
   fileRowMeta: (size, totalChunks, when) => `${size} · ${totalChunks} ${pr(totalChunks, CARD)} · ${when}`,
   overwriteTitle: 'Kartta zaten veri var',
   overwriteBody: 'Üzerine yazmak içeriğini siler.',
+  devOptions: 'Geliştirici seçenekleri',
+  devUnlocked: 'Geliştirici seçenekleri etkinleştirildi',
+  mifare4kToggle: 'Mifare Classic 4K',
+  mifare4kHint: 'Deneysel — gerçek bir kartta henüz doğrulanmadı',
 };

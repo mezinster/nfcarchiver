@@ -13,6 +13,14 @@ NfcTag FakeTag() => const NfcTag(data: <String, dynamic>{});
 
 /// In-memory Mifare Classic 1K: 64 blocks of 16 bytes, factory-keyed.
 class FakeMifareBlockIO implements MifareBlockIO {
+  FakeMifareBlockIO({this.cardSize = MifareCardSize.k1});
+
+  @override
+  final MifareCardSize? cardSize;
+
+  /// Sectors whose key is not the factory key.
+  final Set<int> lockedSectors = {};
+
   final Map<int, Uint8List> blocks = {};
   final List<int> authenticatedSectors = [];
   final List<int> writtenBlocks = [];
@@ -21,7 +29,7 @@ class FakeMifareBlockIO implements MifareBlockIO {
 
   @override
   Future<bool> authenticateSector(int sectorIndex, Uint8List keyA) async {
-    if (failAuth) return false;
+    if (failAuth || lockedSectors.contains(sectorIndex)) return false;
     authenticatedSectors.add(sectorIndex);
     return true;
   }
@@ -192,5 +200,93 @@ void main() {
       codec.writeChunk(FakeTag(), makeChunk(200)),
       throwsA(isA<StateError>()),
     );
+  });
+
+  group('Mifare Classic 4K', () {
+    test('allowed: a 3,000 B chunk round-trips across sectors 32 and 33',
+        () async {
+      final io = FakeMifareBlockIO(cardSize: MifareCardSize.k4);
+      final codec = MifareTagCodec((_) => io, allow4k: () => true);
+      final chunk = makeChunk(3000 - 28 - 4);
+
+      await codec.writeChunk(FakeTag(), chunk);
+      final read = await codec.readChunk(FakeTag());
+
+      expect(read!.payload, chunk.payload);
+      expect(io.authenticatedSectors, containsAll([32, 33]));
+      for (final b in io.writtenBlocks) {
+        expect(isSectorTrailer(b), isFalse, reason: 'wrote trailer $b');
+        expect(b, isNot(0));
+      }
+    });
+
+    test('switch off: capacity is 752 and a 4K-written chunk still reads',
+        () async {
+      final io = FakeMifareBlockIO(cardSize: MifareCardSize.k4);
+      final chunk = makeChunk(3000 - 28 - 4);
+      await MifareTagCodec((_) => io, allow4k: () => true)
+          .writeChunk(FakeTag(), chunk);
+
+      final off = MifareTagCodec((_) => io);
+      expect(await off.capacityBytes(FakeTag()), 752);
+      final read = await off.readChunk(FakeTag());
+      expect(read!.payload, chunk.payload);
+    });
+
+    test('switch on: capacity is 3,440 on a 4K card, 752 on a 1K card',
+        () async {
+      final k4 = MifareTagCodec(
+          (_) => FakeMifareBlockIO(cardSize: MifareCardSize.k4),
+          allow4k: () => true);
+      final k1 = MifareTagCodec((_) => FakeMifareBlockIO(),
+          allow4k: () => true);
+      expect(await k4.capacityBytes(FakeTag()), 3440);
+      expect(await k1.capacityBytes(FakeTag()), 752);
+    });
+
+    test('switch off: a 4K-sized write is refused before any block', () async {
+      final io = FakeMifareBlockIO(cardSize: MifareCardSize.k4);
+      final codec = MifareTagCodec((_) => io);
+      await expectLater(
+        codec.writeChunk(FakeTag(), makeChunk(3000)),
+        throwsA(isA<MifareCapacityException>()),
+      );
+      expect(io.writtenBlocks, isEmpty);
+    });
+
+    test('non-factory sector 33 fails the write before any block', () async {
+      final io = FakeMifareBlockIO(cardSize: MifareCardSize.k4)
+        ..lockedSectors.add(33);
+      final codec = MifareTagCodec((_) => io, allow4k: () => true);
+      await expectLater(
+        codec.writeChunk(FakeTag(), makeChunk(3000 - 32)),
+        throwsA(isA<MifareAuthException>()
+            .having((e) => e.sectorIndex, 'sectorIndex', 33)),
+      );
+      expect(io.writtenBlocks, isEmpty);
+    });
+
+    test('a 700 B chunk writes exactly what the 1K card gets', () async {
+      final k1 = FakeMifareBlockIO();
+      final k4 = FakeMifareBlockIO(cardSize: MifareCardSize.k4);
+      final chunk = makeChunk(700 - 32);
+      await MifareTagCodec((_) => k1).writeChunk(FakeTag(), chunk);
+      await MifareTagCodec((_) => k4, allow4k: () => true)
+          .writeChunk(FakeTag(), chunk);
+      expect(k4.writtenBlocks, k1.writtenBlocks);
+      for (final b in k1.writtenBlocks) {
+        expect(k4.blocks[b], k1.blocks[b]);
+      }
+    });
+
+    test('block 144 authenticates sector 33, not 36', () async {
+      final io = FakeMifareBlockIO(cardSize: MifareCardSize.k4);
+      final codec = MifareTagCodec((_) => io, allow4k: () => true);
+      // 111 usable blocks (95 + 15 + block 144) end the chunk on block 144.
+      await codec.writeChunk(FakeTag(), makeChunk(111 * 16 - 32));
+      expect(io.writtenBlocks.last, 144);
+      expect(io.authenticatedSectors, contains(33));
+      expect(io.authenticatedSectors, isNot(contains(36)));
+    });
   });
 }

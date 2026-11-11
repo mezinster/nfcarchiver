@@ -8,6 +8,7 @@ import 'package:nfc_manager/nfc_manager_ios.dart';
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
+import '../../../core/mifare/card_layout.dart';
 import '../domain/mifare_block_io.dart';
 import '../domain/mifare_tag_codec.dart';
 import '../domain/android_tech_list.dart';
@@ -90,6 +91,11 @@ class NfcRepository {
 
   bool _deviceSupportsMifare = false;
 
+  /// Whether the developer switch allows writing Mifare Classic 4K capacity.
+  /// Set from the provider layer (this class is a singleton, not built by a
+  /// provider) and read at call time, so toggling needs no rebuild.
+  bool Function() allow4k = () => false;
+
   final _staleTagPolicy = StaleTagPolicy();
 
   /// Drops whatever tag connection Android is still holding before a new
@@ -125,8 +131,8 @@ class NfcRepository {
 
   /// Mifare first: NDEF is never written onto Classic, so a tag exposing
   /// MifareClassic is unambiguously ours. NDEF handles everything else.
-  final List<TagCodec> _codecs = [
-    MifareTagCodec(mifareIoFor),
+  late final List<TagCodec> _codecs = [
+    MifareTagCodec(mifareIoFor, allow4k: () => allow4k()),
     NdefTagCodec(ndefIoFor),
   ];
 
@@ -456,20 +462,9 @@ class NfcRepository {
               // via `onTagTooSmall` (the same re-chunk offer NDEF gets) instead
               // of failing mid-write with a raw `MifareCapacityException`.
               //
-              // This branch is currently unreachable: `mifareClassic1k` is the
-              // only `TagMedium.mifareClassic` type, its capacity (752) equals
-              // `MifareTagCodec.capacityBytes`, and the tag-type picker refuses
-              // to render once an archive is prepared, so the configured medium
-              // can't change mid-archive. Kept as defence-in-depth for the day
-              // a second Mifare medium exists.
-              //
-              // If that day comes: `onTagTooSmall`'s consumer,
-              // `_showRechunkDialog`, computes the rechunk size via
-              // `NfcTagType.maxPayloadForCapacity(detectedCapacity)`, which is
-              // NDEF-shaped (subtracts NDEF record/terminator overhead). For
-              // capacity 752 that yields 680 — the wrong payload for Mifare,
-              // whose real payload is 720. That formula must be fixed before
-              // this branch can fire for a real Mifare "too small" case.
+              // Reachable: a card smaller than the configured type (e.g. a
+              // 4K archive meeting a 1K card, or a 4K card with the 4K switch
+              // off). The consumer re-chunks with the medium-aware payload.
               final capacity = await codec.capacityBytes(tag);
               if (chunk.totalSize > capacity) {
                 final message = 'Tag too small: needs ${chunk.totalSize} bytes, '
@@ -736,6 +731,17 @@ class NfcRepository {
         technologies.add('ISO15693');
       }
       if (FeliCaIos.from(tag) != null) technologies.add('FeliCa');
+    }
+
+    // Mifare Classic 4K on the phone radio: report the 4K type with what a
+    // write may use right now (752 B while the developer switch is off).
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        codec is MifareTagCodec) {
+      final size = mifareIoFor(tag)?.cardSize;
+      if (size == MifareCardSize.k4) {
+        tagType = NfcTagType.mifareClassic4k;
+        capacity = writableCapacity(size!, allow4k: allow4k());
+      }
     }
 
     // Infer tag type from capacity if not already set

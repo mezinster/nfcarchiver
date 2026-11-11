@@ -15,6 +15,7 @@ import type { Transport } from '../../src/transport/transport.js';
 import { type RawAntiColl } from '../diagnostics.js';
 import { openInspector } from './inspect-panel.js';
 import { readerLock } from './reader-lock.js';
+import { isMifare4kEnabled } from '../dev-flags.js';
 import { humanError } from './errors.js';
 import { log } from '../../src/log/logger.js';
 import { t, onLocaleChange } from '../i18n/index.js';
@@ -248,7 +249,7 @@ export function initDeviceBar(): void {
       // use() is async (the adapter's install() runs availability checks etc.);
       // it MUST be awaited before connect(), or this.port is still undefined.
       await ultra.use(new WebbleAdapter());
-      transport = new AutoTransport(new SdkChameleonDevice(ultra));
+      transport = new AutoTransport(new SdkChameleonDevice(ultra), { allow4k: isMifare4kEnabled });
       await transport.connect();
       connected = true;
       reader = 'chameleon';

@@ -78,8 +78,18 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
         }
       } else if (next is NfcSessionTagTooSmall) {
         // Tag is too small - offer to rechunk
-        ref.read(archiveProvider.notifier).cancelWriting();
-        _showRechunkDialog(context, next.detectedCapacity, next.requiredSize);
+        final archive = ref.read(archiveProvider.notifier);
+        // The archive's configured medium, not the tapped tag's: the phone
+        // radio leaves a Mifare 1K's tag type null, which read as NDEF (680 B
+        // instead of 720 B). NDEF only when no archive exists.
+        final medium = archive.configuredMedium ?? TagMedium.ndef;
+        archive.cancelWriting();
+        _showRechunkDialog(
+          context,
+          next.detectedCapacity,
+          next.requiredSize,
+          medium,
+        );
       } else if (next is NfcSessionTagTypeMismatch) {
         // Tapped tag's medium doesn't match the configured tag type. Stop
         // the session (as _showRechunkDialog does for NfcSessionTagTooSmall)
@@ -115,6 +125,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
     BuildContext context,
     int detectedCapacity,
     int requiredSize,
+    TagMedium medium,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     ref.read(nfcSessionProvider.notifier).stopSession();
@@ -124,7 +135,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
     final canRechunk = readyState != null && readyState.writtenChunks.isEmpty;
 
     // Calculate new chunk count if we rechunk
-    final newPayloadSize = NfcTagType.maxPayloadForCapacity(detectedCapacity);
+    final newPayloadSize = NfcTagType.payloadForCapacity(detectedCapacity, medium);
     int? newChunkCount;
     if (canRechunk) {
       final dataSize = readyState.result.processedSize;
@@ -190,7 +201,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
     if (result == true && context.mounted) {
       final newCount = ref
           .read(archiveProvider.notifier)
-          .rechunkForDetectedCapacity(detectedCapacity);
+          .rechunkForDetectedCapacity(detectedCapacity, medium: medium);
 
       if (newCount != null) {
         ScaffoldMessenger.of(context).showSnackBar(

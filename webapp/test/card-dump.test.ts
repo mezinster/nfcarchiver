@@ -231,3 +231,43 @@ test('an unsupported SAK is rejected before any read', async () => {
   device.place(CLASSIC_UID);
   await assert.rejects(() => dumpCard(device, { onUnit: () => {} }), UnsupportedTagError);
 });
+
+test('Mifare Classic 4K: dumps all 256 blocks with real sector numbering and trailers', async () => {
+  const device = new FakeChameleon();
+  device.defineCard(CLASSIC_UID, { sak: 0x38 });
+  device.place(CLASSIC_UID);
+  const c = collector();
+  const res = await dumpCard(device, c.cb);
+
+  assert.equal(res.meta.medium, 'mifare-classic-4k');
+  assert.equal(res.meta.totalUnits, 256);
+  assert.equal(res.units.length, 256);
+  assert.deepEqual(c.progress[255], [256, 256]);
+  assert.equal(res.units[0]!.kind, 'manufacturer');
+  const trailers = res.units.filter((u) => u.kind === 'trailer').map((u) => u.index);
+  assert.equal(trailers.length, 40);
+  assert.ok(trailers.includes(143) && trailers.includes(255) && trailers.includes(127));
+  assert.ok(!trailers.includes(131), 'block 131 is data in a 16-block sector');
+  assert.equal(res.units[144]!.sector, 33);
+  assert.equal(res.units[255]!.sector, 39);
+  assert.ok(res.units.every((u) => u.bytes?.length === 16));
+});
+
+test('Mifare Classic 4K: a custom key on sector 33 fails exactly its 16 blocks', async () => {
+  const device = new FakeChameleon();
+  device.defineCard(CLASSIC_UID, { sak: 0x38, sectorKeys: new Map([[33, new Uint8Array(6).fill(0x11)]]) });
+  device.place(CLASSIC_UID);
+  const res = await dumpCard(device, collector().cb);
+  const failed = res.units.filter((u) => u.failure === 'auth-failed').map((u) => u.index);
+  assert.deepEqual(failed, Array.from({ length: 16 }, (_, i) => 144 + i));
+});
+
+test('a 2K card (SAK 0x19) is rejected as unsupported, naming 1K, 4K and NTAG', async () => {
+  const device = new FakeChameleon();
+  device.defineCard(CLASSIC_UID, { sak: 0x19, size: '1k' });
+  device.place(CLASSIC_UID);
+  await assert.rejects(
+    () => dumpCard(device, collector().cb),
+    (e: unknown) => e instanceof UnsupportedTagError && /1K/.test(e.message) && /4K/.test(e.message) && /NTAG/.test(e.message),
+  );
+});

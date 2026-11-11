@@ -59,7 +59,9 @@ export function formatUnitRow(u: DumpUnit): string {
 }
 
 export function formatIdentity(meta: DumpMeta, diag: IdentityDiagnosis | null): string {
-  const medium = meta.medium === 'mifare-classic-1k' ? 'Mifare Classic 1K' : meta.medium;
+  const medium = meta.medium === 'mifare-classic-1k' ? 'Mifare Classic 1K'
+    : meta.medium === 'mifare-classic-4k' ? 'Mifare Classic 4K'
+    : meta.medium;
   const lines = [`Medium    ${medium} (SAK ${byte(meta.sak)})`, `UID       ${hex(meta.uid)}`];
   if (diag === null) {
     lines.push('BCC       anticollision failed — identity unavailable (the dump may still work)');
@@ -80,10 +82,10 @@ export function formatIdentity(meta: DumpMeta, diag: IdentityDiagnosis | null): 
     (diag.bccValid ? 'OK' : 'MISMATCH'),
   );
   // A 7-byte cascade UID is entirely normal on NTAG; it is only a fault when the
-  // SAK says this should be a 4-byte Mifare Classic 1K.
+  // SAK says this should be a 4-byte Mifare Classic.
   if (diag.isCascade) {
-    lines.push(meta.medium === 'mifare-classic-1k'
-      ? 'Verdict   7-byte UID (cascade tag) — not a 4-byte Mifare Classic 1K'
+    lines.push(meta.medium === 'mifare-classic-1k' || meta.medium === 'mifare-classic-4k'
+      ? `Verdict   7-byte UID (cascade tag) — not a 4-byte ${medium}`
       : 'Verdict   7-byte UID (cascade tag) — normal for NTAG');
   } else if (!diag.bccValid) {
     lines.push('Verdict   malformed block-0 UID (a UID-writable "magic" card); rewrite block 0 with a correct BCC');

@@ -8,15 +8,22 @@ import 'mifare_block_io.dart';
 import 'tag_codec.dart';
 import '../../../core/log/logger.dart';
 
-/// Mifare Classic 1K holding a raw NFAR chunk across its usable data blocks.
+bool _never() => false;
+
+/// Mifare Classic 1K/4K holding a raw NFAR chunk across its usable data blocks.
 ///
 /// Byte-compatible with the web app: same block set, same ordering, same
 /// zero-padding. Sector trailers are never written, so cards stay factory-keyed
 /// and re-writable.
 class MifareTagCodec implements TagCodec {
-  MifareTagCodec(this._ioFor);
+  MifareTagCodec(this._ioFor, {bool Function() allow4k = _never})
+      : _allow4k = allow4k;
 
   final MifareBlockIO? Function(NfcTag tag) _ioFor;
+
+  /// Read at call time: the developer switch gates WRITING 4K capacity only.
+  /// Reading always uses the card's real geometry.
+  final bool Function() _allow4k;
 
   @override
   String get name => 'Mifare Classic';
@@ -25,9 +32,11 @@ class MifareTagCodec implements TagCodec {
   bool supports(NfcTag tag) => _ioFor(tag) != null;
 
   @override
-  Future<int> capacityBytes(NfcTag tag) async => cardCapacityBytes;
+  Future<int> capacityBytes(NfcTag tag) async => writableCapacity(
+      _ioFor(tag)!.cardSize!,
+      allow4k: _allow4k());
 
-  int _sectorOf(int block) => block ~/ 4;
+  int _sectorOf(int block) => sectorOf(block);
 
   /// Authenticate a sector once, then keep using it until the sector changes.
   Future<void> _ensureSector(
@@ -44,8 +53,9 @@ class MifareTagCodec implements TagCodec {
     final io = _ioFor(tag);
     if (io == null) return null;
 
+    final size = io.cardSize!;
     int? sector;
-    final first = usableBlockIndexes.first;
+    final first = size.usableBlocks.first;
     await _ensureSector(io, first, sector);
     sector = _sectorOf(first);
     final head = await io.readBlock(first);
@@ -60,13 +70,14 @@ class MifareTagCodec implements TagCodec {
     // caller's scan loop, so those exceptions are caught here and folded
     // into a null result rather than allowed to escape.
     final bytes = BytesBuilder()..add(head);
-    for (final block in usableBlockIndexes.skip(1)) {
+    for (final block in size.usableBlocks.skip(1)) {
       await _ensureSector(io, block, sector);
       sector = _sectorOf(block);
       bytes.add(await io.readBlock(block));
       if (bytes.length >= 32) {
         try {
-          final total = nfarTotalLength(Uint8List.fromList(bytes.toBytes()));
+          final total = nfarTotalLength(Uint8List.fromList(bytes.toBytes()),
+              size: size);
           if (bytes.length >= total) {
             return Chunk.fromBytes(
                 Uint8List.fromList(bytes.toBytes().sublist(0, total)));
@@ -85,7 +96,17 @@ class MifareTagCodec implements TagCodec {
     if (io == null) {
       throw StateError('Tag is not a Mifare Classic card');
     }
-    final writes = chunkToBlocks(chunk.toBytes());
+    final size = io.cardSize!;
+    final bytes = chunk.toBytes();
+    // Gate on the switch, not the card: a 4K card holds 4K-sized chunks only
+    // when the user allowed it. Over-limit chunks are normally rejected
+    // earlier by the repository; this is the backstop.
+    final limit = writableCapacity(size, allow4k: _allow4k());
+    if (bytes.length > limit) {
+      throw MifareCapacityException(
+          'Chunk is ${bytes.length} bytes; this card may hold $limit');
+    }
+    final writes = chunkToBlocks(bytes, size: size);
 
     // Authenticate every sector we are about to touch BEFORE writing anything,
     // so a non-factory-keyed card fails without leaving a half-written chunk.

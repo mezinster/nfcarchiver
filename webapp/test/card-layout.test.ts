@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {
   USABLE_BLOCK_INDEXES, CARD_CAPACITY_BYTES, CARD_PAYLOAD_SIZE, BLOCK_SIZE,
   chunkToBlocks, firstBlockIsNfar, nfarTotalLength, assembleChunkFromBlocks,
-  CardCapacityError,
+  CardCapacityError, USABLE_BLOCK_INDEXES_4K, capacityBytes, payloadSize, usableBlocks,
+  sectorOf, isSectorTrailer, firstBlockOfSector, writableCapacity,
 } from '../src/mifare/card-layout.js';
 import { encodeChunk, NfarFormatError, type Chunk } from '../src/chunk.js';
 import { crc32 } from '../src/crc32.js';
@@ -74,4 +75,74 @@ test('assembleChunkFromBlocks concatenates ordered block data and trims to lengt
   const bytes = chunkOfPayload(30); // total 62, 4 blocks
   const blocks = chunkToBlocks(bytes).map((b) => b.data);
   assert.deepEqual(assembleChunkFromBlocks(blocks, bytes.length), bytes);
+});
+
+function headerDeclaring(payloadLen: number): Uint8Array {
+  const h = chunkOfPayload(10).slice(0, 28);
+  new DataView(h.buffer).setUint16(26, payloadLen);
+  return h;
+}
+
+test('4K constants', () => {
+  assert.equal(USABLE_BLOCK_INDEXES_4K.length, 215);
+  assert.equal(capacityBytes('4k'), 3440);
+  assert.equal(payloadSize('4k'), 3408);
+  assert.equal(capacityBytes('1k'), 752);
+  assert.equal(payloadSize('1k'), 720);
+  assert.deepEqual(USABLE_BLOCK_INDEXES_4K.slice(0, 47), [...USABLE_BLOCK_INDEXES]);
+  assert.equal(usableBlocks('1k'), USABLE_BLOCK_INDEXES);
+  assert.equal(usableBlocks('4k'), USABLE_BLOCK_INDEXES_4K);
+});
+
+test('4K: no block 0, no trailers; 128 and 142 in, 143 out', () => {
+  const trailers: number[] = [];
+  for (let b = 3; b < 128; b += 4) trailers.push(b);
+  for (let b = 143; b < 256; b += 16) trailers.push(b);
+  for (const l of [USABLE_BLOCK_INDEXES, USABLE_BLOCK_INDEXES_4K]) {
+    assert.ok(!l.includes(0));
+    for (const t of trailers) assert.ok(!l.includes(t), `trailer ${t}`);
+  }
+  assert.ok(USABLE_BLOCK_INDEXES_4K.includes(128));
+  assert.ok(USABLE_BLOCK_INDEXES_4K.includes(142));
+  assert.ok(!USABLE_BLOCK_INDEXES_4K.includes(143));
+});
+
+test('sector helpers', () => {
+  assert.equal(sectorOf(127), 31);
+  assert.equal(sectorOf(128), 32);
+  assert.equal(sectorOf(143), 32);
+  assert.equal(sectorOf(144), 33);
+  assert.equal(sectorOf(255), 39);
+  assert.equal(firstBlockOfSector(33), 144);
+  assert.equal(firstBlockOfSector(31), 124);
+  assert.ok(isSectorTrailer(127));
+  assert.ok(isSectorTrailer(143));
+  assert.ok(!isSectorTrailer(142));
+});
+
+test('chunkToBlocks sizes', () => {
+  const bytesOf = (n: number) => new Uint8Array(n).map((_, i) => i & 0xff);
+  const b = bytesOf(752);
+  const d = chunkToBlocks(b);
+  const k = chunkToBlocks(b, '4k');
+  assert.deepEqual(k, d);
+  const big = chunkToBlocks(bytesOf(3000), '4k');
+  assert.equal(big.length, 188);
+  assert.equal(big.at(-1)!.block, USABLE_BLOCK_INDEXES_4K[187]);
+  assert.throws(() => chunkToBlocks(bytesOf(753)), CardCapacityError);
+  assert.throws(() => chunkToBlocks(bytesOf(3441), '4k'), /4K card holds 3440/);
+  assert.throws(() => chunkToBlocks(bytesOf(753)), /1K card holds 752/);
+});
+
+test('nfarTotalLength honours size', () => {
+  assert.throws(() => nfarTotalLength(headerDeclaring(3000)), NfarFormatError);
+  assert.equal(nfarTotalLength(headerDeclaring(3000), '4k'), 3032);
+  assert.equal(nfarTotalLength(headerDeclaring(3408), '4k'), 3440);
+  assert.throws(() => nfarTotalLength(headerDeclaring(3409), '4k'), NfarFormatError);
+});
+
+test('writableCapacity', () => {
+  assert.equal(writableCapacity('4k', false), 752);
+  assert.equal(writableCapacity('4k', true), 3440);
+  assert.equal(writableCapacity('1k', true), 752);
 });

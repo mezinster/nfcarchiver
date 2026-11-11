@@ -215,5 +215,9 @@
   "diagnosticsShare": "Günlüğü paylaş",
   "diagnosticsClear": "Günlüğü temizle",
   "diagnosticsClearConfirm": "Tanılama günlüğü bu cihazdan silinsin mi?",
-  "diagnosticsClearAction": "Temizle"
+  "diagnosticsClearAction": "Temizle",
+  "developerOptions": "Geliştirici seçenekleri",
+  "developerOptionsUnlocked": "Geliştirici seçenekleri etkinleştirildi",
+  "mifare4kToggle": "Mifare Classic 4K",
+  "mifare4kToggleSubtitle": "Deneysel — gerçek bir kartta henüz doğrulanmadı"
 }

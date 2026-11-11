@@ -109,3 +109,31 @@ test('Dart and TypeScript produce identical Mifare card images', () => {
     );
   }
 });
+
+const mifare4kFixture: MifareFixture = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../test/fixtures/mifare-card-4k.json'), 'utf8'),
+);
+
+test('Dart and TypeScript produce identical Mifare 4K card images', () => {
+  const payload = new Uint8Array(mifare4kFixture.payloadLength).map((_, i) => (i + 3) % 256);
+  const bytes = encodeChunk({
+    archiveId: new Uint8Array(16).fill(4),
+    totalChunks: 1,
+    chunkIndex: 0,
+    payload,
+    crc32: crc32(payload),
+    flags: 0,
+  });
+
+  const ours = chunkToBlocks(bytes, '4k');
+  assert.equal(ours.length, mifare4kFixture.blocks.length);
+  assert.ok(ours.some((w) => w.block >= 144), 'fixture must reach the 16-block sectors');
+  for (let i = 0; i < ours.length; i++) {
+    assert.equal(ours[i]!.block, mifare4kFixture.blocks[i]!.block);
+    assert.equal(
+      Array.from(ours[i]!.data, (b) => b.toString(16).padStart(2, '0')).join(''),
+      mifare4kFixture.blocks[i]!.hex,
+      `block ${ours[i]!.block} differs`,
+    );
+  }
+});

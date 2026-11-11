@@ -123,21 +123,32 @@ void main() {
 
   group('selectableTagTypes', () {
     test('never offers Custom, which has no fixed capacity', () {
-      expect(selectableTagTypes(mifareAvailable: true),
+      expect(selectableTagTypes(mifareAvailable: true, mifare4kEnabled: false),
           isNot(contains(NfcTagType.custom)));
     });
 
     test('offers Mifare Classic only when the reader can write it', () {
-      expect(selectableTagTypes(mifareAvailable: true),
+      expect(selectableTagTypes(mifareAvailable: true, mifare4kEnabled: false),
           contains(NfcTagType.mifareClassic1k));
-      expect(selectableTagTypes(mifareAvailable: false),
+      expect(selectableTagTypes(mifareAvailable: false, mifare4kEnabled: false),
           isNot(contains(NfcTagType.mifareClassic1k)));
     });
 
+    test('4K is offered only with Mifare available and the switch on', () {
+      List<NfcTagType> sel(bool m, bool k) =>
+          selectableTagTypes(mifareAvailable: m, mifare4kEnabled: k);
+      expect(sel(true, false), isNot(contains(NfcTagType.mifareClassic4k)));
+      expect(sel(true, false), contains(NfcTagType.mifareClassic1k));
+      expect(sel(true, true), contains(NfcTagType.mifareClassic4k));
+      expect(sel(true, true), contains(NfcTagType.mifareClassic1k));
+      expect(sel(false, true), isNot(contains(NfcTagType.mifareClassic4k)));
+      expect(sel(false, true), isNot(contains(NfcTagType.mifareClassic1k)));
+    });
+
     test('the NDEF types are unaffected by the Mifare gate', () {
-      final withMifare = selectableTagTypes(mifareAvailable: true)
+      final withMifare = selectableTagTypes(mifareAvailable: true, mifare4kEnabled: false)
           .where((t) => t.medium == TagMedium.ndef);
-      final without = selectableTagTypes(mifareAvailable: false)
+      final without = selectableTagTypes(mifareAvailable: false, mifare4kEnabled: false)
           .where((t) => t.medium == TagMedium.ndef);
       expect(without, orderedEquals(withMifare));
     });
@@ -147,14 +158,14 @@ void main() {
     // straight to the chunker's "payload size must be positive" error.
     test('never offers a type that cannot hold a single payload byte', () {
       for (final mifare in [true, false]) {
-        final offered = selectableTagTypes(mifareAvailable: mifare);
+        final offered = selectableTagTypes(mifareAvailable: mifare, mifare4kEnabled: true);
         expect(offered, isNot(contains(NfcTagType.mifareUltralight)));
         expect(offered.where((t) => t.maxPayloadSize <= 0), isEmpty);
       }
     });
 
     test('still offers Ultralight C, which holds as much as an NTAG213', () {
-      expect(selectableTagTypes(mifareAvailable: false),
+      expect(selectableTagTypes(mifareAvailable: false, mifare4kEnabled: false),
           contains(NfcTagType.mifareUltralightC));
       expect(NfcTagType.mifareUltralightC.maxPayloadSize, greaterThan(0));
     });

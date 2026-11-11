@@ -41,6 +41,15 @@ for the manual real-device checklist (BLE pairing, round-trip, cross-read).
   NTAG213/215/216 (Type-2 / NDEF). The transport reads each tapped tag's SAK and
   routes to the right protocol; the Archive tab has a target-tag selector (with
   capacities) that sizes the chunking.
+- **Mifare Classic 4K (hidden, unverified):** a strict extension of the 1K
+  layout (first 47 usable blocks identical; 215 blocks = 3,440 B, 3,408 B
+  payload), routed by SAK 0x18/0x38/0x98. Writing is offered only after the
+  hidden developer switch is on (tap the About panel version line 7 times →
+  Developer options → Mifare Classic 4K); with it off a 4K card is written as
+  1K. Reading and **Inspect card** work on 4K regardless. Writes above 752 B
+  pre-check each sector for factory keys. **Not yet tested on real hardware** —
+  see the checklist in
+  `docs/superpowers/specs/2026-11-11-mifare-classic-4k-design.md`.
 - **Archive files or text**, with GZIP compression and AES-256-GCM + PBKDF2
   encryption, filename preservation, and a live "≈ N cards" estimate.
 - **Multi-archive restore:** scan a mixed pile of cards, see every detected archive
@@ -188,7 +197,7 @@ webapp/
   src/                         # dependency-free core (web-platform globals only)
     crc32 · chunk · chunker · crypto · gzip · pipeline   # byte-compatible NFAR core
     filename.ts                # Android-compatible filename wrapper
-    mifare/card-layout.ts      # chunk ↔ Mifare Classic 1K blocks (47 usable = 752 B)
+    mifare/card-layout.ts      # chunk ↔ Mifare Classic 1K/4K blocks (1K: 47 usable = 752 B; 4K: 215 usable = 3,440 B)
     nfc/ndef.ts, nfc/type2.ts  # NDEF MIME record + Type-2 TLV framing for NTAG
     inspect/                   # read-only card inspector core
       card-dump.ts             # raw per-block/page dump of a Classic or NTAG card

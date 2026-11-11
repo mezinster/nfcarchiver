@@ -2,6 +2,8 @@ import type { ChameleonDevice } from '../src/transport/chameleon-device.js';
 import { FACTORY_KEY_A } from '../src/transport/chameleon-device.js';
 import { CardAuthError } from '../src/transport/transport.js';
 import { NtagType } from '../src/nfc/type2.js';
+import { sectorOf, type CardSize } from '../src/mifare/card-layout.js';
+import { classifySak, cardSizeFor } from '../src/mifare/sak.js';
 
 function hex(u: Uint8Array): string {
   return Array.from(u, (b) => b.toString(16).padStart(2, '0')).join('');
@@ -17,9 +19,10 @@ const NTAG_STORAGE: Record<NtagType, number> = { NTAG213: 0x0f, NTAG215: 0x11, N
 // NTAG213 144 B (== raw), NTAG215 496 B (< 504 raw), NTAG216 872 B (< 888 raw).
 const NTAG_CC_MLEN: Record<NtagType, number> = { NTAG213: 0x12, NTAG215: 0x3e, NTAG216: 0x6d };
 
-interface Card { image: Uint8Array; keyA: Uint8Array; sak: number; ntag?: { type: NtagType; pages: Uint8Array } }
+interface Card { image: Uint8Array; keyA: Uint8Array; sectorKeys: Map<number, Uint8Array>; sak: number; ntag?: { type: NtagType; pages: Uint8Array } }
 
-/** In-memory Chameleon Ultra over simulated 1K card images (64 x 16 bytes). */
+/** In-memory Chameleon Ultra over simulated Classic card images: 64 x 16 bytes
+ *  (1K) or 256 x 16 (4K, real sector numbering via sectorOf). */
 export class FakeChameleon implements ChameleonDevice {
   private connected = false;
   private field: string | null = null;
@@ -28,11 +31,21 @@ export class FakeChameleon implements ChameleonDevice {
   private failWriteIn: number | null = null;
   private readonly cards = new Map<string, Card>();
 
-  defineCard(uid: Uint8Array, opts?: { keyA?: Uint8Array; sak?: number }): void {
+  /** Successful block writes since construction, across all cards. */
+  writeCount = 0;
+
+  /** `sectorKeys` overrides key A per sector (4K sector numbering); the rest use `keyA`. */
+  defineCard(
+    uid: Uint8Array,
+    opts?: { keyA?: Uint8Array; sak?: number; size?: CardSize; sectorKeys?: Map<number, Uint8Array> },
+  ): void {
+    const sak = opts?.sak ?? 0x08;
+    const size: CardSize = opts?.size ?? cardSizeFor(classifySak(sak)) ?? '1k';
     this.cards.set(hex(uid), {
-      image: new Uint8Array(64 * 16),
+      image: new Uint8Array((size === '4k' ? 256 : 64) * 16),
       keyA: opts?.keyA ?? FACTORY_KEY_A,
-      sak: opts?.sak ?? 0x08,
+      sectorKeys: opts?.sectorKeys ?? new Map(),
+      sak,
     });
   }
   place(uid: Uint8Array): void {
@@ -48,7 +61,7 @@ export class FakeChameleon implements ChameleonDevice {
       const pages = new Uint8Array(NTAG_PAGES[type] * 4);
       pages.set([0xe1, 0x10, NTAG_CC_MLEN[type], 0x00], 3 * 4); // Capability Container at page 3
       this.cards.set(key, {
-        image: new Uint8Array(64 * 16), keyA: FACTORY_KEY_A, sak: 0x00,
+        image: new Uint8Array(64 * 16), keyA: FACTORY_KEY_A, sectorKeys: new Map(), sak: 0x00,
         ntag: { type, pages },
       });
     }
@@ -134,9 +147,13 @@ export class FakeChameleon implements ChameleonDevice {
     return this.cards.get(this.field)!;
   }
 
+  private keyFor(card: Card, block: number): Uint8Array {
+    return card.sectorKeys.get(sectorOf(block)) ?? card.keyA;
+  }
+
   async readBlock(block: number, key: Uint8Array): Promise<Uint8Array> {
     const card = this.current();
-    if (!keysEqual(key, card.keyA)) throw new CardAuthError(`Auth failed on block ${block}`);
+    if (!keysEqual(key, this.keyFor(card, block))) throw new CardAuthError(`Auth failed on block ${block}`);
     const full = card.image.slice(block * 16, block * 16 + 16);
     if (this.truncateNext !== null) {
       const keep = this.truncateNext;
@@ -148,12 +165,13 @@ export class FakeChameleon implements ChameleonDevice {
 
   async writeBlock(block: number, key: Uint8Array, data: Uint8Array): Promise<void> {
     const card = this.current();
-    if (!keysEqual(key, card.keyA)) throw new CardAuthError(`Auth failed on block ${block}`);
+    if (!keysEqual(key, this.keyFor(card, block))) throw new CardAuthError(`Auth failed on block ${block}`);
     const toWrite = data.slice(0, 16);
     if (this.corruptNext) {
       this.corruptNext = false;
       toWrite[0] = (toWrite[0] ?? 0) ^ 0xff; // flip a bit so read-back verification fails
     }
     card.image.set(toWrite, block * 16);
+    this.writeCount += 1;
   }
 }

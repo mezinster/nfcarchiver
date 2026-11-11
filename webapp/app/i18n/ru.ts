@@ -179,4 +179,8 @@ export const ru: Messages = {
   fileRowMeta: (size, totalChunks, when) => `${size} · ${totalChunks} ${pr(totalChunks, CARD)} · ${when}`,
   overwriteTitle: 'На карте уже есть данные',
   overwriteBody: 'Перезапись сотрёт её содержимое.',
+  devOptions: 'Параметры разработчика',
+  devUnlocked: 'Параметры разработчика включены',
+  mifare4kToggle: 'Mifare Classic 4K',
+  mifare4kHint: 'Экспериментально — ещё не проверено на настоящей карте',
 };

@@ -8,7 +8,7 @@ export interface ChameleonDevice {
   isConnected(): boolean;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  /** UID + SAK of a tag in the field, or null if none. SAK 0x08 = Mifare Classic 1K, 0x00 = NTAG/Type-2. */
+  /** UID + SAK of a tag in the field, or null if none. SAK 0x08 = Mifare Classic 1K, 0x18/0x38/0x98 = Classic 4K, 0x00 = NTAG/Type-2. */
   scanTag(): Promise<{ uid: Uint8Array; sak: number } | null>;
   /** Send a raw ISO 14443-A frame (with auto-select/CRC options) and return the response. */
   transceive14a(

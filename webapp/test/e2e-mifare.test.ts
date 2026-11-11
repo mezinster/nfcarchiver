@@ -5,6 +5,7 @@ import { encodeChunk, decodeChunk, FLAG_COMPRESSED, FLAG_ENCRYPTED, type Chunk }
 import { CARD_PAYLOAD_SIZE } from '../src/mifare/card-layout.js';
 import { ChameleonBleTransport } from '../src/transport/chameleon-ble.js';
 import { FakeChameleon } from './fake-chameleon.js';
+import { AutoTransport } from '../src/transport/auto-transport.js';
 
 function compressiblePayload(): Uint8Array {
   const words: string[] = [];
@@ -45,4 +46,28 @@ test('archive -> write to fake cards -> shuffled+duplicate scan -> restore', asy
 
   const restored = await restore([...collected.values()], 'e2e');
   assert.deepEqual(restored, original);
+});
+
+test('4K (SAK 0x38) end to end: archive at 3,408 B/card, write, restore', async () => {
+  const original = crypto.getRandomValues(new Uint8Array(7000));
+  const device = new FakeChameleon();
+  const transport = new AutoTransport(device, { pollMs: 1, defaultTimeoutMs: 500, allow4k: () => true });
+  await transport.connect();
+  const chunks = await archive(original, { payloadSize: 3408, compress: false, password: 'e2e' });
+  assert.ok(chunks.length >= 3);
+  const uids = chunks.map((_, i) => new Uint8Array([0x4c, 0, 0, i]));
+  uids.forEach((u) => device.defineCard(u, { sak: 0x38 }));
+  for (let i = 0; i < chunks.length; i++) {
+    device.place(uids[i]!);
+    const tag = await transport.awaitTag();
+    assert.equal(tag.maxChunkPayload, 3408);
+    await transport.writeChunk(encodeChunk(chunks[i]!));
+  }
+  const collected: Chunk[] = [];
+  for (const u of [...uids].reverse()) {
+    device.place(u);
+    await transport.awaitTag();
+    collected.push(decodeChunk(await transport.readChunk()));
+  }
+  assert.deepEqual(await restore(collected, 'e2e'), original);
 });

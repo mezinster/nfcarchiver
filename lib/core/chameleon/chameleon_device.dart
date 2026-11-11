@@ -2,8 +2,9 @@ import 'dart:typed_data';
 
 /// A tag seen in the reader's field.
 ///
-/// SAK 0x08 is a Mifare Classic 1K; SAK 0x00 is an NTAG / Type-2 tag. Those two
-/// values are how every caller routes between the two media.
+/// Callers route on the SAK via `classifySak`: 0x08 is a Mifare Classic 1K;
+/// 0x18, 0x38 and 0x98 are a 4K; 0x00 is an NTAG / Type-2 tag. Anything else
+/// (a 2K 0x19, a Mini 0x09) is unsupported.
 class ScannedTag {
   const ScannedTag({
     required this.uid,
@@ -119,7 +120,7 @@ class CardReadException implements Exception {
   String toString() => 'CardReadException: $message';
 }
 
-/// The tag is neither a Mifare Classic 1K nor an NTAG.
+/// The tag is neither a Mifare Classic (1K or 4K) nor an NTAG.
 ///
 /// The message carries the actual SAK value, and callers that surface it must
 /// keep it: for the card inspector that value IS the result.

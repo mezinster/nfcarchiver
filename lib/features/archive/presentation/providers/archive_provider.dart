@@ -190,6 +190,13 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
 
   final ArchiveRepository _repository;
   String? _password;
+  NfcTagType? _configuredTagType;
+
+  /// The medium the archive was configured for, or null before one is
+  /// prepared. A re-chunk must size payloads for this medium: the phone
+  /// radio reports no tag type for a Mifare Classic card, so the tapped
+  /// tag's own info cannot be trusted to say.
+  TagMedium? get configuredMedium => _configuredTagType?.medium;
 
   /// Every transition leaves a breadcrumb. Emitted per user-visible step
   /// (select, configure, prepare, one chunk written), never per tick.
@@ -315,6 +322,7 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
         );
       }
 
+      _configuredTagType = current.tagType;
       state = ArchiveReady(
         result: result,
         currentChunkIndex: 0,
@@ -413,7 +421,10 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
   ///
   /// Call this when a tag is detected with less capacity than expected.
   /// Returns the new number of chunks needed, or null if rechunking failed.
-  int? rechunkForDetectedCapacity(int detectedNdefCapacity) {
+  int? rechunkForDetectedCapacity(
+    int detectedCapacity, {
+    TagMedium medium = TagMedium.ndef,
+  }) {
     final current = state;
     ArchiveResult? result;
     Set<int> writtenChunks = const {};
@@ -434,7 +445,7 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
 
     try {
       // Calculate max payload for the detected capacity
-      final newPayloadSize = NfcTagType.maxPayloadForCapacity(detectedNdefCapacity);
+      final newPayloadSize = NfcTagType.payloadForCapacity(detectedCapacity, medium);
 
       if (newPayloadSize <= 0) {
         return null; // Tag too small for any data
@@ -471,6 +482,7 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
   /// Reset to initial state.
   void reset() {
     _password = null;
+    _configuredTagType = null;
     state = const ArchiveInitial();
   }
 }

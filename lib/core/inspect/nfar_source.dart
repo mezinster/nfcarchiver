@@ -52,9 +52,11 @@ class SourceUnreadable extends NfarSource {
 NfarSource nfarBytesSoFar(
   List<DumpUnit> units, {
   required bool isClassic,
+  MifareCardSize size = MifareCardSize.k1,
 }) {
+  final usable = size.usableBlocks.toSet();
   final wanted = isClassic
-      ? units.where((u) => usableBlockIndexes.contains(u.index)).toList()
+      ? units.where((u) => usable.contains(u.index)).toList()
       : units.where((u) => u.index >= ndefStartPage).toList();
 
   final parts = <Uint8List>[];

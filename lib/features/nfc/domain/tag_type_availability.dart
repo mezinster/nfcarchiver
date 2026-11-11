@@ -14,9 +14,16 @@ import '../../../core/constants/nfar_format.dart';
 /// either: plain MIFARE Ultralight (48 B) is smaller than the NDEF wrapper plus
 /// the NFAR header and CRC. It stays in the enum so a tapped one is still
 /// recognised.
-List<NfcTagType> selectableTagTypes({required bool mifareAvailable}) =>
+///
+/// [NfcTagType.mifareClassic4k] additionally needs [mifare4kEnabled], the
+/// developer switch: writing 4K is experimental until verified on a real card.
+List<NfcTagType> selectableTagTypes({
+  required bool mifareAvailable,
+  required bool mifare4kEnabled,
+}) =>
     NfcTagType.values
         .where((t) => t != NfcTagType.custom)
         .where((t) => t.maxPayloadSize > 0)
         .where((t) => t.medium != TagMedium.mifareClassic || mifareAvailable)
+        .where((t) => t != NfcTagType.mifareClassic4k || mifare4kEnabled)
         .toList(growable: false);

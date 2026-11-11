@@ -35,6 +35,7 @@ Future<void> runInspection(
 
   NfarDescription nfar = const NfarAbsent('no data read yet');
   final seen = <DumpUnit>[];
+  MifareCardSize? size;
 
   try {
     final result = await dumpCard(
@@ -42,7 +43,10 @@ Future<void> runInspection(
       DumpCallbacks(
         // Before the first read, so identity is on screen in about a second
         // rather than after ~64 BLE round trips.
-        onMeta: (meta) => sink.setIdentity(formatIdentity(meta, _toDiag(diag))),
+        onMeta: (meta) {
+          size = meta.cardSize;
+          sink.setIdentity(formatIdentity(meta, _toDiag(diag)));
+        },
         onUnit: (unit, done, total) {
           seen.add(unit);
           sink.appendRow(formatUnitRow(unit));
@@ -54,15 +58,21 @@ Future<void> runInspection(
           // declared tail is covered the description stops changing.
           if (nfar is NfarAbsent || (nfar as NfarPresent).crcValid == null) {
             final isClassic = unit.sector != null;
-            final src = nfarBytesSoFar(seen, isClassic: isClassic);
+            final src = nfarBytesSoFar(
+              seen,
+              isClassic: isClassic,
+              size: size ?? MifareCardSize.k1,
+            );
             nfar = switch (src) {
-              // Mifare Classic has a fixed known capacity, so a declared
+              // Mifare Classic has a known capacity (1K or 4K, from the dump), so a declared
               // length past it is worth flagging. On NTAG the chunk arrives
               // inside an NDEF envelope whose own TLV length already bounds
               // it, so no capacity is guessed.
               SourceBytes(:final bytes) => describeNfar(
                   bytes,
-                  capacityBytes: isClassic ? cardCapacityBytes : null,
+                  capacityBytes: isClassic
+                      ? (size ?? MifareCardSize.k1).capacityBytes
+                      : null,
                 ),
               SourceNoEnvelope(:final reason) => NfarAbsent(reason),
               SourceForeign(:final reason) => NfarAbsent(reason),
