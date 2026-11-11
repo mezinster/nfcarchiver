@@ -4,8 +4,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/log/log_navigator_observer.dart';
 import 'core/providers/locale_provider.dart';
 import 'features/archive/presentation/screens/archive_settings_screen.dart';
+import 'features/diagnostics/presentation/diagnostics_screen.dart';
 import 'features/file_manager/presentation/screens/file_manager_screen.dart';
 import 'features/archive/presentation/screens/file_picker_screen.dart';
 import 'features/archive/presentation/screens/write_progress_screen.dart';
@@ -18,6 +20,7 @@ import 'shared/widgets/privacy_policy_screen.dart';
 /// Router configuration.
 final _router = GoRouter(
   initialLocation: '/',
+  observers: [LogNavigatorObserver()],
   routes: [
     // Home
     GoRoute(
@@ -32,10 +35,16 @@ final _router = GoRouter(
       routes: [
         GoRoute(
           path: 'settings',
+          // go_router logs a nested route by its last segment; the full
+          // path keeps the nav breadcrumb unambiguous.
+          name: '/archive/settings',
           builder: (context, state) => const ArchiveSettingsScreen(),
         ),
         GoRoute(
           path: 'write',
+          // go_router logs a nested route by its last segment; the full
+          // path keeps the nav breadcrumb unambiguous.
+          name: '/archive/write',
           builder: (context, state) => const WriteProgressScreen(),
         ),
       ],
@@ -45,6 +54,12 @@ final _router = GoRouter(
     GoRoute(
       path: '/files',
       builder: (context, state) => const FileManagerScreen(),
+    ),
+
+    // Diagnostics log
+    GoRoute(
+      path: diagnosticsRoute,
+      builder: (context, state) => const DiagnosticsScreen(),
     ),
 
     // Privacy policy
@@ -60,6 +75,9 @@ final _router = GoRouter(
       routes: [
         GoRoute(
           path: 'complete',
+          // go_router logs a nested route by its last segment; the full
+          // path keeps the nav breadcrumb unambiguous.
+          name: '/restore/complete',
           builder: (context, state) => const RestoreProgressScreen(),
         ),
       ],

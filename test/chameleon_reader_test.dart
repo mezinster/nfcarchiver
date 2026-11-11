@@ -3,10 +3,12 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_archiver/core/chameleon/chameleon_device.dart';
 import 'package:nfc_archiver/core/constants/nfar_format.dart';
+import 'package:nfc_archiver/core/log/logger.dart';
 import 'package:nfc_archiver/core/mifare/card_layout.dart';
 import 'package:nfc_archiver/core/models/chunk.dart';
 import 'package:nfc_archiver/features/nfc/data/chameleon_reader.dart';
 import 'package:nfc_archiver/features/nfc/domain/card_reader.dart';
+import 'package:nfc_archiver/features/nfc/domain/nfc_failure.dart';
 
 import 'support/fake_chameleon_device.dart';
 import 'support/helpers.dart';
@@ -101,7 +103,8 @@ void main() {
     expect(reads, 2);
   });
 
-  test('a foreign card reports an error but does NOT end the session', () async {
+  test('a foreign card reports an error but does NOT end the session',
+      () async {
     // Auth failure means a hotel key on the reader, not a broken session.
     // Ending here would abort a restore because one wrong card was tapped.
     //
@@ -110,37 +113,49 @@ void main() {
     // lives in sector 0, and a non-NFAR card is abandoned there as blank.
     final dev = FakeChameleonDevice.classic1k(
       sectorKeys: {
-        for (var s = 0; s < 16; s++) s: Uint8List.fromList(const [9, 9, 9, 9, 9, 9]),
+        for (var s = 0; s < 16; s++)
+          s: Uint8List.fromList(const [9, 9, 9, 9, 9, 9]),
       },
     );
     await dev.connect();
 
     final reader = _reader(dev);
-    var errors = 0;
+    final errors = <NfcFailureKind>[];
     final stop = await reader.startReadSession(
       onChunkRead: (_, __) {},
-      onError: (_) => errors++,
+      onError: (f) => errors.add(f.kind),
     );
-    await pumpUntil(() => errors > 0);
+    await pumpUntil(() => errors.isNotEmpty);
     expect(reader.isSessionActive, isTrue);
+    expect(errors.first, NfcFailureKind.foreignCard);
     stop();
   });
 
-  test('a blank card is skipped quietly, not reported as an error', () async {
-    // A card with no chunk is a normal thing to tap during a restore.
+  test(
+      'a card without an NFAR chunk reports noArchiveData once and logs it at info',
+      () async {
+    // A blank card is a normal thing to tap during a restore, but the user
+    // must be told why nothing happened. Once per tap: the resting-card guard
+    // keeps a card left on the reader from repeating it every poll.
+    log.clear();
+    addTearDown(log.clear);
     final dev = FakeChameleonDevice.classic1k();
     await dev.connect();
 
-    var errors = 0;
+    final errors = <NfcFailureKind>[];
     var reads = 0;
     final stop = await _reader(dev).startReadSession(
       onChunkRead: (_, __) => reads++,
-      onError: (_) => errors++,
+      onError: (f) => errors.add(f.kind),
     );
-    await Future<void>.delayed(const Duration(milliseconds: 30));
+    await pumpUntil(() => dev.scanCalls >= 3);
     stop();
+
     expect(reads, 0);
-    expect(errors, 0);
+    expect(errors, [NfcFailureKind.noArchiveData]);
+    final infos = log.snapshot().where((e) =>
+        e.level == LogLevel.info && e.message == 'No NFAR chunk on card');
+    expect(infos, hasLength(1));
   });
 
   group('writing', () {
@@ -167,16 +182,67 @@ void main() {
       final dev = FakeChameleonDevice.classic1k()..corruptWrites();
       await dev.connect();
 
-      String? err;
+      NfcFailure? err;
       final stop = await _reader(dev).startWriteSession(
         chunk: aChunk(),
         configuredTagType: NfcTagType.mifareClassic1k,
         onSuccess: (_) {},
-        onError: (m) => err = m,
+        onError: (f) => err = f,
       );
       await pumpUntil(() => err != null);
       stop();
-      expect(err, isNotNull);
+      expect(err!.kind, NfcFailureKind.writeFailed);
+    });
+
+    test('a failed verification keeps card bytes out of the persisted log',
+        () async {
+      log.clear();
+      addTearDown(log.clear);
+      final dev = FakeChameleonDevice.classic1k()..corruptWrites();
+      await dev.connect();
+
+      NfcFailure? err;
+      final stop = await _reader(dev).startWriteSession(
+        chunk: aChunk(),
+        configuredTagType: NfcTagType.mifareClassic1k,
+        onSuccess: (_) {},
+        onError: (f) => err = f,
+      );
+      await pumpUntil(() => err != null);
+      stop();
+
+      final entry =
+          log.snapshot().firstWhere((e) => e.message == 'Verification failed');
+      expect(entry.level, LogLevel.error);
+      final text = entry.formatFull();
+      expect(text, contains('block'));
+      expect(text, isNot(contains('wrote=')));
+      expect(text, isNot(contains('read=')));
+      final dbg = log
+          .snapshot()
+          .where((e) => e.message == 'Verification mismatch bytes');
+      expect(dbg, hasLength(1));
+      expect(dbg.single.level, LogLevel.debug);
+    });
+
+    test('too large with onTagTooSmall reports only too-small', () async {
+      final dev = FakeChameleonDevice.classic1k();
+      await dev.connect();
+
+      var tooSmall = 0;
+      final errors = <NfcFailureKind>[];
+      final stop = await _reader(dev).startWriteSession(
+        chunk: aChunk(payloadLength: cardCapacityBytes + 100),
+        configuredTagType: NfcTagType.mifareClassic1k,
+        onSuccess: (_) {},
+        onError: (f) => errors.add(f.kind),
+        onTagTooSmall: (_, __, ___) => tooSmall++,
+      );
+      await pumpUntil(() => tooSmall > 0);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      stop();
+      expect(tooSmall, 1);
+      expect(errors, isEmpty);
     });
 
     test('a chunk too large for the card is rejected before any write',
@@ -185,15 +251,16 @@ void main() {
       await dev.connect();
       final before = await dev.readBlock(usableBlockIndexes.first, factoryKeyA);
 
-      String? err;
+      NfcFailure? err;
       final stop = await _reader(dev).startWriteSession(
         chunk: aChunk(payloadLength: cardCapacityBytes + 100),
         configuredTagType: NfcTagType.mifareClassic1k,
         onSuccess: (_) {},
-        onError: (m) => err = m,
+        onError: (f) => err = f,
       );
       await pumpUntil(() => err != null);
       stop();
+      expect(err!.kind, NfcFailureKind.writeFailed);
 
       expect(await dev.readBlock(usableBlockIndexes.first, factoryKeyA),
           equals(before),
@@ -245,7 +312,8 @@ void main() {
     expect(reads, 2);
   });
 
-  test('starting a session twice supersedes — it does not stack loops', () async {
+  test('starting a session twice supersedes — it does not stack loops',
+      () async {
     // The first hardware scan hung on exactly this: scan_screen restarts the
     // session on every error, each start spawned another poll loop, and they
     // all raced for a device that permits one command in flight. Only the
@@ -277,8 +345,8 @@ void main() {
     await dev.connect();
     final reader = _reader(dev);
 
-    final stale = await reader.startReadSession(
-        onChunkRead: (_, __) {}, onError: (_) {});
+    final stale =
+        await reader.startReadSession(onChunkRead: (_, __) {}, onError: (_) {});
     await reader.startReadSession(onChunkRead: (_, __) {}, onError: (_) {});
     stale();
 
@@ -308,14 +376,17 @@ void main() {
   });
 
   group('NTAG', () {
-    Future<Chunk?> readOnce(FakeChameleonDevice dev) async {
+    Future<Chunk?> readOnce(
+      FakeChameleonDevice dev, {
+      List<NfcFailureKind> expectedErrors = const [],
+    }) async {
       await dev.connect();
       Chunk? got;
-      final errors = <String>[];
+      final errors = <NfcFailureKind>[];
       var discovered = false;
       final stop = await _reader(dev).startReadSession(
         onChunkRead: (c, _) => got = c,
-        onError: errors.add,
+        onError: (f) => errors.add(f.kind),
         onTagDiscovered: (_) => discovered = true,
       );
       await pumpUntil(() => discovered);
@@ -324,7 +395,7 @@ void main() {
         await pump();
       }
       stop();
-      expect(errors, isEmpty);
+      expect(errors, expectedErrors);
       return got;
     }
 
@@ -347,7 +418,7 @@ void main() {
       expect(got!.payload.length, 400);
     });
 
-    test('a factory-blank NTAG (empty NDEF TLV) is skipped, not an error',
+    test('a factory-blank NTAG (empty NDEF TLV) reports noArchiveData',
         () async {
       final dev = FakeChameleonDevice.ntag215();
       await dev.transceive14a(
@@ -356,7 +427,11 @@ void main() {
         appendCrc: true,
         checkResponseCrc: true,
       );
-      expect(await readOnce(dev), isNull);
+      expect(
+        await readOnce(dev,
+            expectedErrors: const [NfcFailureKind.noArchiveData]),
+        isNull,
+      );
     });
   });
 }

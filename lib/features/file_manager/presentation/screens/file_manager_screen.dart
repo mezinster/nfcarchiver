@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/services/file_actions_service.dart';
 import '../../../../shared/utils/format_utils.dart';
 import '../../../../shared/widgets/file_actions.dart';
+import '../../../diagnostics/presentation/diagnostics_screen.dart';
 import '../../data/file_manager_repository.dart';
 import '../providers/file_manager_provider.dart';
 
@@ -50,7 +52,18 @@ class FileManagerScreen extends ConsumerWidget {
     }
 
     if (state is FileManagerError) {
-      return Center(child: Text(state.message));
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(state.message ?? l10n.somethingWentWrong),
+            TextButton(
+              onPressed: () => context.push(diagnosticsRoute),
+              child: Text(l10n.details),
+            ),
+          ],
+        ),
+      );
     }
 
     final loaded = state as FileManagerLoaded;

@@ -7,7 +7,9 @@ import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/log/logger.dart';
 import '../../../../shared/utils/format_utils.dart';
+import '../../../diagnostics/presentation/diagnostics_screen.dart';
 import '../providers/archive_provider.dart';
 
 /// Provider for tracking the input mode (file or text).
@@ -276,10 +278,17 @@ class _FilePickerScreenState extends ConsumerState<FilePickerScreen> {
             fileName: file.name,
             fileSize: size,
           );
-    } catch (e) {
+    } catch (e, st) {
+      log.report('archive', 'file selection failed', e, st);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorSelectingFile(e.toString()))),
+          SnackBar(
+            content: Text(l10n.somethingWentWrong),
+            action: SnackBarAction(
+              label: l10n.details,
+              onPressed: () => context.push(diagnosticsRoute),
+            ),
+          ),
         );
       }
     }

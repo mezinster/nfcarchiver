@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nfc_archiver/core/models/chunk.dart';
 import 'package:nfc_archiver/core/models/nfc_tag_info.dart';
 import 'package:nfc_archiver/features/nfc/domain/card_reader.dart';
+import 'package:nfc_archiver/features/nfc/domain/nfc_failure.dart';
 import 'package:nfc_archiver/features/nfc/presentation/providers/nfc_provider.dart';
 import 'package:nfc_archiver/features/restore/data/restore_repository.dart';
 import 'package:nfc_archiver/features/restore/presentation/providers/restore_provider.dart';
@@ -122,7 +123,7 @@ void main() {
       (tester) async {
     await pumpScreen(tester);
     for (var i = 0; i < 5; i++) {
-      reader.lastOnError!('System resource unavailable');
+      reader.lastOnError!(const NfcFailure(NfcFailureKind.readFailed));
       await tester.pump(const Duration(seconds: 1));
       await tester.pump();
     }

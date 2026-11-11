@@ -96,9 +96,9 @@ Future<void> runInspection(
     // value IS the result. A generic string would discard the finding.
     sink.setStatus(e.message);
     log.warn('inspect', 'Unsupported tag', {'why': e.message});
-  } catch (e) {
-    sink.setStatus('$e');
-    log.error('inspect', 'Inspection failed', {'error': '$e'});
+  } catch (e, st) {
+    sink.setStatus(s.failed);
+    log.report('inspect', 'Inspection failed', e, st);
   }
 }
 

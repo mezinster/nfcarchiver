@@ -42,6 +42,7 @@ class _InspectDialogState extends ConsumerState<InspectDialog> {
               cardLost: l10n.inspectCardLost,
               reading: l10n.inspectReading,
               read: l10n.inspectRead,
+              failed: l10n.somethingWentWrong,
             ),
           );
     });

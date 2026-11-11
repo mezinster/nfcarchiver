@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../diagnostics/presentation/diagnostics_screen.dart';
 import '../../../inspect/presentation/screens/inspect_dialog.dart';
 import '../../data/ble_scanner.dart';
 import '../providers/reader_provider.dart';
@@ -130,11 +132,21 @@ class _ReaderPickerScreenState extends ConsumerState<ReaderPickerScreen> {
                 if (reader.error != null)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      l10n.readerConnectFailed,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.readerConnectFailed,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => context.push(diagnosticsRoute),
+                          child: Text(l10n.details),
+                        ),
+                      ],
                     ),
                   ),
                 if (_unavailable != null)

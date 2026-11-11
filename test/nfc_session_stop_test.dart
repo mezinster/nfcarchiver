@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_archiver/core/constants/nfar_format.dart';
 import 'package:nfc_archiver/core/models/chunk.dart';
 import 'package:nfc_archiver/features/nfc/domain/card_reader.dart';
+import 'package:nfc_archiver/features/nfc/domain/nfc_failure.dart';
 import 'package:nfc_archiver/features/nfc/presentation/providers/nfc_provider.dart';
 
 import 'support/fake_card_reader.dart';
@@ -47,7 +48,7 @@ void main() {
 
   test('errors still arrive as errors', () async {
     await notifier.startReadSession();
-    reader.lastOnError!('Session invalidated unexpectedly');
+    reader.lastOnError!(const NfcFailure(NfcFailureKind.readFailed));
     expect(notifier.state, isA<NfcSessionError>());
   });
 

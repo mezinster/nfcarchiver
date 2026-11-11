@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../core/constants/nfar_format.dart';
+import '../../../core/log/logger.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/services/chunker_service.dart';
 import '../../../core/services/compression_service.dart';
@@ -93,8 +94,9 @@ class RestoreRepository {
     Uint8List data;
     try {
       data = _chunkerService.assembleChunks(chunks);
-    } catch (e) {
-      throw RestoreException('Failed to assemble chunks: $e');
+    } catch (e, st) {
+      log.report('restore', 'assemble failed', e, st);
+      throw const RestoreException('Failed to assemble chunks');
     }
 
     final flags = session.flags;

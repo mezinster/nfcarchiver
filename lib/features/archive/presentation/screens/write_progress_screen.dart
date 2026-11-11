@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/nfar_format.dart';
+import '../../../diagnostics/presentation/diagnostics_screen.dart';
 import '../../../nfc/nfc.dart';
 import '../providers/archive_provider.dart';
 
@@ -93,10 +94,18 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
           SnackBar(content: Text(message)),
         );
       } else if (next is NfcSessionError) {
-        // Error writing
-        ref.read(archiveProvider.notifier).writeError(next.message);
+        // Error writing: translated here; the exception is in the log.
+        final l10n = AppLocalizations.of(context)!;
+        final message = nfcFailureText(next.failure, l10n);
+        ref.read(archiveProvider.notifier).writeError(message);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.message)),
+          SnackBar(
+            content: Text(message),
+            action: SnackBarAction(
+              label: l10n.details,
+              onPressed: () => context.push(diagnosticsRoute),
+            ),
+          ),
         );
       }
     });
@@ -511,7 +520,7 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            state.message,
+            state.message ?? l10n.somethingWentWrong,
             style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
@@ -524,6 +533,10 @@ class _WriteProgressScreenState extends ConsumerState<WriteProgressScreen> {
               child: Text(l10n.tryAgain),
             ),
           const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => context.push(diagnosticsRoute),
+            child: Text(l10n.details),
+          ),
           TextButton(
             onPressed: () {
               ref.read(archiveProvider.notifier).reset();

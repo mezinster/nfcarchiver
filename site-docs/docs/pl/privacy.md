@@ -49,7 +49,7 @@ Jeśli zapomnisz hasła, nikt nie odzyska pliku, także my.
 
 ## Dzienniki diagnostyczne
 
-Aplikacja prowadzi krótki dziennik diagnostyczny w pamięci Twojego urządzenia. Nie jest zapisywany na żadnym serwerze i znika po zamknięciu aplikacji. Nic nie jest wysyłane, dopóki sam go nie udostępnisz, na przykład raportu z analizy karty, który zdecydujesz się udostępnić.
+Aplikacja prowadzi na Twoim urządzeniu dziennik diagnostyczny: co robiła i jakie błędy napotkała, aby można było badać problemy. Jest on przechowywany w małym pliku, który jest automatycznie rotowany, i nigdy nie zawiera Twoich plików, nazw plików ani haseł. Nigdy nie jest nigdzie wysyłany. Opuszcza urządzenie tylko wtedy, gdy sam go udostępnisz — z sekcji **O aplikacji → Dziennik diagnostyczny**, gdzie możesz go także w każdej chwili wyczyścić.
 
 ## Usługi stron trzecich
 

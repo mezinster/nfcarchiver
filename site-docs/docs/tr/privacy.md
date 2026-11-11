@@ -49,7 +49,7 @@ Parolayı unutursanız dosyayı kimse, biz de dahil, geri getiremez.
 
 ## Tanılama günlükleri
 
-Uygulama, cihazınızın belleğinde kısa bir tanılama günlüğü tutar. Hiçbir sunucuya yazılmaz ve uygulama kapandığında silinir. Siz kendiniz paylaşmadıkça, örneğin paylaşmayı seçtiğiniz bir kart inceleme raporu gibi, hiçbir şey gönderilmez.
+Uygulama cihazınızda bir tanılama günlüğü tutar: ne yaptığını ve karşılaştığı hataları, böylece sorunlar incelenebilir. Günlük, otomatik olarak döndürülen küçük bir dosyada saklanır ve dosyalarınızı, dosya adlarınızı veya parolalarınızı asla içermez. Hiçbir yere gönderilmez. Cihazınızdan yalnızca siz kendiniz paylaşırsanız ayrılır — **Hakkında → Tanılama günlüğü** bölümünden; günlüğü istediğiniz zaman oradan temizleyebilirsiniz.
 
 ## Üçüncü taraf hizmetleri
 

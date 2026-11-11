@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/log/logger.dart';
 import '../../../../core/models/chunk.dart';
 import '../../../../core/services/chunker_service.dart';
 import '../../data/restore_repository.dart';
+import '../../../nfc/nfc.dart';
 
 /// State for restore scanning process.
 sealed class RestoreState {
@@ -20,11 +22,22 @@ class RestoreScanning extends RestoreState {
     this.sessions = const [],
     this.lastScannedChunk,
     this.lastError,
+    this.lastErrorKind,
   });
 
   final List<RestoreSessionInfo> sessions;
   final ScannedChunkInfo? lastScannedChunk;
   final String? lastError;
+
+  /// What kind of failure [lastError] describes, so the screen can pick its
+  /// styling and hint without comparing translated text. Null when the message
+  /// did not come from a tag failure.
+  final NfcFailureKind? lastErrorKind;
+
+  /// [lastError] is an expected outcome (a tag with no archive data), not a
+  /// fault: shown as a notice, not an error.
+  bool get lastErrorNeutral =>
+      lastErrorKind != null && isNeutral(NfcFailure(lastErrorKind!));
 }
 
 /// Archive is complete, ready to restore.
@@ -63,13 +76,15 @@ class RestoreComplete extends RestoreState {
 /// Error during restore.
 class RestoreError extends RestoreState {
   const RestoreError({
-    required this.message,
+    this.message,
     this.canRetry = true,
     this.session,
     this.corruptedChunks = const [],
   });
 
-  final String message;
+  /// App-authored text only ([RestoreException.message]); null means an
+  /// unexpected failure that went to the diagnostics log.
+  final String? message;
   final bool canRetry;
   /// Session preserved for retry (if available)
   final RestoreSession? session;
@@ -77,7 +92,7 @@ class RestoreError extends RestoreState {
   final List<int> corruptedChunks;
 
   bool get hasCorruptedChunks => corruptedChunks.isNotEmpty;
-  bool get isDecryptionError => message.contains('Decryption failed');
+  bool get isDecryptionError => message?.contains('Decryption failed') ?? false;
 }
 
 /// Information about a scanned chunk.
@@ -116,11 +131,54 @@ class RestoreSessionInfo {
   double get progress => totalChunks > 0 ? receivedCount / totalChunks : 0.0;
 }
 
+/// Breadcrumb fields for the log, from an explicit allow-list: counts, flags,
+/// archive ID. Never a file name, path, password or message text.
+Map<String, Object?>? _breadcrumbData(RestoreState s) => switch (s) {
+      RestoreScanning() => {
+          'sessions': s.sessions.length,
+          if (s.lastScannedChunk != null) ...{
+            'archiveId': s.lastScannedChunk!.archiveId,
+            'chunk': s.lastScannedChunk!.chunkIndex,
+            'chunks': s.lastScannedChunk!.totalChunks,
+            'new': s.lastScannedChunk!.isNew,
+          },
+          if (s.lastErrorKind != null) 'errorKind': s.lastErrorKind!.name,
+        },
+      RestoreReady() => {
+          'archiveId': s.session.archiveIdString,
+          'chunks': s.session.totalChunks,
+          'needsPassword': s.needsPassword,
+        },
+      RestoreInProgress() => {'archiveId': s.archiveId},
+      RestoreComplete() => {
+          'chunks': s.result.totalChunks,
+          'size': s.result.data.length,
+          'encrypted': s.result.wasEncrypted,
+          'compressed': s.result.wasCompressed,
+        },
+      RestoreError() => {
+          'hasMessage': s.message != null,
+          'canRetry': s.canRetry,
+          'corrupted': s.corruptedChunks.length,
+        },
+      RestoreInitial() => null,
+    };
+
 /// Notifier for restore state management.
 class RestoreNotifier extends StateNotifier<RestoreState> {
-  RestoreNotifier() : super(const RestoreInitial());
+  RestoreNotifier({RestoreRepository? repository})
+      : _repository = repository ?? RestoreRepository.instance,
+        super(const RestoreInitial());
 
-  final _repository = RestoreRepository.instance;
+  final RestoreRepository _repository;
+
+  /// Every transition leaves a breadcrumb. One per scanned tag or restore
+  /// step, never per tick.
+  @override
+  set state(RestoreState value) {
+    log.info('restore', 'state ${value.runtimeType}', _breadcrumbData(value));
+    super.state = value;
+  }
 
   /// Start scanning for tags. Loads persisted sessions from disk first.
   Future<void> startScanning() async {
@@ -181,13 +239,14 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
   }
 
   /// Handle scan error.
-  void scanError(String message) {
+  void scanError(String message, {NfcFailureKind? kind}) {
     final current = state;
     if (current is RestoreScanning) {
       state = RestoreScanning(
         sessions: current.sessions,
         lastScannedChunk: current.lastScannedChunk,
         lastError: message,
+        lastErrorKind: kind,
       );
     }
   }
@@ -273,9 +332,10 @@ class RestoreNotifier extends StateNotifier<RestoreState> {
         canRetry: true,
         session: session,
       );
-    } catch (e) {
+    } catch (e, st) {
+      log.report('restore', 'restore failed', e, st);
       state = RestoreError(
-        message: e.toString(),
+        message: null,
         canRetry: true,
         session: session,
       );

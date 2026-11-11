@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_archiver/features/nfc/domain/ndef_availability.dart';
+import 'package:nfc_archiver/features/nfc/domain/nfc_failure.dart';
 
 void main() {
   group('classifyNdefUnavailable', () {
@@ -40,19 +41,15 @@ void main() {
       );
     });
 
-    test('the failed-detection message invites a retry', () {
-      final message =
-          messageFor(NdefUnavailableReason.detectionFailed);
-      expect(message.toLowerCase(), contains('again'));
-      // It must not tell the user to go find a different tag: the tag is fine.
-      expect(message.toLowerCase(), isNot(contains('pre-formatted')));
+    test('a failed detection maps to detectionFailed (a retry)', () {
+      // Distinct from notNdefFormatted: the tag is fine, the tap was not.
+      expect(failureFor(NdefUnavailableReason.detectionFailed).kind,
+          NfcFailureKind.detectionFailed);
     });
 
-    test('the not-formatted message points at the tag, not a retry', () {
-      final message =
-          messageFor(NdefUnavailableReason.notNdefFormatted);
-      expect(message.toLowerCase(), contains('ndef'));
-      expect(message, isNot(equals(messageFor(NdefUnavailableReason.detectionFailed))));
+    test('a non-NDEF tag maps to notNdefFormatted', () {
+      expect(failureFor(NdefUnavailableReason.notNdefFormatted).kind,
+          NfcFailureKind.notNdefFormatted);
     });
   });
 
@@ -104,10 +101,9 @@ void main() {
       );
     });
 
-    test('its message names the hardware limit, not a retry', () {
-      final message = messageFor(NdefUnavailableReason.mifareUnsupported);
-      expect(message.toLowerCase(), contains('mifare'));
-      expect(message.toLowerCase(), isNot(contains('again')));
+    test('it maps to mifareUnsupported, not a retry', () {
+      expect(failureFor(NdefUnavailableReason.mifareUnsupported).kind,
+          NfcFailureKind.mifareUnsupported);
     });
   });
 }

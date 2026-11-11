@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/nfar_format.dart';
+import '../../../../core/log/logger.dart';
 import '../../../../core/models/chunk.dart';
 import '../../data/archive_repository.dart';
 
@@ -133,20 +134,70 @@ class ArchiveComplete extends ArchiveState {
 /// Error during archive process.
 class ArchiveError extends ArchiveState {
   const ArchiveError({
-    required this.message,
+    this.message,
     this.canRetry = true,
   });
 
-  final String message;
+  /// App-authored text only ([ArchiveException.message]). Null means an
+  /// unexpected failure: the cause is in the diagnostics log and the screen
+  /// shows the localized generic message.
+  final String? message;
   final bool canRetry;
+}
+
+/// Breadcrumb fields for the log, built per state class from an explicit
+/// allow-list: sizes, counts, tag type, option flags, archive ID. Never a file
+/// name, path, password, text content or message text (an error message can
+/// embed a path). A state class not listed here logs nothing.
+Map<String, Object?>? _breadcrumbData(ArchiveState s) {
+  Map<String, Object?> chunks(ArchiveResult r, int index, Set<int> written) => {
+        if (r.chunks.isNotEmpty) 'archiveId': r.chunks.first.archiveIdString,
+        'chunk': index,
+        'chunks': r.chunks.length,
+        'written': written.length,
+        'originalSize': r.originalSize,
+        'processedSize': r.processedSize,
+        'compressed': r.wasCompressed,
+        'encrypted': r.wasEncrypted,
+      };
+  return switch (s) {
+    ArchiveFileSelected() => {'size': s.fileSize},
+    ArchiveTextSelected() => {'size': s.textSize},
+    ArchiveConfiguring() => {
+        'size': s.fileSize,
+        'tagType': s.tagType.name,
+        'compress': s.compress,
+        'encrypt': s.encrypt,
+        'text': s.isTextMode,
+      },
+    ArchiveReady() => chunks(s.result, s.currentChunkIndex, s.writtenChunks),
+    ArchiveWriting() => chunks(s.result, s.currentChunkIndex, s.writtenChunks),
+    ArchiveComplete() => {
+        if (s.result.chunks.isNotEmpty)
+          'archiveId': s.result.chunks.first.archiveIdString,
+        'tags': s.totalTags,
+      },
+    ArchiveError() => {'hasMessage': s.message != null, 'canRetry': s.canRetry},
+    ArchiveInitial() || ArchivePreparing() => null,
+  };
 }
 
 /// Notifier for archive creation state.
 class ArchiveNotifier extends StateNotifier<ArchiveState> {
-  ArchiveNotifier() : super(const ArchiveInitial());
+  ArchiveNotifier({ArchiveRepository? repository})
+      : _repository = repository ?? ArchiveRepository.instance,
+        super(const ArchiveInitial());
 
-  final _repository = ArchiveRepository.instance;
+  final ArchiveRepository _repository;
   String? _password;
+
+  /// Every transition leaves a breadcrumb. Emitted per user-visible step
+  /// (select, configure, prepare, one chunk written), never per tick.
+  @override
+  set state(ArchiveState value) {
+    log.info('archive', 'state ${value.runtimeType}', _breadcrumbData(value));
+    super.state = value;
+  }
 
   /// Select a file to archive.
   void selectFile({
@@ -269,8 +320,11 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
         currentChunkIndex: 0,
         writtenChunks: const {},
       );
-    } catch (e) {
-      state = ArchiveError(message: e.toString());
+    } on ArchiveException catch (e) {
+      state = ArchiveError(message: e.message);
+    } catch (e, st) {
+      log.report('archive', 'prepare failed', e, st);
+      state = const ArchiveError();
     }
   }
 
@@ -399,7 +453,8 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
       );
 
       return newResult.chunks.length;
-    } catch (e) {
+    } catch (e, st) {
+      log.report('archive', 'rechunk failed', e, st);
       return null;
     }
   }

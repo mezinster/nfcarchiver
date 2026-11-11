@@ -48,7 +48,7 @@ class NdefTagCodec implements TagCodec {
   Future<void> writeChunk(NfcTag tag, Chunk chunk) async {
     final ndef = _ioFor(tag)!;
     if (!ndef.isWritable) {
-      throw StateError('Tag is not writable');
+      throw TagNotWritableException();
     }
     await ndef.write(_formatter.chunkToNdef(chunk));
   }

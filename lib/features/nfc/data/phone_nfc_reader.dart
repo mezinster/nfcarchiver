@@ -3,6 +3,7 @@ import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
 import '../../../core/chameleon/chameleon_device.dart';
 import '../domain/card_reader.dart';
+import '../domain/nfc_failure.dart';
 import 'nfc_capabilities.dart';
 import 'nfc_repository.dart';
 
@@ -58,7 +59,7 @@ class PhoneNfcReader implements CardReader {
   @override
   Future<void Function()> startReadSession({
     required void Function(Chunk chunk, NfcTagInfo tagInfo) onChunkRead,
-    required void Function(String message) onError,
+    required void Function(NfcFailure failure) onError,
     void Function(NfcTagInfo tagInfo)? onTagDiscovered,
     void Function(ScanStop reason)? onStopped,
     String alertMessage = 'Hold your device near an NFC tag',
@@ -80,7 +81,7 @@ class PhoneNfcReader implements CardReader {
     required Chunk chunk,
     required NfcTagType configuredTagType,
     required void Function(NfcTagInfo tagInfo) onSuccess,
-    required void Function(String message) onError,
+    required void Function(NfcFailure failure) onError,
     void Function(int requiredSize, int detectedCapacity, NfcTagInfo? tagInfo)?
         onTagTooSmall,
     void Function(String tappedMedium, String configuredMedium,

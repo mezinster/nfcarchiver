@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/chameleon/ble_chameleon_device.dart';
+import '../../../../core/log/logger.dart';
 import '../../data/chameleon_reader.dart';
 import '../../data/phone_nfc_reader.dart';
 import '../../domain/card_reader.dart';
@@ -56,6 +57,14 @@ class ReaderController extends StateNotifier<ReaderState> {
           isConnected: false,
         ));
 
+  /// One breadcrumb per reader change (not per rebuild: listeners never write).
+  @override
+  set state(ReaderState value) {
+    log.info('reader', 'switched',
+        {'kind': value.kind.name, 'connected': value.isConnected});
+    super.state = value;
+  }
+
   final CardReader Function() _makePhone;
   final CardReader Function(String deviceId) _makeChameleon;
 
@@ -79,7 +88,8 @@ class ReaderController extends StateNotifier<ReaderState> {
     final next = _makeChameleon(deviceId);
     try {
       await next.connect();
-    } catch (e) {
+    } catch (e, st) {
+      log.report('reader', 'chameleon connect failed', e, st);
       // The web app's failHandOff lesson: a connect that fails AFTER teardown
       // would otherwise leave the UI reading "connected", with every listener
       // still believing it — a real true->false transition that fires no
@@ -94,7 +104,9 @@ class ReaderController extends StateNotifier<ReaderState> {
         reader: _makePhone(),
         kind: ReaderKind.phone,
         isConnected: false,
-        error: e.toString(),
+        // Marker only: the picker shows its own localized text and the
+        // cause is in the diagnostics log.
+        error: 'connect-failed',
       );
       return;
     }

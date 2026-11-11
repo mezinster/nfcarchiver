@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/log/logger.dart';
 import '../../data/file_manager_repository.dart';
 
 /// Lightweight provider for storage info, used by the home screen indicator.
@@ -28,9 +29,10 @@ class FileManagerLoaded extends FileManagerState {
 }
 
 class FileManagerError extends FileManagerState {
-  const FileManagerError(this.message);
+  const FileManagerError([this.message]);
 
-  final String message;
+  /// Always null today: nothing app-authored is thrown while listing files.
+  final String? message;
 }
 
 /// Provider for the file manager screen.
@@ -40,12 +42,14 @@ final fileManagerProvider =
 );
 
 class FileManagerNotifier extends StateNotifier<FileManagerState> {
-  FileManagerNotifier(this._ref) : super(const FileManagerLoading()) {
+  FileManagerNotifier(this._ref, {FileManagerRepository? repository})
+      : _repo = repository ?? FileManagerRepository.instance,
+        super(const FileManagerLoading()) {
     loadFiles();
   }
 
   final Ref _ref;
-  final _repo = FileManagerRepository.instance;
+  final FileManagerRepository _repo;
 
   Future<void> loadFiles() async {
     state = const FileManagerLoading();
@@ -53,8 +57,9 @@ class FileManagerNotifier extends StateNotifier<FileManagerState> {
       final files = await _repo.listFiles();
       final storageInfo = await _repo.getStorageInfo();
       state = FileManagerLoaded(files: files, storageInfo: storageInfo);
-    } catch (e) {
-      state = FileManagerError(e.toString());
+    } catch (e, st) {
+      log.report('files', 'load files failed', e, st);
+      state = const FileManagerError();
     }
   }
 

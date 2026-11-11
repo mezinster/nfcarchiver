@@ -1,6 +1,8 @@
 import 'dart:developer' as developer;
+import 'dart:io' show FileSystemException;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 
 /// Structured logging for the app.
 ///
@@ -40,6 +42,7 @@ class LogEntry {
     required this.scope,
     required this.message,
     this.data,
+    this.detail,
   });
 
   final int seq;
@@ -49,6 +52,10 @@ class LogEntry {
   final String message;
   final Map<String, Object?>? data;
 
+  /// Multi-line extra context (exception fields, stack). Kept out of
+  /// [format] so that stays one greppable line.
+  final String? detail;
+
   /// One line, stable and greppable — the format a bug report gets pasted as.
   String format() {
     final t = at.toUtc().toIso8601String().substring(11, 23);
@@ -56,6 +63,13 @@ class LogEntry {
         ? ''
         : ' ${data!.entries.map((e) => '${e.key}=${e.value}').join(' ')}';
     return '$t ${level.label.padRight(5)} [$scope] $message$tail';
+  }
+
+  /// [format], then each [detail] line indented by four spaces.
+  String formatFull() {
+    final d = detail;
+    if (d == null || d.isEmpty) return format();
+    return '${format()}\n${d.split('\n').map((l) => '    $l').join('\n')}';
   }
 }
 
@@ -82,23 +96,46 @@ class Logger {
 
   void clear() => _entries.clear();
 
-  void debug(String scope, String message, [Map<String, Object?>? data]) =>
-      _add(LogLevel.debug, scope, message, data);
+  /// Longest [LogEntry.detail] kept; longer text is cut and marked.
+  static const int maxDetailChars = 8192;
 
-  void info(String scope, String message, [Map<String, Object?>? data]) =>
-      _add(LogLevel.info, scope, message, data);
+  final List<void Function(LogEntry)> _listeners = [];
 
-  void warn(String scope, String message, [Map<String, Object?>? data]) =>
-      _add(LogLevel.warn, scope, message, data);
+  /// Called for every recorded entry (after the level filter).
+  void addListener(void Function(LogEntry) l) => _listeners.add(l);
 
-  void error(String scope, String message, [Map<String, Object?>? data]) =>
-      _add(LogLevel.error, scope, message, data);
+  void removeListener(void Function(LogEntry) l) => _listeners.remove(l);
+
+  @visibleForTesting
+  int get listenerCount => _listeners.length;
+
+  void debug(String scope, String message,
+          [Map<String, Object?>? data, String? detail]) =>
+      _add(LogLevel.debug, scope, message, data, detail);
+
+  void info(String scope, String message,
+          [Map<String, Object?>? data, String? detail]) =>
+      _add(LogLevel.info, scope, message, data, detail);
+
+  void warn(String scope, String message,
+          [Map<String, Object?>? data, String? detail]) =>
+      _add(LogLevel.warn, scope, message, data, detail);
+
+  void error(String scope, String message,
+          [Map<String, Object?>? data, String? detail]) =>
+      _add(LogLevel.error, scope, message, data, detail);
+
+  /// Logs at `error` with the exception (and stack) as [LogEntry.detail].
+  void report(String scope, String message, Object error,
+          [StackTrace? stack, Map<String, Object?>? data]) =>
+      _add(LogLevel.error, scope, message, data, errorDetail(error, stack));
 
   void _add(
     LogLevel level,
     String scope,
     String message,
     Map<String, Object?>? data,
+    String? detail,
   ) {
     if (level.rank < minLevel.rank) return;
 
@@ -109,13 +146,14 @@ class Logger {
       scope: scope,
       message: message,
       data: data,
+      detail: detail,
     );
 
     _entries.add(entry);
     if (_entries.length > capacity) _entries.removeAt(0);
 
     if (mirrorToConsole) {
-      final line = entry.format();
+      final line = entry.formatFull();
       // BOTH destinations, because they are genuinely different streams and
       // the first hardware session proved it: developer.log() reaches only the
       // VM service (DevTools' Logging view) and appears in NEITHER `flutter
@@ -126,15 +164,54 @@ class Logger {
       debugPrint('nfar: $line');
       developer.log(line, name: 'nfar.$scope');
     }
+
+    for (final l in List.of(_listeners)) {
+      try {
+        l(entry);
+      } catch (_) {
+        // A faulty listener must never break logging.
+      }
+    }
   }
+}
+
+/// Exception text for [LogEntry.detail]: PlatformException fields on separate
+/// lines, otherwise `toString()`, then the stack; capped to
+/// [Logger.maxDetailChars].
+///
+/// A [FileSystemException] is rendered WITHOUT its path: `toString()` embeds
+/// the full path, i.e. the user's file name, and a shared log must be safe to
+/// send to the developer.
+String errorDetail(Object error, StackTrace? stack) {
+  final b = StringBuffer();
+  if (error is PlatformException) {
+    b
+      ..writeln('code: ${error.code}')
+      ..writeln('message: ${error.message}')
+      ..write('details: ${error.details}');
+  } else if (error is FileSystemException) {
+    b.write('${error.runtimeType}: ${error.message}');
+    final os = error.osError;
+    if (os != null) {
+      b.write(' (OS error: ${os.message}, errno = ${os.errorCode})');
+    }
+  } else {
+    b.write(error.toString());
+  }
+  if (stack != null) b.write('\n$stack');
+  final s = b.toString();
+  if (s.length <= Logger.maxDetailChars) return s;
+  return '${s.substring(0, Logger.maxDetailChars)}… [truncated]';
 }
 
 /// Uppercase, space-separated hex — the form that can be compared against a
 /// protocol document or pasted into a bug report without re-formatting.
 String hexDump(Uint8List bytes, {int max = 64}) {
-  final shown = bytes.length <= max ? bytes : Uint8List.sublistView(bytes, 0, max);
-  final body =
-      shown.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
+  final shown =
+      bytes.length <= max ? bytes : Uint8List.sublistView(bytes, 0, max);
+  final body = shown
+      .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
+      .join(' ');
   return bytes.length <= max ? body : '$body … (${bytes.length} B)';
 }
 

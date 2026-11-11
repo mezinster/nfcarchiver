@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/log/logger.dart';
+import '../../../diagnostics/presentation/diagnostics_screen.dart';
 import '../../../nfc/nfc.dart';
 import '../providers/restore_provider.dart';
 
@@ -31,6 +35,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
   /// used to stop it, so an iOS sheet could open over the next screen.
   @override
   void dispose() {
+    _rearmTimer?.cancel();
     final nfcSession = _nfcSession;
     // After the frame: stopping changes provider state, which must not happen
     // while the tree is being torn down.
@@ -45,6 +50,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     if (!mounted) return;
     _startNfcSession();
   }
+
+  /// The pending re-arm after a neutral notice. One at a time: two quick
+  /// notices must not arm two sessions, and any other event supersedes it.
+  Timer? _rearmTimer;
 
   /// Consecutive failures with no successful read in between.
   int _consecutiveErrors = 0;
@@ -73,6 +82,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     // A BLE reader can take a moment to answer; the user may have left.
     if (!mounted) return;
     if (!nfcAvailable) {
+      log.warn('restore', 'NFC not available');
       final l10n = AppLocalizations.of(context);
       ref.read(restoreProvider.notifier).scanError(l10n?.nfcUnavailable ?? 'NFC is not available');
       return;
@@ -91,6 +101,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
 
     // Listen to NFC session changes
     ref.listen(nfcSessionProvider, (previous, next) {
+      // Whatever happened, a re-arm still waiting from a neutral notice is
+      // stale: the event below decides what comes next.
+      if (next is NfcSessionReadSuccess ||
+          next is NfcSessionError ||
+          next is NfcSessionStopped) {
+        _rearmTimer?.cancel();
+      }
       if (next is NfcSessionReadSuccess) {
         // Progress resets the failure budget: a pile of cards with one bad
         // read in the middle is normal use, not a stuck reader.
@@ -110,8 +127,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
                     : (l10n?.chunkAlreadyScanned(number, chunk.totalChunks) ?? ''),
                 problem: !info.isNew,
               );
-        } catch (e) {
-          ref.read(restoreProvider.notifier).scanError(e.toString());
+        } catch (e, st) {
+          log.report('restore', 'processChunk failed', e, st);
+          ref
+              .read(restoreProvider.notifier)
+              .scanError(AppLocalizations.of(context)!.somethingWentWrong);
         }
 
         // That chunk completed the archive: the screen is about to leave for
@@ -122,7 +142,26 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         // see IosNfcSession).
         _startNfcSession();
       } else if (next is NfcSessionError) {
-        ref.read(restoreProvider.notifier).scanError(next.message);
+        final text =
+            nfcFailureText(next.failure, AppLocalizations.of(context)!);
+        if (isNeutral(next.failure)) {
+          // A tag with no archive data is not a fault, so it is DELIBERATELY
+          // excluded from the error budget: a user tapping many blank tags
+          // must never be halted. That relies on readers reporting
+          // noArchiveData once per presented card (the Chameleon dedupes by
+          // UID; the phone radio needs a physical tap), so the loop cannot
+          // spin. The re-arm is still paced by _retryFloor.
+          ref
+              .read(restoreProvider.notifier)
+              .scanError(text, kind: next.failure.kind);
+          _rearmTimer = Timer(_retryFloor, () {
+            if (mounted) _startNfcSession();
+          });
+          return;
+        }
+        ref
+            .read(restoreProvider.notifier)
+            .scanError(text, kind: next.failure.kind);
         // Continue scanning despite error — but PACED and BOUNDED.
         //
         // Restarting immediately is safe with the phone's radio, where a
@@ -165,6 +204,51 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         ],
       ),
       body: _buildBody(context, state, nfcState),
+    );
+  }
+
+  Widget _buildNotice(BuildContext context, RestoreScanning state) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final neutral = state.lastErrorNeutral;
+    final fg = neutral ? scheme.onSurfaceVariant : scheme.onErrorContainer;
+    final message = state.lastError!;
+    final kind = state.lastErrorKind;
+    final String? hint = neutral
+        ? l10n.nfcNoArchiveDataHint
+        : (kind == NfcFailureKind.readFailed ||
+                kind == NfcFailureKind.detectionFailed)
+            ? l10n.nfcReadFailedHint
+            : null;
+    return Card(
+      color: neutral ? scheme.surfaceContainerHighest : scheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(neutral ? Icons.info_outline : Icons.warning, color: fg),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(message, style: TextStyle(color: fg)),
+                  if (hint != null)
+                    Text(hint, style: TextStyle(color: fg, fontSize: 12)),
+                  if (!neutral)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () => context.push(diagnosticsRoute),
+                        child: Text(l10n.details),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -345,32 +429,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
             const SizedBox(height: 16),
           ],
 
-          // Error message
+          // Error message, or a neutral notice
           if (state.lastError != null) ...[
-            Card(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning,
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        state.lastError!,
-                        style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildNotice(context, state),
             const SizedBox(height: 16),
           ],
 
@@ -440,7 +501,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            state.message,
+            state.message ?? l10n.somethingWentWrong,
             style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
@@ -450,6 +511,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
               onPressed: _startScanning,
               child: Text(l10n.tryAgain),
             ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => context.push(diagnosticsRoute),
+            child: Text(l10n.details),
+          ),
         ],
       ),
     );
