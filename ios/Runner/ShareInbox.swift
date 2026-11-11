@@ -67,8 +67,11 @@ final class ShareInbox {
     let inbox = container.appendingPathComponent(Self.inboxName, isDirectory: true)
     guard
       let items = try? fm.contentsOfDirectory(
-        at: inbox, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]),
-      let item = items.first(where: { $0.hasDirectoryPath })
+        at: inbox, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]),
+      // Asked of the file system, not read off a trailing slash in the URL.
+      let item = items.first(where: {
+        (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+      })
     else { return nil }
 
     // Only this item is deleted, never the whole inbox: a share swapped in
