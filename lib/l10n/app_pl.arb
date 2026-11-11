@@ -224,5 +224,6 @@
   "photoBackToAuto": "Wróć do auto",
   "photoSkip": "Pomiń (zachowaj oryginał)",
   "photoContinue": "Dalej",
-  "photoCannotRead": "Tego zdjęcia nie można tu odczytać. Użyj „Pomiń”, aby zarchiwizować oryginalny plik."
+  "photoCannotRead": "Tego zdjęcia nie można tu odczytać. Użyj „Pomiń”, aby zarchiwizować oryginalny plik.",
+  "choosePhoto": "Wybierz zdjęcie"
 }

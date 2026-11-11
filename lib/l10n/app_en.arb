@@ -1107,5 +1107,9 @@
   "photoCannotRead": "This photo can't be read here. Use Skip to archive the original file.",
   "@photoCannotRead": {
     "description": "Optimiser: the photo cannot be decoded or encoded"
+  },
+  "choosePhoto": "Choose photo",
+  "@choosePhoto": {
+    "description": "Button to pick a photo for optimised archiving"
   }
 }

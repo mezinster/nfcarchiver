@@ -231,5 +231,6 @@
   "photoBackToAuto": "Otomatiğe dön",
   "photoSkip": "Atla (orijinali koru)",
   "photoContinue": "Devam",
-  "photoCannotRead": "Bu fotoğraf burada okunamıyor. Orijinal dosyayı arşivlemek için Atla'yı kullanın."
+  "photoCannotRead": "Bu fotoğraf burada okunamıyor. Orijinal dosyayı arşivlemek için Atla'yı kullanın.",
+  "choosePhoto": "Fotoğraf seç"
 }

@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/log/logger.dart';
 import '../../../../shared/utils/format_utils.dart';
 import '../../../diagnostics/presentation/diagnostics_screen.dart';
+import '../../domain/archive_intake.dart';
 import '../providers/archive_provider.dart';
 
 /// Provider for tracking the input mode (file or text).
@@ -98,7 +99,7 @@ class _FilePickerScreenState extends ConsumerState<FilePickerScreen> {
         // File picker card
         Card(
           child: InkWell(
-            onTap: () => _pickFile(context),
+            onTap: () => _pick(context, photo: false),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.all(32),
@@ -128,6 +129,13 @@ class _FilePickerScreenState extends ConsumerState<FilePickerScreen> {
               ),
             ),
           ),
+        ),
+
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () => _pick(context, photo: true),
+          icon: const Icon(Icons.photo_library),
+          label: Text(l10n.choosePhoto),
         ),
 
         const SizedBox(height: 24),
@@ -253,10 +261,12 @@ class _FilePickerScreenState extends ConsumerState<FilePickerScreen> {
     );
   }
 
-  Future<void> _pickFile(BuildContext context) async {
+  Future<void> _pick(BuildContext context, {required bool photo}) async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      final picked = await FilePicker.pickFiles();
+      final picked = await FilePicker.pickFiles(
+        type: photo ? FileType.image : FileType.any,
+      );
       if (picked.isEmpty) return;
 
       final file = picked.first;
@@ -273,11 +283,18 @@ class _FilePickerScreenState extends ConsumerState<FilePickerScreen> {
       final fileInfo = File(file.path!);
       final size = await fileInfo.length();
 
-      ref.read(archiveProvider.notifier).selectFile(
-            filePath: file.path!,
-            fileName: file.name,
-            fileSize: size,
-          );
+      final route = intakeFile(
+        ref,
+        path: file.path!,
+        name: file.name,
+        size: size,
+        isImage: photo || isImageFileName(file.name),
+      );
+      // Non-images stay on this screen, showing the file card with its
+      // "Configure archive" button, exactly as before.
+      if (route == IntakeRoute.optimise && context.mounted) {
+        context.go('/archive/optimise');
+      }
     } catch (e, st) {
       log.report('archive', 'file selection failed', e, st);
       if (context.mounted) {
