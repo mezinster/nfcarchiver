@@ -219,5 +219,18 @@
   "developerOptions": "Geliştirici seçenekleri",
   "developerOptionsUnlocked": "Geliştirici seçenekleri etkinleştirildi",
   "mifare4kToggle": "Mifare Classic 4K",
-  "mifare4kToggleSubtitle": "Deneysel — gerçek bir kartta henüz doğrulanmadı"
+  "mifare4kToggleSubtitle": "Deneysel — gerçek bir kartta henüz doğrulanmadı",
+  "optimisePhotoTitle": "Fotoğrafı optimize et",
+  "writingTo": "Yazılacak etiket",
+  "tagsToUse": "Kullanılacak etiket",
+  "photoBestFit": "En iyi uyum: {side} px, kalite {quality}",
+  "photoDoesNotFit": "{tags} etikete sığmıyor — en az {needed} gerekli",
+  "photoManual": "Manuel",
+  "photoOriginalSize": "Orijinal",
+  "photoQuality": "Kalite {quality}",
+  "photoBackToAuto": "Otomatiğe dön",
+  "photoSkip": "Atla (orijinali koru)",
+  "photoContinue": "Devam",
+  "photoCannotRead": "Bu fotoğraf burada okunamıyor. Orijinal dosyayı arşivlemek için Atla'yı kullanın.",
+  "choosePhoto": "Fotoğraf seç"
 }

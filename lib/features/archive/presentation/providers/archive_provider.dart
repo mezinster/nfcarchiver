@@ -267,6 +267,7 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
     // Get estimate
     final estimate = _repository.estimateFromSize(
       dataSize: fileSize,
+      fileName: fileName,
       tagType: tagType,
       compress: compress,
       encrypt: encrypt,

@@ -10,6 +10,7 @@ import 'features/archive/presentation/screens/archive_settings_screen.dart';
 import 'features/dev_options/presentation/dev_options_screen.dart';
 import 'features/diagnostics/presentation/diagnostics_screen.dart';
 import 'features/file_manager/presentation/screens/file_manager_screen.dart';
+import 'features/photo/presentation/photo_optimiser_screen.dart';
 import 'features/archive/presentation/screens/file_picker_screen.dart';
 import 'features/archive/presentation/screens/write_progress_screen.dart';
 import 'features/restore/presentation/screens/restore_progress_screen.dart';
@@ -34,6 +35,13 @@ final _router = GoRouter(
       path: '/archive',
       builder: (context, state) => const FilePickerScreen(),
       routes: [
+        GoRoute(
+          path: 'optimise',
+          // go_router logs a nested route by its last segment; the full
+          // path keeps the nav breadcrumb unambiguous.
+          name: '/archive/optimise',
+          builder: (context, state) => const PhotoOptimiserScreen(),
+        ),
         GoRoute(
           path: 'settings',
           // go_router logs a nested route by its last segment; the full

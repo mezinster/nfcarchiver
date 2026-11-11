@@ -212,5 +212,18 @@
   "developerOptions": "Параметры распрацоўшчыка",
   "developerOptionsUnlocked": "Параметры распрацоўшчыка ўключаны",
   "mifare4kToggle": "Mifare Classic 4K",
-  "mifare4kToggleSubtitle": "Эксперыментальна — яшчэ не правярана на сапраўднай карце"
+  "mifare4kToggleSubtitle": "Эксперыментальна — яшчэ не правярана на сапраўднай карце",
+  "optimisePhotoTitle": "Аптымізацыя фота",
+  "writingTo": "Запіс на",
+  "tagsToUse": "Колькі метак",
+  "photoBestFit": "Найлепшы варыянт: {side} пікс., якасць {quality}",
+  "photoDoesNotFit": "Не змяшчаецца ў {tags} метак — патрэбна не менш за {needed}",
+  "photoManual": "Уручную",
+  "photoOriginalSize": "Арыгінал",
+  "photoQuality": "Якасць {quality}",
+  "photoBackToAuto": "Вярнуць аўта",
+  "photoSkip": "Прапусціць (пакінуць арыгінал)",
+  "photoContinue": "Працягнуць",
+  "photoCannotRead": "Гэта фота не атрымліваецца прачытаць. Націсніце «Прапусціць», каб архіваваць арыгінальны файл.",
+  "choosePhoto": "Выбраць фота"
 }

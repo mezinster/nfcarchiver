@@ -9,6 +9,7 @@ import '../../../core/models/archive_metadata.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/services/chunker_service.dart';
 import '../../../core/services/compression_service.dart';
+import '../../../core/services/archive_sizing.dart';
 import '../../../core/services/encryption_service.dart';
 
 /// Repository for archive creation operations.
@@ -210,6 +211,7 @@ class ArchiveRepository {
     final fileSize = await file.length();
     return estimateFromSize(
       dataSize: fileSize,
+      fileName: path.basename(filePath),
       tagType: tagType,
       compress: compress,
       encrypt: encrypt,
@@ -219,11 +221,13 @@ class ArchiveRepository {
   /// Estimate tags needed for data of given size.
   ArchiveEstimate estimateFromSize({
     required int dataSize,
+    required String fileName,
     required NfcTagType tagType,
     bool compress = false,
     bool encrypt = false,
   }) {
-    var estimatedSize = dataSize;
+    // The filename wrapper is prepended before compression.
+    var estimatedSize = dataSize + filenameWrapperBytes(fileName);
 
     // Estimate compression (conservative: assume 70% ratio)
     double compressionRatio = 1.0;
@@ -257,10 +261,12 @@ class ArchiveRepository {
   /// Validate that archive can be created with given parameters.
   ArchiveValidation validateArchive({
     required int dataSize,
+    required String fileName,
     required NfcTagType tagType,
   }) {
     final estimate = estimateFromSize(
       dataSize: dataSize,
+      fileName: fileName,
       tagType: tagType,
     );
 
