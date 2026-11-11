@@ -459,15 +459,18 @@ void main() {
       final r =
           await writeOnce(dev, aChunk(payloadLength: 3000), allow4k: true);
       expect(r.ok, isNull);
-      expect(r.err, isNotNull);
+      expect(r.err!.kind, NfcFailureKind.foreignCard);
       expect(dev.writeLog, isEmpty);
     });
 
     test('a chunk within 752 B on a 4K card does no pre-check reads', () async {
       final dev = FakeChameleonDevice.classic4k();
-      final r = await writeOnce(dev, aChunk(payloadLength: 300), allow4k: true);
+      final chunk = aChunk(payloadLength: 300);
+      final r = await writeOnce(dev, chunk, allow4k: true);
       expect(r.ok, isNotNull);
-      expect(dev.writeLog, isNotEmpty);
+      expect(dev.writeLog,
+          equals(chunkToBlocks(chunk.toBytes()).map((w) => w.block)),
+          reason: 'identical to the 1K block list');
       expect(dev.readLog, equals(dev.writeLog),
           reason: 'only the verify pass reads');
     });
@@ -493,7 +496,7 @@ void main() {
       final dev = FakeChameleonDevice.classic4k(sak: 0x19);
       final r = await writeOnce(dev, aChunk(), allow4k: true);
       expect(r.ok, isNull);
-      expect(r.err, isNotNull);
+      expect(r.err!.kind, NfcFailureKind.writeFailed);
       expect(dev.writeLog, isEmpty);
     });
 

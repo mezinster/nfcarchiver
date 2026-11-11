@@ -303,15 +303,18 @@ function fourKRig(flag: { on: boolean }, cards: number) {
 }
 const bigData = crypto.getRandomValues(new Uint8Array(9000));
 
-test('4K, target auto, switch off: the first 4K card re-sizes the archive to 720, never 3408', async () => {
+test('4K, target auto, switch off: the UI-sent 720 payload writes as 1K, no re-chunk, nothing beyond block 63', async () => {
   const flag = { on: false };
   const { device, transport, uids } = fourKRig(flag, 1);
   const ctrl = new ArchiveController(transport);
-  await ctrl.prepare({ data: bigData, fileName: 'a.bin', compress: false, payloadSize: 812 });
+  // "auto" in the UI prepares at 720 while the switch is off.
+  await ctrl.prepare({ data: bigData, fileName: 'a.bin', compress: false, payloadSize: 720 });
   device.place(uids[0]!);
   const res = await ctrl.writeNextCard(undefined, true);
-  assert.equal(res.rechunkedTo?.payloadSize, 720);
-  assert.ok(device.blockOf(uids[0]!, 128).every((b) => b === 0), 'nothing beyond 752 B was written');
+  assert.equal(res.rechunkedTo, undefined);
+  for (let b = 64; b < 256; b++) {
+    assert.ok(device.blockOf(uids[0]!, b).every((x) => x === 0), `block ${b} must stay untouched`);
+  }
 });
 
 test('4K, target auto, switch on: the first 4K card re-sizes the archive to 3408', async () => {
