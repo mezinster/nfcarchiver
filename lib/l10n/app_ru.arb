@@ -219,5 +219,17 @@
   "developerOptions": "Параметры разработчика",
   "developerOptionsUnlocked": "Параметры разработчика включены",
   "mifare4kToggle": "Mifare Classic 4K",
-  "mifare4kToggleSubtitle": "Экспериментально — ещё не проверено на настоящей карте"
+  "mifare4kToggleSubtitle": "Экспериментально — ещё не проверено на настоящей карте",
+  "optimisePhotoTitle": "Оптимизация фото",
+  "writingTo": "Запись на",
+  "tagsToUse": "Сколько меток",
+  "photoBestFit": "Лучший вариант: {side} пикс., качество {quality}",
+  "photoDoesNotFit": "Не помещается в {tags} меток — нужно не меньше {needed}",
+  "photoManual": "Вручную",
+  "photoOriginalSize": "Оригинал",
+  "photoQuality": "Качество {quality}",
+  "photoBackToAuto": "Вернуть авто",
+  "photoSkip": "Пропустить (оставить оригинал)",
+  "photoContinue": "Продолжить",
+  "photoCannotRead": "Это фото не удаётся прочитать. Нажмите «Пропустить», чтобы архивировать исходный файл."
 }

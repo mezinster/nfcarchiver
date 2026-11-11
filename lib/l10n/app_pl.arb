@@ -212,5 +212,17 @@
   "developerOptions": "Opcje programisty",
   "developerOptionsUnlocked": "Opcje programisty włączone",
   "mifare4kToggle": "Mifare Classic 4K",
-  "mifare4kToggleSubtitle": "Eksperymentalne — jeszcze niezweryfikowane na prawdziwej karcie"
+  "mifare4kToggleSubtitle": "Eksperymentalne — jeszcze niezweryfikowane na prawdziwej karcie",
+  "optimisePhotoTitle": "Optymalizuj zdjęcie",
+  "writingTo": "Zapis na",
+  "tagsToUse": "Liczba tagów",
+  "photoBestFit": "Najlepsze dopasowanie: {side} px, jakość {quality}",
+  "photoDoesNotFit": "Nie mieści się na {tags} tagach — potrzeba co najmniej {needed}",
+  "photoManual": "Ręcznie",
+  "photoOriginalSize": "Oryginał",
+  "photoQuality": "Jakość {quality}",
+  "photoBackToAuto": "Wróć do auto",
+  "photoSkip": "Pomiń (zachowaj oryginał)",
+  "photoContinue": "Dalej",
+  "photoCannotRead": "Tego zdjęcia nie można tu odczytać. Użyj „Pomiń”, aby zarchiwizować oryginalny plik."
 }

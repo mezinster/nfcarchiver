@@ -1033,5 +1033,79 @@
   "mifare4kToggleSubtitle": "Experimental — not yet verified on a real card",
   "@mifare4kToggleSubtitle": {
     "description": "Developer switch subtitle warning that 4K support is unverified"
+  },
+  "optimisePhotoTitle": "Optimise photo",
+  "@optimisePhotoTitle": {
+    "description": "Title of the photo optimiser screen"
+  },
+  "writingTo": "Writing to",
+  "@writingTo": {
+    "description": "Optimiser: label above the tag type chips"
+  },
+  "tagsToUse": "Tags to use",
+  "@tagsToUse": {
+    "description": "Optimiser: label of the tag count stepper"
+  },
+  "photoBestFit": "Best fit: {side} px, quality {quality}",
+  "@photoBestFit": {
+    "description": "Optimiser: the auto-fit result",
+    "placeholders": {
+      "side": {
+        "type": "int",
+        "description": "Longest side in pixels"
+      },
+      "quality": {
+        "type": "int",
+        "description": "JPEG quality 1-100"
+      }
+    }
+  },
+  "photoDoesNotFit": "Doesn't fit in {tags} tags — needs at least {needed}",
+  "@photoDoesNotFit": {
+    "description": "Optimiser: the photo does not fit the chosen tag count",
+    "placeholders": {
+      "tags": {
+        "type": "int",
+        "description": "Chosen tag count"
+      },
+      "needed": {
+        "type": "int",
+        "description": "Smallest tag count that fits"
+      }
+    }
+  },
+  "photoManual": "Manual",
+  "@photoManual": {
+    "description": "Optimiser: heading of the manual size/quality controls"
+  },
+  "photoOriginalSize": "Original",
+  "@photoOriginalSize": {
+    "description": "Optimiser: chip for the original (unscaled) size"
+  },
+  "photoQuality": "Quality {quality}",
+  "@photoQuality": {
+    "description": "Optimiser: JPEG quality slider label",
+    "placeholders": {
+      "quality": {
+        "type": "int",
+        "description": "JPEG quality 1-100"
+      }
+    }
+  },
+  "photoBackToAuto": "Back to auto",
+  "@photoBackToAuto": {
+    "description": "Optimiser: leave manual mode"
+  },
+  "photoSkip": "Skip (keep original)",
+  "@photoSkip": {
+    "description": "Optimiser: archive the original file instead"
+  },
+  "photoContinue": "Continue",
+  "@photoContinue": {
+    "description": "Optimiser: archive the optimised photo"
+  },
+  "photoCannotRead": "This photo can't be read here. Use Skip to archive the original file.",
+  "@photoCannotRead": {
+    "description": "Optimiser: the photo cannot be decoded or encoded"
   }
 }

@@ -219,5 +219,17 @@
   "developerOptions": "დეველოპერის პარამეტრები",
   "developerOptionsUnlocked": "დეველოპერის პარამეტრები ჩართულია",
   "mifare4kToggle": "Mifare Classic 4K",
-  "mifare4kToggleSubtitle": "ექსპერიმენტული — რეალურ ბარათზე ჯერ არ გადამოწმებულა"
+  "mifare4kToggleSubtitle": "ექსპერიმენტული — რეალურ ბარათზე ჯერ არ გადამოწმებულა",
+  "optimisePhotoTitle": "ფოტოს ოპტიმიზაცია",
+  "writingTo": "ჩაწერა",
+  "tagsToUse": "გამოსაყენებელი ტეგები",
+  "photoBestFit": "საუკეთესო: {side} პქს, ხარისხი {quality}",
+  "photoDoesNotFit": "{tags} ტეგში არ ეტევა — საჭიროა მინიმუმ {needed}",
+  "photoManual": "ხელით",
+  "photoOriginalSize": "ორიგინალი",
+  "photoQuality": "ხარისხი {quality}",
+  "photoBackToAuto": "ავტომატურზე დაბრუნება",
+  "photoSkip": "გამოტოვება (ორიგინალის შენარჩუნება)",
+  "photoContinue": "გაგრძელება",
+  "photoCannotRead": "ამ ფოტოს აქ ვერ წავიკითხავთ. ორიგინალი ფაილის დასაარქივებლად გამოიყენეთ „გამოტოვება“."
 }

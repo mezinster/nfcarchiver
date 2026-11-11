@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,9 +8,13 @@ import 'app.dart';
 import 'core/log/diagnostics.dart';
 import 'core/log/logger.dart';
 import 'core/providers/locale_provider.dart';
+import 'features/photo/data/photo_temp.dart';
 import 'features/nfc/data/phone_nfc_reader.dart';
 
 void main() async {
+  // Before anything else: temp files newer than this belong to this run (a
+  // share copied in during a cold start) and must survive the cleanup below.
+  final launchTime = DateTime.now();
   WidgetsFlutterBinding.ensureInitialized();
 
   installErrorHooks(log);
@@ -22,6 +28,9 @@ void main() async {
     log,
     locale: savedAppLocale(prefs)?.toLanguageTag(),
   ).timeout(const Duration(seconds: 3), onTimeout: () => null);
+
+  // Leftovers of a finished or cancelled photo archive, or of a share.
+  unawaited(clearPhotoTemp(olderThan: launchTime));
 
   // Query NFC hardware capabilities once before any session can start.
   await PhoneNfcReader().initCapabilities();
