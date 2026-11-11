@@ -1,14 +1,16 @@
 /**
  * Real Transport over a Chameleon Ultra reading/writing physical Mifare Classic
- * 1K cards. Talks only to the ChameleonDevice seam, so it is fully testable
+ * 1K and 4K cards (4K writes beyond 752 B only while `allow4k()` is true). Talks only to the ChameleonDevice seam, so it is fully testable
  * against FakeChameleon; the actual SDK is wired in via SdkChameleonDevice.
  */
 
 import { NfarFormatError } from '../chunk.js';
+import { TOTAL_OVERHEAD } from '../chunk.js';
 import {
-  BLOCK_SIZE, CARD_CAPACITY_BYTES, CARD_PAYLOAD_SIZE, USABLE_BLOCK_INDEXES,
-  chunkToBlocks, firstBlockIsNfar, nfarTotalLength, assembleChunkFromBlocks,
+  BLOCK_SIZE, CARD_CAPACITY_BYTES, capacityBytes, firstBlockOfSector, sectorOf, usableBlocks, writableCapacity,
+  chunkToBlocks, firstBlockIsNfar, nfarTotalLength, assembleChunkFromBlocks, type CardSize,
 } from '../mifare/card-layout.js';
+import { classifySak, cardSizeFor } from '../mifare/sak.js';
 import { FACTORY_KEY_A, type ChameleonDevice } from './chameleon-device.js';
 import { CardReadError, TagTimeoutError, WriteVerifyError, type PresentedTag, type Transport } from './transport.js';
 
@@ -24,8 +26,15 @@ export class ChameleonBleTransport implements Transport {
   readonly name = 'chameleon-ble';
   private readonly pollMs: number;
   private readonly defaultTimeoutMs: number;
+  private readonly allow4k: () => boolean;
+  /** Geometry of the card from the last awaitTag. Reads trust it; writes are gated by allow4k. */
+  private size: CardSize = '1k';
 
-  constructor(private readonly device: ChameleonDevice, opts?: { pollMs?: number; defaultTimeoutMs?: number }) {
+  constructor(
+    private readonly device: ChameleonDevice,
+    opts?: { pollMs?: number; defaultTimeoutMs?: number; allow4k?: () => boolean },
+  ) {
+    this.allow4k = opts?.allow4k ?? (() => false);
     this.pollMs = opts?.pollMs ?? 300;
     this.defaultTimeoutMs = opts?.defaultTimeoutMs ?? 20000;
   }
@@ -44,7 +53,14 @@ export class ChameleonBleTransport implements Transport {
     for (;;) {
       if (opts?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       const tag = await this.device.scanTag();
-      if (tag !== null) return { uid: tag.uid, capacityBytes: CARD_CAPACITY_BYTES, maxChunkPayload: CARD_PAYLOAD_SIZE };
+      if (tag !== null) {
+        this.size = cardSizeFor(classifySak(tag.sak)) ?? '1k';
+        return {
+          uid: tag.uid,
+          capacityBytes: capacityBytes(this.size),
+          maxChunkPayload: writableCapacity(this.size, this.allow4k()) - TOTAL_OVERHEAD,
+        };
+      }
       if (Date.now() >= deadline) throw new TagTimeoutError(`No tag presented within ${timeoutMs}ms`);
       await delay(this.pollMs);
     }
@@ -62,7 +78,7 @@ export class ChameleonBleTransport implements Transport {
   }
 
   private readUsable(i: number): Promise<Uint8Array> {
-    return this.readBlockStrict(USABLE_BLOCK_INDEXES[i]!);
+    return this.readBlockStrict(usableBlocks(this.size)[i]!);
   }
 
   async peekIsNfar(): Promise<boolean> {
@@ -78,7 +94,7 @@ export class ChameleonBleTransport implements Transport {
     const header = new Uint8Array(2 * BLOCK_SIZE);
     header.set(first, 0);
     header.set(second, BLOCK_SIZE);
-    const total = nfarTotalLength(header);
+    const total = nfarTotalLength(header, this.size);
     const blockCount = Math.ceil(total / BLOCK_SIZE);
     const blocks: Uint8Array[] = [first, second];
     for (let i = 2; i < blockCount; i++) blocks.push(await this.readUsable(i));
@@ -86,7 +102,21 @@ export class ChameleonBleTransport implements Transport {
   }
 
   async writeChunk(bytes: Uint8Array): Promise<void> {
-    const blocks = chunkToBlocks(bytes); // throws CardCapacityError if > 752
+    // Writes use the 4K geometry only while the switch is on; otherwise a 4K card
+    // is treated as 1K and anything over 752 B throws CardCapacityError.
+    const writeSize: CardSize = this.size === '4k' && this.allow4k() ? '4k' : '1k';
+    const blocks = chunkToBlocks(bytes, writeSize);
+    if (bytes.length > CARD_CAPACITY_BYTES) {
+      // Beyond sector 15 the sectors may carry non-factory keys; find out before
+      // the first write so a refused sector cannot leave half a chunk behind.
+      const probed = new Set<number>();
+      for (const { block } of blocks) {
+        const sector = sectorOf(block);
+        if (probed.has(sector)) continue;
+        probed.add(sector);
+        await this.device.readBlock(sector === 0 ? 1 : firstBlockOfSector(sector), FACTORY_KEY_A);
+      }
+    }
     for (const { block, data } of blocks) await this.device.writeBlock(block, FACTORY_KEY_A, data);
     for (const { block, data } of blocks) {
       const readBack = await this.readBlockStrict(block);
