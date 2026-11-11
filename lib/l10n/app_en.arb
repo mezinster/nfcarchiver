@@ -1116,6 +1116,18 @@
   "@photoCannotRead": {
     "description": "Optimiser: the photo cannot be decoded or encoded"
   },
+  "photoFewerTags": "Fewer tags",
+  "@photoFewerTags": {
+    "description": "Optimiser: screen-reader label of the button that lowers the tag count"
+  },
+  "photoMoreTags": "More tags",
+  "@photoMoreTags": {
+    "description": "Optimiser: screen-reader label of the button that raises the tag count"
+  },
+  "photoEditTagCount": "Double-tap to type the number",
+  "@photoEditTagCount": {
+    "description": "Optimiser: screen-reader hint on the tag count, which opens a dialog to type it"
+  },
   "choosePhoto": "Choose photo",
   "@choosePhoto": {
     "description": "Button to pick a photo for optimised archiving"

@@ -375,6 +375,25 @@ void main() {
     expect(tagCount(1), findsOneWidget);
   });
 
+  testWidgets('the tag count carries a hint that it can be typed',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    final c = container();
+    await pumpScreen(tester, c);
+    expect(
+      tester.getSemantics(find.byKey(const Key('photoTagCount'))),
+      matchesSemantics(
+        label: '6',
+        hint: 'Double-tap to type the number',
+        isButton: true,
+        hasTapAction: true,
+        hasFocusAction: true,
+        isFocusable: true,
+      ),
+    );
+    handle.dispose();
+  });
+
   bool chipSelected(WidgetTester tester, String label) => tester
       .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, label))
       .selected;

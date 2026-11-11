@@ -20,6 +20,7 @@ void main() {
           body: Center(
             child: RepeatButton(
               icon: Icons.add,
+              semanticLabel: 'More tags',
               step: 1,
               onStep: (d) {
                 total += d;
@@ -116,7 +117,10 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: RepeatButton(
-            icon: Icons.remove, step: -1, onStep: (d) => total += d),
+            icon: Icons.remove,
+            semanticLabel: 'Fewer tags',
+            step: -1,
+            onStep: (d) => total += d),
       ),
     ));
     final g =
@@ -124,5 +128,29 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1000));
     await g.up();
     expect(total, -3);
+  });
+
+  testWidgets('is announced as a button with its label', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(button());
+    expect(
+      tester.getSemantics(find.byType(RepeatButton)),
+      matchesSemantics(
+        label: 'More tags',
+        isButton: true,
+        hasTapAction: true,
+      ),
+    );
+    handle.dispose();
+  });
+
+  testWidgets('the semantic tap action steps once', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(button());
+    tester.semantics.tap(find.semantics.byLabel('More tags'));
+    await tester.pump();
+    expect(total, 1);
+    expect(holdStarts, 0);
+    handle.dispose();
   });
 }

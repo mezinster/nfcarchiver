@@ -12,6 +12,7 @@ class RepeatButton extends StatefulWidget {
   const RepeatButton({
     super.key,
     required this.icon,
+    required this.semanticLabel,
     required this.step,
     required this.onStep,
     this.onHoldStart,
@@ -19,6 +20,9 @@ class RepeatButton extends StatefulWidget {
   });
 
   final IconData icon;
+
+  /// What a screen reader announces for the button, e.g. "More tags".
+  final String semanticLabel;
 
   /// The delta of one step: 1 or -1.
   final int step;
@@ -110,20 +114,27 @@ class _RepeatButtonState extends State<RepeatButton> {
 
   @override
   Widget build(BuildContext context) {
-    // No Tooltip: its long-press recogniser would compete with the hold.
-    return InkResponse(
-      onTapDown: (_) => _down(),
-      onTapUp: (_) => _release(),
-      onTapCancel: () {
-        _release();
-        _repeated = false;
-      },
-      onTap: _tap,
-      radius: 24,
-      child: SizedBox(
-        width: 48,
-        height: 48,
-        child: Center(child: Icon(widget.icon)),
+    // No Tooltip: its long-press recogniser would compete with the hold. The
+    // Semantics restores the button role and name a bare InkResponse lacks.
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      excludeSemantics: true,
+      onTap: () => widget.onStep(widget.step),
+      child: InkResponse(
+        onTapDown: (_) => _down(),
+        onTapUp: (_) => _release(),
+        onTapCancel: () {
+          _release();
+          _repeated = false;
+        },
+        onTap: _tap,
+        radius: 24,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Center(child: Icon(widget.icon)),
+        ),
       ),
     );
   }

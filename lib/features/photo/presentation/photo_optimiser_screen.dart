@@ -117,6 +117,7 @@ class PhotoOptimiserScreen extends ConsumerWidget {
               children: [
                 RepeatButton(
                   icon: Icons.remove,
+                  semanticLabel: l10n.photoFewerTags,
                   step: -1,
                   // Read at step time: two taps in one frame must both count.
                   onStep: (d) => notifier
@@ -124,19 +125,24 @@ class PhotoOptimiserScreen extends ConsumerWidget {
                   onHoldStart: notifier.beginHold,
                   onHoldEnd: notifier.endHold,
                 ),
-                InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () => _typeCount(context, ref),
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text('${st.tags}',
-                        key: const Key('photoTagCount'),
-                        style: theme.textTheme.titleLarge),
+                Semantics(
+                  button: true,
+                  hint: l10n.photoEditTagCount,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => _typeCount(context, ref),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      child: Text('${st.tags}',
+                          key: const Key('photoTagCount'),
+                          style: theme.textTheme.titleLarge),
+                    ),
                   ),
                 ),
                 RepeatButton(
                   icon: Icons.add,
+                  semanticLabel: l10n.photoMoreTags,
                   step: 1,
                   onStep: (d) => notifier
                       .setTags(ref.read(photoOptimiserProvider).tags + d),
