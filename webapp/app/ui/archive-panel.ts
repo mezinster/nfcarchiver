@@ -56,7 +56,7 @@ function syncTargetTagForReader(): boolean {
   // unusable over Web NFC.
   const mifare4k = sel.querySelector<HTMLOptionElement>('option[value="3408"]')!;
   mifare4k.hidden = !isMifare4kEnabled();
-  mifare4k.disabled = webNfc;
+  mifare4k.disabled = webNfc || !isMifare4kEnabled();
   if (webNfc && (sel.value === 'auto' || sel.value === '720' || sel.value === '3408')) {
     sel.value = 'NTAG215';
     return true;

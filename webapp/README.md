@@ -197,7 +197,7 @@ webapp/
   src/                         # dependency-free core (web-platform globals only)
     crc32 · chunk · chunker · crypto · gzip · pipeline   # byte-compatible NFAR core
     filename.ts                # Android-compatible filename wrapper
-    mifare/card-layout.ts      # chunk ↔ Mifare Classic 1K blocks (47 usable = 752 B)
+    mifare/card-layout.ts      # chunk ↔ Mifare Classic 1K/4K blocks (1K: 47 usable = 752 B; 4K: 215 usable = 3,440 B)
     nfc/ndef.ts, nfc/type2.ts  # NDEF MIME record + Type-2 TLV framing for NTAG
     inspect/                   # read-only card inspector core
       card-dump.ts             # raw per-block/page dump of a Classic or NTAG card
