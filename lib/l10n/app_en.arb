@@ -1111,5 +1111,30 @@
   "choosePhoto": "Choose photo",
   "@choosePhoto": {
     "description": "Button to pick a photo for optimised archiving"
+  },
+  "shareDiscardTitle": "Start a new archive?",
+  "@shareDiscardTitle": {
+    "description": "Title of the dialog shown when a file is shared into the app while an archive or restore is in progress"
+  },
+  "shareDiscardBody": "Some tags of the current archive are already written. Starting a new archive discards it.",
+  "@shareDiscardBody": {
+    "description": "Body of the dialog shown when a shared file would replace work in progress"
+  },
+  "shareDiscardConfirm": "Discard and continue",
+  "@shareDiscardConfirm": {
+    "description": "Button that discards the work in progress and takes the shared file"
+  },
+  "shareOnlyFirst": "Only the first of {count} items was taken — NFC Archiver archives one file at a time.",
+  "@shareOnlyFirst": {
+    "description": "Snackbar when several items were shared at once; only the first is used",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareCouldNotRead": "The shared item couldn't be read.",
+  "@shareCouldNotRead": {
+    "description": "Snackbar when an item shared into the app could not be read"
   }
 }

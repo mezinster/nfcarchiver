@@ -225,5 +225,10 @@
   "photoSkip": "Pomiń (zachowaj oryginał)",
   "photoContinue": "Dalej",
   "photoCannotRead": "Tego zdjęcia nie można tu odczytać. Użyj „Pomiń”, aby zarchiwizować oryginalny plik.",
-  "choosePhoto": "Wybierz zdjęcie"
+  "choosePhoto": "Wybierz zdjęcie",
+  "shareDiscardTitle": "Rozpocząć nowe archiwum?",
+  "shareDiscardBody": "Część tagów bieżącego archiwum jest już zapisana. Rozpoczęcie nowego archiwum spowoduje jego odrzucenie.",
+  "shareDiscardConfirm": "Odrzuć i kontynuuj",
+  "shareOnlyFirst": "Wzięto tylko pierwszy z {count} elementów — NFC Archiver archiwizuje jeden plik naraz.",
+  "shareCouldNotRead": "Nie udało się odczytać udostępnionego elementu."
 }

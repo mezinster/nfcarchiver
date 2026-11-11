@@ -232,5 +232,10 @@
   "photoSkip": "Atla (orijinali koru)",
   "photoContinue": "Devam",
   "photoCannotRead": "Bu fotoğraf burada okunamıyor. Orijinal dosyayı arşivlemek için Atla'yı kullanın.",
-  "choosePhoto": "Fotoğraf seç"
+  "choosePhoto": "Fotoğraf seç",
+  "shareDiscardTitle": "Yeni bir arşiv başlatılsın mı?",
+  "shareDiscardBody": "Geçerli arşivin bazı etiketleri zaten yazıldı. Yeni bir arşiv başlatmak onu iptal eder.",
+  "shareDiscardConfirm": "İptal et ve devam et",
+  "shareOnlyFirst": "{count} öğeden yalnızca ilki alındı — NFC Archiver her seferinde bir dosya arşivler.",
+  "shareCouldNotRead": "Paylaşılan öğe okunamadı."
 }
