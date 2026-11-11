@@ -68,10 +68,14 @@ void main() {
       });
     }
 
-    // A share delivered while the app runs arrives in onNewIntent, like the
-    // NFC intents; singleTask would change how both reach the app.
-    test('keeps launchMode singleTop', () {
-      expect(activity(), contains('android:launchMode="singleTop"'));
+    // singleTask: a share from another app's chooser reaches the one
+    // running instance through onNewIntent. singleTop let the chooser start a
+    // second activity + engine in the sender's task, whose startup cleared
+    // the first instance's temp files and whose busy guard could not see it.
+    test('uses launchMode singleTask with an empty taskAffinity', () {
+      expect(activity(), contains('android:launchMode="singleTask"'));
+      expect(activity(), isNot(contains('android:launchMode="singleTop"')));
+      expect(activity(), contains('android:taskAffinity=""'));
     });
 
     test('keeps the NDEF_DISCOVERED filter for archive chunks', () {

@@ -23,7 +23,11 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    // singleTop: a share (or an NFC tag) arriving while the app runs.
+    // singleTask: a share (or an NFC tag) arriving while the app runs comes
+    // here, to the one existing instance — also when the sender's chooser
+    // launched it from another task. (singleTop started a second activity
+    // and engine in the sender's task, whose startup wiped the first one's
+    // temp files.)
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)

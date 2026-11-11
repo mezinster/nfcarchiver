@@ -24,6 +24,9 @@ import java.util.concurrent.Executors
  * copy over (`{path, name, isImage, count}`) and forgets it, so a second `take`
  * returns null. A newer share replaces a pending one and deletes its copy.
  *
+ * A share with nothing usable (text only, file://) is kept as unreadable, so
+ * `take` answers `share_unreadable` and Dart tells the user.
+ *
  * Copies and `take` run in order on one background thread, which also owns
  * [pending]; replies are posted on the main thread. Errors never carry a name
  * or path: diagnostics must not log them.
@@ -42,7 +45,6 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
     private val resolver: ContentResolver = context.contentResolver
     private val root = File(context.cacheDir, DIR_NAME)
     private val main = Handler(Looper.getMainLooper())
-    private val executor = Executors.newSingleThreadExecutor()
     private val channel = MethodChannel(messenger, CHANNEL)
 
     // Owned by [executor]: null, an [Item] or [Unreadable].
@@ -78,27 +80,37 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
     }
 
     /**
-     * Takes [intent] if it is a share carrying a stream; returns whether it
-     * did. Plain-text shares (only `EXTRA_TEXT`) and every other action are
-     * left alone.
+     * Takes [intent] if it is a share; returns whether it did. A share the
+     * app cannot use (text only, a file:// URI, an unreadable extra) is
+     * still taken, as [Unreadable], so the user is told rather than left on
+     * Home. Every other action is left alone.
+     *
+     * The extras are sender-controlled parcels and this runs in
+     * onCreate/onNewIntent: nothing in here may throw.
      */
     fun accept(intent: Intent?): Boolean {
         if (intent == null) return false
-        val (uri, count) = when (intent.action) {
-            Intent.ACTION_SEND -> (streamOf(intent) ?: clipUri(intent)) to 1
-            Intent.ACTION_SEND_MULTIPLE -> {
+        val action = intent.action
+        if (action != Intent.ACTION_SEND && action != Intent.ACTION_SEND_MULTIPLE) return false
+        try {
+            val (uri, count) = if (action == Intent.ACTION_SEND) {
+                (streamOf(intent) ?: clipUri(intent)) to 1
+            } else {
                 val list = streamsOf(intent)
                 (list?.firstOrNull() ?: clipUri(intent)) to
                     maxOf(list?.size ?: 0, intent.clipData?.itemCount ?: 0, 1)
             }
-            else -> return false
+            // file:// would let any app make us read our own private files.
+            if (uri == null || uri.scheme != ContentResolver.SCHEME_CONTENT) {
+                executor.execute { replacePending(Unreadable) }
+                return true
+            }
+            val intentType = runCatching { intent.type }.getOrNull()
+            executor.execute { copy(uri, intentType, count) }
+            return true
+        } catch (t: Throwable) {
+            return false
         }
-        // file:// would let any app make us read our own private files.
-        if (uri == null || uri.scheme != ContentResolver.SCHEME_CONTENT) return false
-        val type = runCatching { resolver.getType(uri) }.getOrNull()
-            ?: intent.type?.takeUnless { it.contains('*') }
-        executor.execute { copy(uri, type, count) }
-        return true
     }
 
     /** Tells Dart a share arrived while the app is running. */
@@ -107,9 +119,10 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
     }
 
     // Runs on [executor].
-    private fun copy(uri: Uri, type: String?, count: Int) {
-        (pending as? Item)?.let { deleteItem(it.file) }
-        pending = null
+    private fun copy(uri: Uri, intentType: String?, count: Int) {
+        replacePending(null)
+        val type = runCatching { resolver.getType(uri) }.getOrNull()
+            ?: intentType?.takeUnless { it.contains('*') }
         val name = displayName(uri)
         val dir = File(root, UUID.randomUUID().toString())
         val file = File(dir, name ?: FALLBACK_NAME)
@@ -118,10 +131,16 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
             val input = resolver.openInputStream(uri) ?: throw java.io.IOException()
             input.use { src -> file.outputStream().use { src.copyTo(it) } }
             Item(file, name, type?.startsWith("image/") == true, count)
-        } catch (e: Exception) {
-            dir.deleteRecursively()
+        } catch (t: Throwable) {
+            runCatching { dir.deleteRecursively() }
             Unreadable
         }
+    }
+
+    // Runs on [executor]. A newer share replaces a pending one and its copy.
+    private fun replacePending(value: Any?) {
+        (pending as? Item)?.let { deleteItem(it.file) }
+        pending = value
     }
 
     private fun deleteItem(file: File) {
@@ -139,26 +158,30 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
         return sanitise(raw)
     }
 
+    // The typed getters are broken on API 33 (they can throw on a valid
+    // extra), so they are used from 34 on only; below that the untyped ones,
+    // checked element by element: a sender can put anything in the list.
     @Suppress("DEPRECATION")
     private fun streamOf(intent: Intent): Uri? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
         } else {
-            intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+            intent.getParcelableExtra<android.os.Parcelable>(Intent.EXTRA_STREAM) as? Uri
         }
 
     @Suppress("DEPRECATION")
     private fun streamsOf(intent: Intent): List<Uri>? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
         } else {
-            intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+            intent.getParcelableArrayListExtra<android.os.Parcelable>(Intent.EXTRA_STREAM)
+                ?.filterIsInstance<Uri>()
         }
 
     /** Some senders put the URI only in ClipData, which also carries the grant. */
     private fun clipUri(intent: Intent): Uri? {
         val clip = intent.clipData ?: return null
-        return if (clip.itemCount > 0) clip.getItemAt(0).uri else null
+        return if (clip.itemCount > 0) clip.getItemAt(0)?.uri else null
     }
 
     companion object {
@@ -167,6 +190,12 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
         private const val DIR_NAME = "share_in"
         private const val FALLBACK_NAME = "shared"
         private const val MAX_NAME_CHARS = 200
+
+        /**
+         * One thread for the whole process, like PhotoEncoder's: an engine
+         * recreated with the activity gets a new inbox, not a new thread.
+         */
+        private val executor = Executors.newSingleThreadExecutor()
 
         /** The last path segment only, with no separators, NULs or dot names. */
         internal fun sanitise(raw: String?): String? {

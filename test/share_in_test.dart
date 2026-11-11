@@ -350,6 +350,37 @@ void main() {
         reason: 'reported through log.report');
   });
 
+  // Android: a text-only share (or a file:// one) arriving while the app runs
+  // is taken natively as unreadable and announced through onShareAvailable.
+  testWidgets('a warm unreadable share announced by native shows the message',
+      (tester) async {
+    final shell = await _pumpShell(tester);
+    shell.inbox.queue
+        .add(PlatformException(code: shareUnreadableCode, message: 'boom'));
+    shell.inbox.onAvailable!();
+    await tester.pumpAndSettle();
+
+    expect(find.text("The shared item couldn't be read."), findsOneWidget);
+    expect(shell.path, '/');
+  });
+
+  test('ShareInbox.take surfaces share_unreadable from the channel', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel('test/share_in_unreadable');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      throw PlatformException(code: shareUnreadableCode);
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    await expectLater(
+      ShareInbox(channel).take(),
+      throwsA(isA<PlatformException>()
+          .having((e) => e.code, 'code', shareUnreadableCode)),
+    );
+  });
+
   testWidgets('any other failure shows somethingWentWrong', (tester) async {
     final inbox = FakeShareInbox()
       ..queue.add(PlatformException(code: 'other', message: 'boom'));
