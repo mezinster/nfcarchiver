@@ -224,6 +224,7 @@
   "photoBackToAuto": "Wróć do auto",
   "photoSkip": "Pomiń (zachowaj oryginał)",
   "photoContinue": "Dalej",
+  "photoContinueWithTags": "{count, plural, one{Dalej z {count} tagiem} few{Dalej z {count} tagami} many{Dalej z {count} tagami} other{Dalej z {count} tagami}}",
   "ok": "OK",
   "photoLargerThanOriginal": "Oryginalny plik jest mniejszy — „Pomiń” go zachowa.",
   "photoCannotRead": "Tego zdjęcia nie można tu odczytać. Użyj „Pomiń”, aby zarchiwizować oryginalny plik.",

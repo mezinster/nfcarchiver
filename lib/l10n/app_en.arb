@@ -1104,6 +1104,16 @@
   "@photoContinue": {
     "description": "Optimiser: archive the optimised photo"
   },
+  "photoContinueWithTags": "{count, plural, =1{Continue with 1 tag} other{Continue with {count} tags}}",
+  "@photoContinueWithTags": {
+    "description": "Optimiser: Continue when the photo does not fit the chosen count; archives it at the smallest count that fits",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Smallest tag count that fits"
+      }
+    }
+  },
   "ok": "OK",
   "@ok": {
     "description": "Generic confirm button in a dialog"
