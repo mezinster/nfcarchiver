@@ -176,4 +176,8 @@ export const ka: Messages = {
   fileRowMeta: (size, totalChunks, when) => `${size} · ${totalChunks} ${pr(totalChunks, CARD)} · ${when}`,
   overwriteTitle: 'ბარათი უკვე შეიცავს მონაცემებს',
   overwriteBody: 'გადაწერა წაშლის მის შიგთავსს.',
+  devOptions: 'დეველოპერის პარამეტრები',
+  devUnlocked: 'დეველოპერის პარამეტრები ჩართულია',
+  mifare4kToggle: 'Mifare Classic 4K',
+  mifare4kHint: 'ექსპერიმენტული — რეალურ ბარათზე ჯერ არ გადამოწმებულა',
 };

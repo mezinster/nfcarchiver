@@ -179,4 +179,8 @@ export const be: Messages = {
   fileRowMeta: (size, totalChunks, when) => `${size} · ${totalChunks} ${pr(totalChunks, CARD)} · ${when}`,
   overwriteTitle: 'На карце ўжо ёсць даныя',
   overwriteBody: 'Перазапіс сатрэ яе змесціва.',
+  devOptions: 'Параметры распрацоўшчыка',
+  devUnlocked: 'Параметры распрацоўшчыка ўключаны',
+  mifare4kToggle: 'Mifare Classic 4K',
+  mifare4kHint: 'Эксперыментальна — яшчэ не правярана на сапраўднай карце',
 };

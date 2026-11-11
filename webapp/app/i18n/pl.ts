@@ -179,4 +179,8 @@ export const pl: Messages = {
   fileRowMeta: (size, totalChunks, when) => `${size} · ${totalChunks} ${pr(totalChunks, CARD)} · ${when}`,
   overwriteTitle: 'Karta zawiera już dane',
   overwriteBody: 'Nadpisanie usunie jej zawartość.',
+  devOptions: 'Opcje programisty',
+  devUnlocked: 'Opcje programisty włączone',
+  mifare4kToggle: 'Mifare Classic 4K',
+  mifare4kHint: 'Eksperymentalne — jeszcze niezweryfikowane na prawdziwej karcie',
 };

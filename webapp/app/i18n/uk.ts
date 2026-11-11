@@ -179,4 +179,8 @@ export const uk: Messages = {
   fileRowMeta: (size, totalChunks, when) => `${size} · ${totalChunks} ${pr(totalChunks, CARD)} · ${when}`,
   overwriteTitle: 'На картці вже є дані',
   overwriteBody: 'Перезапис зітре її вміст.',
+  devOptions: 'Параметри розробника',
+  devUnlocked: 'Параметри розробника увімкнено',
+  mifare4kToggle: 'Mifare Classic 4K',
+  mifare4kHint: 'Експериментально — ще не перевірено на справжній картці',
 };

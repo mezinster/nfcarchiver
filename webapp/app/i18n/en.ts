@@ -181,6 +181,10 @@ export const en = {
     `${size} · ${totalChunks} ${pr(totalChunks, { one: 'card', other: 'cards' })} · ${when}`,
   overwriteTitle: 'Card already holds data',
   overwriteBody: 'Overwriting erases what is on it.',
+  devOptions: 'Developer options',
+  devUnlocked: 'Developer options enabled',
+  mifare4kToggle: 'Mifare Classic 4K',
+  mifare4kHint: 'Experimental — not yet verified on a real card',
 };
 
 export type Messages = typeof en;
