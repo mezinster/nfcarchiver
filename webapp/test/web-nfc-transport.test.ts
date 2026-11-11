@@ -284,3 +284,13 @@ test('connect arms the scan, and a refusal surfaces from connect', async () => {
     /permission denied/,
   );
 });
+
+test('a blank Web NFC tag is reported blank by the restore scan, not an error', async () => {
+  const io = new FakeNdefIO();
+  io.tap('04:aa:bb:cc', []); // no NDEF records
+  const t = new WebNfcTransport(io, NtagType.NTAG215);
+  await t.connect();
+  const ctrl = new RestoreController(t);
+  assert.deepEqual(await ctrl.scanNextCard(), []);
+  assert.equal(ctrl.lastTapWasBlank, true);
+});

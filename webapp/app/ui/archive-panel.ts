@@ -263,7 +263,10 @@ export function initArchivePanel(): void {
     if (document.activeElement !== slider) slider.value = String(quality);
     $('photo-quality-label').textContent = t.photoQuality(Number(slider.value));
     $('photo-auto').hidden = !manual;
-    ($('photo-use') as HTMLButtonElement).disabled = st.busy || failed || r === null;
+    const useBtn = $('photo-use') as HTMLButtonElement;
+    useBtn.disabled = st.busy || failed || r === null;
+    // data-i18n would reset the label on a locale change; the dynamic one is set here.
+    useBtn.textContent = st.continueWithCards !== null ? t.photoUseWithCards(st.continueWithCards) : t.photoUseOptimised;
   };
 
   const openPhoto = (f: File): void => {
@@ -316,9 +319,11 @@ export function initArchivePanel(): void {
     photo?.setManual({ quality: q });
   });
   $('photo-auto').addEventListener('click', () => photo?.backToAuto());
-  $('photo-use').addEventListener('click', () => {
-    const choice = photo?.use() ?? null;
-    if (!choice || !fileBytes) return;
+  $('photo-use').addEventListener('click', async () => {
+    const opt = photo;
+    if (!opt) return;
+    const choice = opt.state.continueWithCards !== null ? await opt.useAtNeeded() : opt.use();
+    if (!choice || photo !== opt || !fileBytes) return;
     const compress = $('compress') as HTMLInputElement;
     const next = applyPhotoChoice({ data: fileBytes, fileName, compress: compress.checked }, choice);
     fileBytes = next.data;

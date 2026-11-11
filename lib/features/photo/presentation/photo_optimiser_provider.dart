@@ -301,6 +301,36 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
     _ref.read(selectedTagTypeProvider.notifier).state = state.tagType;
   }
 
+  /// "Continue with N tags", offered when the result does not fit: moves the
+  /// count to [PhotoOptimiserState.needed], re-fits at once (auto may find a
+  /// better image that still fits; manual keeps its side and quality) and, if
+  /// that fits, continues as [continueWithResult]. The count may pass the cap
+  /// for this, never the NFAR maximum. Returns whether it continued.
+  Future<bool> continueAtNeeded() async {
+    final st = state;
+    final needed = st.needed;
+    final r = st.result;
+    if (_disposed || !st.canContinue || r == null || r.fits || needed == null) {
+      return false;
+    }
+    // Held to [1, max(cap, needed)] and the NFAR maximum; needed is never
+    // above max(cap, needed), so only 1 and the maximum can bite.
+    final tags = math.max(1, math.min(needed, NfarLimits.maxChunks));
+    state = state.copyWith(tags: tags);
+    if (_session == null) return false;
+    final gen = ++_gen;
+    _debounce?.cancel();
+    state = state.copyWith(busy: true);
+    await (_chain = _chain.then((_) => _fit(gen)));
+    if (!_isCurrent(gen)) return false;
+    final after = state;
+    if (!after.canContinue || after.tags != tags || !after.result!.fits) {
+      return false;
+    }
+    await continueWithResult();
+    return true;
+  }
+
   /// Archives the original file untouched; compression is left as it was.
   void skip() {
     _ref.read(archiveProvider.notifier).selectFile(

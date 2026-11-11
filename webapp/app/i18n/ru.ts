@@ -84,6 +84,7 @@ export const ru: Messages = {
   restoreReady: 'Отсканируйте стопку карт, чтобы найти архивы.',
   scanning: 'Сканирование — прикладывайте карты к считывателю…',
   tapMoreCards: 'Приложите ещё карты или восстановите готовый архив.',
+  noArchiveData: 'На этой карте нет данных NFC Archiver',
   skippedCard: (message) => `Карта пропущена: ${message}`,
   restore: 'Восстановить',
   restoredBytes: (bytes, name) => `Восстановлено ${bytes} ${pr(bytes, BYTE)} → ${name}.`,
@@ -188,6 +189,8 @@ export const ru: Messages = {
   photoQuality: (quality) => `Качество ${quality}`,
   photoBackToAuto: 'Вернуть авто',
   photoUseOptimised: 'Использовать оптимизированное фото',
+  photoUseWithCards: (n) =>
+    `Использовать оптимизированное фото (${n} ${pr(n, CARD)})`,
   photoKeepOriginal: 'Оставить оригинал',
   photoDecideFirst: 'Сначала используйте оптимизированное фото или оставьте оригинал',
   photoWorking: 'Оптимизация…',

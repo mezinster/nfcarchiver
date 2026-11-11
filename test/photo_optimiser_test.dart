@@ -44,6 +44,19 @@ class _SlowSession extends FakeJpegSession {
   }
 }
 
+/// Throws from every encode once [fail] is set.
+class _FailingSession extends FakeJpegSession {
+  _FailingSession(super.width, super.height, {required super.size});
+
+  bool fail = false;
+
+  @override
+  Future<Uint8List> encode({required int maxSide, required int quality}) {
+    if (fail) throw const PhotoDecodeException();
+    return super.encode(maxSide: maxSide, quality: quality);
+  }
+}
+
 /// Stands in for the 4K developer switch, so a test can flip it mid-screen.
 final fake4k = StateProvider<bool>((_) => false);
 
@@ -136,15 +149,29 @@ void main() {
   FilledButton continueButton(WidgetTester tester) =>
       tester.widget<FilledButton>(find.byType(FilledButton));
 
-  Future<void> tapContinue(WidgetTester tester) async {
-    await tester.tap(find.text('Continue'));
-    // The optimised file is written with real I/O: each step completes
-    // outside fake async, and its continuation runs on the next pump.
-    for (var i = 0; i < 10; i++) {
+  /// Pumps, letting real I/O run, until [done] holds; fails after ~5 s.
+  Future<void> pumpUntil(
+      WidgetTester tester, bool Function() done, String what) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (!done()) {
+      if (!DateTime.now().isBefore(deadline)) {
+        fail('timed out after 5 s waiting for $what');
+      }
       await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 20)));
+          () => Future<void>.delayed(const Duration(milliseconds: 10)));
       await tester.pump();
     }
+  }
+
+  /// Taps [label] and waits for the settings route: the optimised file is
+  /// written with real I/O, whose steps complete outside fake async.
+  Future<void> tapContinue(WidgetTester tester,
+      {String label = 'Continue'}) async {
+    await tester.tap(find.text(label));
+    await pumpUntil(
+        tester,
+        () => find.text('settings-page').evaluate().isNotEmpty,
+        'the settings page after "$label"');
     await settle(tester);
   }
 
@@ -355,8 +382,161 @@ void main() {
     expect(tagCount(62), findsOneWidget);
     expect(find.text("Doesn't fit in 62 tags — needs at least 124 tags"),
         findsOneWidget);
-    expect(continueButton(tester).onPressed, isNotNull,
-        reason: 'Continue stays on the smallest result');
+    expect(continueButton(tester).onPressed, isNotNull);
+    expect(find.text('Continue with 124 tags'), findsOneWidget,
+        reason: 'Continue moves to the count that fits');
+  });
+
+  /// 32,000 B named `IMG_1.HEIC`: 40 NTAG216 tags. Every encode costs
+  /// 8,000 B more than [linear], so the smallest (320 px, q30) is 8,960 B
+  /// and needs 12 tags; at 12 tags (9,689 B budget) auto fits 320 px, q52.
+  const floorPhoto =
+      PendingPhoto(path: '/photos/IMG_1.HEIC', name: 'IMG_1.HEIC', size: 32000);
+  int floored(int side, int q) => 8000 + linear(side, q);
+
+  Future<void> typeCount(WidgetTester tester, String text) async {
+    await tester.tap(find.byKey(const Key('photoTagCount')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), text);
+    await tester.tap(find.text('OK'));
+    await settle(tester);
+  }
+
+  int estimateFor(ProviderContainer c, NfcTagType type) {
+    final a = c.read(archiveProvider) as ArchiveFileSelected;
+    return ArchiveRepository.instance
+        .estimateFromSize(
+          dataSize: a.fileSize,
+          fileName: a.fileName,
+          tagType: type,
+          encrypt: true,
+          compress: false,
+        )
+        .chunksNeeded;
+  }
+
+  testWidgets('nothing fits: Continue offers the needed count and uses it',
+      (tester) async {
+    final c = container(
+        photo: floorPhoto, session: FakeJpegSession(4000, 3000, size: floored));
+    c.listen(photoOptimiserProvider, (_, __) {}); // outlives the screen
+    await pumpScreen(tester, c);
+    await typeCount(tester, '6');
+
+    expect(tagCount(6), findsOneWidget);
+    expect(find.text("Doesn't fit in 6 tags — needs at least 12 tags"),
+        findsOneWidget);
+    expect(find.text('Continue with 12 tags'), findsOneWidget);
+    expect(find.text('Continue'), findsNothing);
+
+    await tapContinue(tester, label: 'Continue with 12 tags');
+
+    final st = c.read(photoOptimiserProvider);
+    expect(st.tags, 12);
+    expect(st.result!.fits, isTrue);
+    expect((st.result!.maxSide, st.result!.quality), (320, 52),
+        reason: 'auto re-fits at 12 tags');
+    final a = c.read(archiveProvider) as ArchiveFileSelected;
+    expect(a.fileSize, st.result!.bytes.length);
+    expect(File(a.filePath).lengthSync(), a.fileSize);
+    expect(estimateFor(c, NfcTagType.ntag216), lessThanOrEqualTo(12));
+  });
+
+  testWidgets('the needed count shows on screen before Continue leaves',
+      (tester) async {
+    final c = container(
+        photo: floorPhoto, session: FakeJpegSession(4000, 3000, size: floored));
+    await pumpScreen(tester, c);
+    await typeCount(tester, '6');
+
+    await tester.tap(find.text('Continue with 12 tags'));
+    await tester.pump(); // the count moves before the fit and the write
+    expect(tagCount(12), findsOneWidget);
+    await pumpUntil(
+        tester,
+        () => find.text('settings-page').evaluate().isNotEmpty,
+        'the settings page');
+  });
+
+  testWidgets('when it fits the label stays "Continue"', (tester) async {
+    final c = container();
+    await pumpScreen(tester, c);
+    expect(find.text('Continue'), findsOneWidget);
+    expect(find.textContaining('Continue with'), findsNothing);
+  });
+
+  testWidgets('manual, not fitting: continues with the same bytes',
+      (tester) async {
+    final c = container(
+        photo: floorPhoto, session: FakeJpegSession(4000, 3000, size: floored));
+    c.listen(photoOptimiserProvider, (_, __) {});
+    await pumpScreen(tester, c);
+    await typeCount(tester, '6');
+    c.read(photoOptimiserProvider.notifier).setManual(side: 320, quality: 30);
+    await settle(tester);
+    expect(c.read(photoOptimiserProvider).result!.bytes.length, 8960);
+    expect(find.text('Continue with 12 tags'), findsOneWidget);
+
+    await tapContinue(tester, label: 'Continue with 12 tags');
+
+    final st = c.read(photoOptimiserProvider);
+    expect(st.mode, PhotoMode.manual);
+    expect(st.tags, 12);
+    expect((st.result!.maxSide, st.result!.quality), (320, 30));
+    final a = c.read(archiveProvider) as ArchiveFileSelected;
+    expect(a.fileSize, 8960);
+    expect(estimateFor(c, NfcTagType.ntag216), lessThanOrEqualTo(12));
+  });
+
+  testWidgets('needed above the cap still continues at the needed count',
+      (tester) async {
+    // The 2,000 B original caps at 3 tags; every encode is 3,000 B: 4 tags.
+    final c = container(
+      photo: const PendingPhoto(
+          path: '/photos/small.jpg', name: 'IMG_1.jpg', size: 2000),
+      session: FakeJpegSession(270, 480, size: (_, __) => 3000),
+    );
+    c.listen(photoOptimiserProvider, (_, __) {});
+    await pumpScreen(tester, c);
+    expect(c.read(photoOptimiserProvider).cap, 3);
+    expect(tagCount(3), findsOneWidget);
+    expect(find.text('Continue with 4 tags'), findsOneWidget);
+
+    await tapContinue(tester, label: 'Continue with 4 tags');
+
+    expect(c.read(photoOptimiserProvider).tags, 4);
+    expect(c.read(archiveProvider), isA<ArchiveFileSelected>());
+    expect(estimateFor(c, NfcTagType.ntag216), lessThanOrEqualTo(4));
+  });
+
+  testWidgets('a failed re-fit at the needed count does not continue',
+      (tester) async {
+    final s = _FailingSession(4000, 3000, size: floored);
+    final c = container(photo: floorPhoto, session: s);
+    c.listen(photoOptimiserProvider, (_, __) {});
+    await pumpScreen(tester, c);
+    await typeCount(tester, '6');
+    s.fail = true;
+
+    final continued =
+        await c.read(photoOptimiserProvider.notifier).continueAtNeeded();
+    await settle(tester);
+
+    expect(continued, isFalse);
+    expect(c.read(archiveProvider), isA<ArchiveInitial>());
+    expect(find.text('settings-page'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('continueAtNeeded does nothing when the result fits',
+      (tester) async {
+    final c = container();
+    c.listen(photoOptimiserProvider, (_, __) {});
+    await settle(tester);
+    expect(await c.read(photoOptimiserProvider.notifier).continueAtNeeded(),
+        isFalse);
+    expect(c.read(archiveProvider), isA<ArchiveInitial>());
+    expect(c.read(photoOptimiserProvider).tags, 6);
   });
 
   testWidgets('the stepper is clamped to [1, cap]', (tester) async {

@@ -539,3 +539,122 @@ test('archiveGate: no reader or a busy reader still disables; "connect" outranks
     { disabled: true, hint: null, showEstimate: true },
   );
 });
+
+// ---------- Use optimised photo (N cards) ----------
+
+/** Even the smallest side is ~100 kB, so nothing fits the opening count. */
+const hugeSession = () => new FakeJpegSession(4032, 3024, () => 100_000);
+
+/** Opens on a hugeSession and steps down to 5 cards, where nothing fits. */
+async function openNothingFits(opts: Parameters<typeof setup>[0] = {}) {
+  const h = setup({ session: hugeSession(), ...opts });
+  await h.opt.open();
+  await flush();
+  h.opt.setTags(5);
+  h.clock.advance(PHOTO_REFIT_DEBOUNCE_MS);
+  await flush();
+  return h;
+}
+
+test('nothing fits: the state names the count to continue with, and useAtNeeded raises it and uses the result', async () => {
+  const { opt, session } = await openNothingFits();
+  const s = opt.state;
+  assert.equal(s.result!.fits, false);
+  assert.ok(s.needed! > s.tags);
+  assert.equal(s.continueWithCards, s.needed);
+  const needed = s.needed!;
+  const choice = await opt.useAtNeeded();
+  assert.ok(choice);
+  assert.equal(choice.kind, 'optimised');
+  if (choice.kind === 'optimised') {
+    assert.equal(choice.fileName, OUT);
+    assert.equal(choice.data.length, 100_000);
+    assert.ok(choice.data.length <= photoByteBudget({ tags: needed, payloadSize: PAYLOAD, fileName: OUT }));
+  }
+  assert.equal(opt.state.tags, needed);
+  assert.equal((session as FakeJpegSession).closed, true);
+});
+
+test('no continue label when the result fits', async () => {
+  const { opt } = setup();
+  await opt.open();
+  await flush();
+  assert.equal(opt.state.continueWithCards, null);
+  assert.equal(await opt.useAtNeeded(), null);
+});
+
+test('manual and not fitting: continuing keeps the side and quality', async () => {
+  const { opt, clock } = setup();
+  await opt.open();
+  await flush();
+  opt.setManual({ side: 2000, quality: 90 });
+  clock.advance(PHOTO_REFIT_DEBOUNCE_MS);
+  await flush();
+  assert.equal(opt.state.result!.fits, false);
+  const needed = opt.state.needed!;
+  assert.equal(opt.state.continueWithCards, needed);
+  const choice = await opt.useAtNeeded();
+  assert.ok(choice && choice.kind === 'optimised');
+  assert.equal(choice.data.length, model(2000, 90));
+  assert.equal(opt.state.tags, needed);
+  assert.equal(opt.state.manualSide, 2000);
+  assert.equal(opt.state.manualQuality, 90);
+});
+
+test('needed above the cap: the count passes the cap, never the NFAR maximum', async () => {
+  // A 20 kB original caps at a few dozen cards; a manual 4032 / q100 needs thousands.
+  const { opt, clock } = setup({ originalSize: 20_000 });
+  await opt.open();
+  await flush();
+  opt.setManual({ side: 4032, quality: 100 });
+  clock.advance(PHOTO_REFIT_DEBOUNCE_MS);
+  await flush();
+  const { cap, needed } = opt.state;
+  assert.ok(needed! > cap);
+  assert.equal(opt.state.continueWithCards, Math.min(needed!, MAX_CHUNKS));
+  const choice = await opt.useAtNeeded();
+  assert.ok(choice);
+  assert.equal(opt.state.tags, needed);
+  assert.ok(opt.state.cap >= opt.state.tags);
+});
+
+test('useAtNeeded: more than the NFAR maximum needed is refused, not clamped into a bad choice', async () => {
+  // 1 GB-ish result cannot fit 65,535 cards of 144 B.
+  const { opt } = setup({ session: new FakeJpegSession(4032, 3024, () => 20_000_000), payloadSize: 144, originalSize: 30_000_000 });
+  await opt.open();
+  await flush();
+  assert.equal(opt.state.result!.fits, false);
+  assert.ok(opt.state.needed! > MAX_CHUNKS);
+  assert.equal(await opt.useAtNeeded(), null);
+  assert.ok(opt.state.tags <= MAX_CHUNKS);
+});
+
+test('useAtNeeded is refused while busy', async () => {
+  const { opt } = await openNothingFits();
+  opt.step(1); // debounce pending: busy
+  assert.equal(opt.state.busy, true);
+  assert.equal(await opt.useAtNeeded(), null);
+});
+
+test('useAtNeeded: a newer change during its fit makes it return null', async () => {
+  const { opt } = await openNothingFits();
+  const p = opt.useAtNeeded();
+  opt.step(1); // supersedes the fit
+  assert.equal(await p, null);
+  opt.dispose();
+});
+
+test('useAtNeeded: disposed returns null', async () => {
+  const { opt } = await openNothingFits();
+  const p = opt.useAtNeeded();
+  opt.dispose();
+  assert.equal(await p, null);
+});
+
+test('the too-large stand-in has no count to continue with', async () => {
+  const { opt } = setup({ session: cappedSession(100) });
+  await opt.open();
+  await flush();
+  assert.equal(opt.state.continueWithCards, null);
+  opt.dispose();
+});

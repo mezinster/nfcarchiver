@@ -38,6 +38,8 @@ class PhotoOptimiserScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final failed = st.error != PhotoError.none;
     final result = st.result;
+    // Nothing fits the chosen count: Continue moves to the count that does.
+    final overBudget = result != null && !result.fits && st.needed != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -57,9 +59,20 @@ class PhotoOptimiserScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               FilledButton(
-                onPressed:
-                    st.canContinue ? () => _continue(context, ref) : null,
-                child: Text(l10n.photoContinue, textAlign: TextAlign.center),
+                onPressed: !st.canContinue
+                    ? null
+                    : overBudget
+                        ? () =>
+                            _continue(context, ref, notifier.continueAtNeeded)
+                        : () => _continue(context, ref, () async {
+                              await notifier.continueWithResult();
+                              return true;
+                            }),
+                child: Text(
+                    overBudget
+                        ? l10n.photoContinueWithTags(st.needed!)
+                        : l10n.photoContinue,
+                    textAlign: TextAlign.center),
               ),
               const SizedBox(height: 4),
               TextButton(
@@ -179,11 +192,13 @@ class PhotoOptimiserScreen extends ConsumerWidget {
     ref.read(photoOptimiserProvider.notifier).setTags(n.clamp(1, cap));
   }
 
-  Future<void> _continue(BuildContext context, WidgetRef ref) async {
+  /// Runs [action] and opens Archive settings if it continued.
+  Future<void> _continue(BuildContext context, WidgetRef ref,
+      Future<bool> Function() action) async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      await ref.read(photoOptimiserProvider.notifier).continueWithResult();
-      if (context.mounted) context.go('/archive/settings');
+      final continued = await action();
+      if (continued && context.mounted) context.go('/archive/settings');
     } catch (e, st) {
       log.report('photo', 'saving the optimised photo failed', e, st);
       if (context.mounted) {

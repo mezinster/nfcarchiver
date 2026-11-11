@@ -81,6 +81,7 @@ export const tr: Messages = {
   restoreReady: 'Arşivleri bulmak için bir deste kartı tarayın.',
   scanning: 'Taranıyor — kartları okuyucuya okutun…',
   tapMoreCards: 'Daha fazla kart okutun veya tamamlanmış bir arşivi geri yükleyin.',
+  noArchiveData: 'Bu kartta NFC Archiver verisi yok',
   skippedCard: (message) => `Bir kart atlandı: ${message}`,
   restore: 'Geri yükle',
   restoredBytes: (bytes, name) => `${bytes} bayt geri yüklendi → ${name}.`,
@@ -185,6 +186,8 @@ export const tr: Messages = {
   photoQuality: (quality) => `Kalite ${quality}`,
   photoBackToAuto: 'Otomatiğe dön',
   photoUseOptimised: 'Optimize edilmiş fotoğrafı kullan',
+  photoUseWithCards: (n) =>
+    `Optimize edilmiş fotoğrafı kullan (${n} kart)`,
   photoKeepOriginal: 'Orijinali koru',
   photoDecideFirst: 'Önce optimize edilmiş fotoğrafı kullanın ya da orijinali koruyun',
   photoWorking: 'Optimize ediliyor…',

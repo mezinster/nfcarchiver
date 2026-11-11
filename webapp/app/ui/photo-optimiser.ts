@@ -140,6 +140,13 @@ export interface PhotoOptimiserState {
   largerThanOriginal: boolean;
   /** The chosen size could not be encoded in this browser (canvas size or memory limit); no result. */
   tooLarge: boolean;
+  /**
+   * The count the button "Use optimised photo (N cards)" would continue with:
+   * set while the current result doesn't fit its count and `needed` is known
+   * and within the NFAR maximum; null otherwise (including the too-large
+   * stand-in, which has no `needed`).
+   */
+  continueWithCards: number | null;
 }
 
 export interface PhotoOptimiserIO {
@@ -233,6 +240,7 @@ export class PhotoOptimiser {
       error: 'none',
       largerThanOriginal: false,
       tooLarge: false,
+      continueWithCards: null,
     };
   }
 
@@ -244,6 +252,11 @@ export class PhotoOptimiser {
     if (this.disposed) return;
     this.s = { ...this.s, ...patch };
     this.s.largerThanOriginal = this.s.result !== null && this.s.result.bytes.length >= this.photo.originalSize;
+    const { result, needed, error } = this.s;
+    this.s.continueWithCards =
+      error === 'none' && result !== null && !result.fits && needed !== null && needed >= 1 && needed <= MAX_CHUNKS
+        ? needed
+        : null;
     this.io.onChange(this.s);
   }
 
@@ -339,6 +352,30 @@ export class PhotoOptimiser {
     if (this.s.busy || this.s.error !== 'none' || r === null) return null;
     this.dispose();
     return { kind: 'optimised', data: r.bytes, fileName: this.outputName };
+  }
+
+  /**
+   * "Use optimised photo (N cards)": raises the count to `needed` (past the
+   * cap if need be, never past MAX_CHUNKS), re-fits at once and, if that fits,
+   * behaves as use(). Auto mode may find a better image that still fits;
+   * manual keeps its side and quality. Null when busy, failed, superseded,
+   * disposed or still not fitting. A port of continueAtNeeded.
+   */
+  async useAtNeeded(): Promise<PhotoChoice | null> {
+    const st = this.s;
+    const tags = st.continueWithCards;
+    if (this.disposed || st.busy || tags === null || this.session === null) return null;
+    this.clearDebounce();
+    this.holding = false;
+    this.set({ tags, cap: Math.max(st.cap, tags) });
+    const gen = ++this.gen;
+    this.set({ busy: true });
+    const done = (this.chain = this.chain.then(() => this.fit(gen)));
+    await done;
+    if (!this.isCurrent(gen)) return null;
+    const after = this.s;
+    if (after.tags !== tags || after.result === null || !after.result.fits) return null;
+    return this.use();
   }
 
   /** Archives the original file untouched. Ends the optimiser. */

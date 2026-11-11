@@ -78,8 +78,7 @@ export function initRestorePanel(): void {
         const iterationStart = Date.now();
         try {
           await orch.scanStep(scanAbort.signal);
-          breaker.reset();
-          setStatus(t.tapMoreCards);
+          breaker.reset(); // the orchestrator sets the status (progress or blank notice)
         } catch (e) {
           if (e instanceof DOMException && e.name === 'AbortError') break;
           if (e instanceof TagTimeoutError) continue;

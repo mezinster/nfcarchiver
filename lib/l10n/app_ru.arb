@@ -231,6 +231,7 @@
   "photoBackToAuto": "Вернуть авто",
   "photoSkip": "Пропустить (оставить оригинал)",
   "photoContinue": "Продолжить",
+  "photoContinueWithTags": "{count, plural, one{Продолжить с {count} меткой} few{Продолжить с {count} метками} many{Продолжить с {count} метками} other{Продолжить с {count} метками}}",
   "ok": "ОК",
   "photoLargerThanOriginal": "Исходный файл меньше — «Пропустить» сохранит его.",
   "photoCannotRead": "Это фото не удаётся прочитать. Нажмите «Пропустить», чтобы архивировать исходный файл.",

@@ -82,6 +82,7 @@ export const en = {
   restoreReady: 'Scan a pile of cards to detect archives.',
   scanning: 'Scanning — tap cards on the reader…',
   tapMoreCards: 'Tap more cards, or Restore a complete one.',
+  noArchiveData: 'No NFC Archiver data on this card',
   skippedCard: (message: string) => `Skipped a card: ${message}`,
   restore: 'Restore',
   restoredBytes: (bytes: number, name: string) => `Restored ${bytes} bytes → ${name}.`,
@@ -191,6 +192,8 @@ export const en = {
   photoQuality: (quality: number) => `Quality ${quality}`,
   photoBackToAuto: 'Back to auto',
   photoUseOptimised: 'Use optimised photo',
+  photoUseWithCards: (n: number) =>
+    `Use optimised photo (${n} ${pr(n, { one: 'card', other: 'cards' })})`,
   photoKeepOriginal: 'Keep original',
   photoDecideFirst: 'Use the optimised photo or keep the original first',
   photoWorking: 'Optimising…',
