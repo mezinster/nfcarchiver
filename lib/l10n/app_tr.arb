@@ -13,7 +13,7 @@
   "versionFooter": "NFC Arşivcisi v{version} (Yapı {build}) © 2026",
   "buildLabel": "Yapı",
   "aboutAppDescription": "NFC etiketleri kullanan dağıtık veri arşivleme sistemi. Dosyaları birden fazla NFC etiketinde saklayın ve daha sonra geri yükleyin.",
-  "aboutSupportedTags": "Desteklenen etiketler: NTAG213/215/216, MIFARE Ultralight",
+  "aboutSupportedTags": "Desteklenen etiketler: NTAG213/215/216, MIFARE Ultralight C, Mifare Classic 1K (Mifare destekli Android veya Chameleon Ultra ile)",
   "selectFile": "Dosya Seç",
   "tapToSelectFile": "Dosya seçmek için dokunun",
   "chooseFileToArchive": "NFC etiketlerine arşivlemek için herhangi bir dosya seçin",

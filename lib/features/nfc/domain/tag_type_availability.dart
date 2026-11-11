@@ -9,8 +9,14 @@ import '../../../core/constants/nfar_format.dart';
 ///
 /// [NfcTagType.custom] is never offered: it carries no capacity of its own and
 /// exists for the rechunk path, not for selection.
+///
+/// A type whose [NfcTagType.maxPayloadSize] is not positive is never offered
+/// either: plain MIFARE Ultralight (48 B) is smaller than the NDEF wrapper plus
+/// the NFAR header and CRC. It stays in the enum so a tapped one is still
+/// recognised.
 List<NfcTagType> selectableTagTypes({required bool mifareAvailable}) =>
     NfcTagType.values
         .where((t) => t != NfcTagType.custom)
+        .where((t) => t.maxPayloadSize > 0)
         .where((t) => t.medium != TagMedium.mifareClassic || mifareAvailable)
         .toList(growable: false);

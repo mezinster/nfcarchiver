@@ -141,5 +141,22 @@ void main() {
           .where((t) => t.medium == TagMedium.ndef);
       expect(without, orderedEquals(withMifare));
     });
+
+    // Plain MIFARE Ultralight has 48 B: less than the NDEF wrapper plus the
+    // NFAR header and CRC, so it holds no payload at all. Offering it led
+    // straight to the chunker's "payload size must be positive" error.
+    test('never offers a type that cannot hold a single payload byte', () {
+      for (final mifare in [true, false]) {
+        final offered = selectableTagTypes(mifareAvailable: mifare);
+        expect(offered, isNot(contains(NfcTagType.mifareUltralight)));
+        expect(offered.where((t) => t.maxPayloadSize <= 0), isEmpty);
+      }
+    });
+
+    test('still offers Ultralight C, which holds as much as an NTAG213', () {
+      expect(selectableTagTypes(mifareAvailable: false),
+          contains(NfcTagType.mifareUltralightC));
+      expect(NfcTagType.mifareUltralightC.maxPayloadSize, greaterThan(0));
+    });
   });
 }

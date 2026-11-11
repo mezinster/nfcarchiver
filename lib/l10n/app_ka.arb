@@ -13,7 +13,7 @@
   "versionFooter": "NFC არქივატორი v{version} (ბილდი {build}) © 2026",
   "buildLabel": "ბილდი",
   "aboutAppDescription": "განაწილებული მონაცემთა არქივაციის სისტემა NFC ტეგების გამოყენებით. შეინახეთ ფაილები რამდენიმე NFC ტეგზე და აღადგინეთ ისინი მოგვიანებით.",
-  "aboutSupportedTags": "მხარდაჭერილი ტეგები: NTAG213/215/216, MIFARE Ultralight",
+  "aboutSupportedTags": "მხარდაჭერილი ტეგები: NTAG213/215/216, MIFARE Ultralight C, Mifare Classic 1K (Android Mifare-ის მხარდაჭერით ან Chameleon Ultra-ს მეშვეობით)",
   "selectFile": "ფაილის არჩევა",
   "tapToSelectFile": "შეეხეთ ფაილის ასარჩევად",
   "chooseFileToArchive": "აირჩიეთ ნებისმიერი ფაილი NFC ტეგებზე არქივაციისთვის",

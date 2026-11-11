@@ -62,7 +62,7 @@
   "@aboutAppDescription": {
     "description": "About dialog description"
   },
-  "aboutSupportedTags": "Supported tags: NTAG213/215/216, MIFARE Ultralight",
+  "aboutSupportedTags": "Supported tags: NTAG213/215/216, MIFARE Ultralight C, Mifare Classic 1K (Android with Mifare support, or via Chameleon Ultra)",
   "@aboutSupportedTags": {
     "description": "Supported NFC tags in about dialog"
   },
