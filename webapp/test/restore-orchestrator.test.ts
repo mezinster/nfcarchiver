@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { MockTransport } from '../src/transport/mock-transport.js';
 import { ArchiveController } from '../app/controller.js';
 import { RestoreOrchestrator, type RestoreIO } from '../app/ui/restore-orchestrator.js';
+import { t } from '../app/i18n/index.js';
 import { Logger } from '../src/log/logger.js';
 
 /** Minimal DOM stub (as in restore-view.test.ts) — but click() is async and
@@ -154,4 +155,23 @@ test('restoreArchive tries the last entered password (no off-by-one)', async () 
   await (container as unknown as StubEl).children[0]!.children[2]!.children[0]!.click();
   assert.equal(downloads.length, 1, 'the 5th (correct) password is actually tried');
   assert.deepEqual(downloads[0]!.data, secret);
+});
+
+test('scanStep: a blank card sets the noArchiveData notice, the next good card the normal status', async () => {
+  const cards = await archiveToCards(crypto.getRandomValues(new Uint8Array(100)), { compress: false, fileName: 'a.bin' });
+  const doc = makeDoc();
+  const statuses: string[] = [];
+  const { io } = makeIO(doc.createElement('div'), { setStatus: (m) => statuses.push(m) });
+  const orch = new RestoreOrchestrator(io);
+  const rt = new MockTransport();
+  orch.startSession(rt);
+  rt.enqueueTag(new Uint8Array([7, 7, 7, 7]), new Uint8Array(64));
+  await orch.scanStep(signal());
+  assert.equal(statuses.at(-1), t.noArchiveData);
+  rt.enqueueTag(new Uint8Array([7, 7, 7, 7]), new Uint8Array(64)); // re-tap
+  await orch.scanStep(signal());
+  assert.equal(statuses.at(-1), t.noArchiveData);
+  rt.enqueueTag(new Uint8Array([1, 0, 0, 0]), cards[0]!);
+  await orch.scanStep(signal());
+  assert.equal(statuses.at(-1), t.tapMoreCards);
 });

@@ -81,6 +81,7 @@ export const tr: Messages = {
   restoreReady: 'Arşivleri bulmak için bir deste kartı tarayın.',
   scanning: 'Taranıyor — kartları okuyucuya okutun…',
   tapMoreCards: 'Daha fazla kart okutun veya tamamlanmış bir arşivi geri yükleyin.',
+  noArchiveData: 'Bu kartta NFC Archiver verisi yok',
   skippedCard: (message) => `Bir kart atlandı: ${message}`,
   restore: 'Geri yükle',
   restoredBytes: (bytes, name) => `${bytes} bayt geri yüklendi → ${name}.`,

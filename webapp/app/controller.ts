@@ -171,12 +171,22 @@ interface ArchiveGroup {
 export class RestoreController {
   private readonly groups = new Map<string, ArchiveGroup>(); // keyed by formatted UUID
   private readonly seenUids = new Set<string>();
+  private readonly blankUids = new Set<string>();
+  /** True when the most recent scanNextCard tap was a card holding no NFAR data
+   *  (first read or a re-tap of a known-blank UID). Reset on every call. */
+  lastTapWasBlank = false;
 
   constructor(private readonly transport: Transport) {}
 
   async scanNextCard(signal?: AbortSignal): Promise<DetectedArchive[]> {
+    this.lastTapWasBlank = false;
     const tag = await this.transport.awaitTag({ signal });
     const uid = uidHex(tag.uid);
+    if (this.blankUids.has(uid)) {
+      this.lastTapWasBlank = true;
+      log.info('scan', 'Card holds no NFAR data (re-tap)', { uid });
+      return this.detectedArchives();
+    }
     if (!this.seenUids.has(uid)) {
       let chunk: Chunk;
       try {
@@ -189,7 +199,9 @@ export class RestoreController {
         // to the caller and leaves the UID re-tappable.
         if (e instanceof NfarFormatError || e instanceof NdefFormatError) {
           this.seenUids.add(uid);
-          log.debug('scan', 'Card skipped — holds no NFAR data', { uid, error: String(e) });
+          this.blankUids.add(uid);
+          this.lastTapWasBlank = true;
+          log.info('scan', 'Card holds no NFAR data', { uid });
           return this.detectedArchives();
         }
         throw e; // a transient I/O failure — let the caller decide

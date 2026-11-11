@@ -45,6 +45,8 @@ export class RestoreOrchestrator {
     if (this.ctrl === null) throw new Error('scanStep before startSession');
     const list = await this.ctrl.scanNextCard(signal);
     this.render(list);
+    // A blank/foreign card is a neutral notice, not an error; a good card restores the normal prompt.
+    this.io.setStatus(this.ctrl.lastTapWasBlank ? t.noArchiveData : t.tapMoreCards);
     this.io.log.debug('scan', 'Detection', { archives: list.length, complete: list.filter((d) => d.complete).length });
   }
 

@@ -81,6 +81,7 @@ export const ka: Messages = {
   restoreReady: 'დაასკანირეთ ბარათების დასტა არქივების აღმოსაჩენად.',
   scanning: 'სკანირება — მიადეთ ბარათები წამკითხველს…',
   tapMoreCards: 'მიადეთ კიდევ ბარათები ან აღადგინეთ დასრულებული არქივი.',
+  noArchiveData: 'ამ ბარათზე NFC Archiver-ის მონაცემები არ არის',
   skippedCard: (message) => `ბარათი გამოტოვდა: ${message}`,
   restore: 'აღდგენა',
   restoredBytes: (bytes, name) => `აღდგენილია ${bytes} ბაიტი → ${name}.`,

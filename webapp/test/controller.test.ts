@@ -352,3 +352,27 @@ test('4K, 3408 selected, switch turned off after one card: the next card is Card
   await assert.rejects(() => ctrl.writeNextCard(undefined, true), CardCapacityError);
   assert.equal(device.writeCount, before);
 });
+
+test('scanNextCard flags a blank card, re-flags a re-tap without re-reading, and clears on a good card', async () => {
+  const [good] = await archiveToCards(crypto.getRandomValues(new Uint8Array(100)), { compress: false });
+  const rt = new MockTransport();
+  let reads = 0;
+  const origRead = rt.readChunk.bind(rt);
+  rt.readChunk = async () => { reads++; return origRead(); };
+  const rctrl = new RestoreController(rt);
+
+  rt.enqueueTag(new Uint8Array([9, 9, 9, 1]), new Uint8Array(64)); // not NFAR
+  assert.deepEqual(await rctrl.scanNextCard(), []);
+  assert.equal(rctrl.lastTapWasBlank, true);
+  assert.equal(reads, 1);
+
+  rt.enqueueTag(new Uint8Array([9, 9, 9, 1]), new Uint8Array(64)); // same blank card again
+  assert.deepEqual(await rctrl.scanNextCard(), []);
+  assert.equal(rctrl.lastTapWasBlank, true, 'a known-blank UID is reported blank again');
+  assert.equal(reads, 1, 'no second readChunk');
+
+  rt.enqueueTag(new Uint8Array([1, 0, 0, 0]), good!);
+  const list = await rctrl.scanNextCard();
+  assert.equal(list.length, 1);
+  assert.equal(rctrl.lastTapWasBlank, false);
+});

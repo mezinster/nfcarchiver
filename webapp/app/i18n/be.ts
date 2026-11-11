@@ -84,6 +84,7 @@ export const be: Messages = {
   restoreReady: 'Адсканіруйце стос карт, каб знайсці архівы.',
   scanning: 'Сканаванне — прыкладайце карты да счытвальніка…',
   tapMoreCards: 'Прыкладзіце яшчэ карты або аднавіце гатовы архіў.',
+  noArchiveData: 'На гэтай карце няма даных NFC Archiver',
   skippedCard: (message) => `Карта прапушчана: ${message}`,
   restore: 'Аднавіць',
   restoredBytes: (bytes, name) => `Адноўлена ${bytes} ${pr(bytes, BYTE)} → ${name}.`,

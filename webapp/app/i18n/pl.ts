@@ -84,6 +84,7 @@ export const pl: Messages = {
   restoreReady: 'Zeskanuj stos kart, aby wykryć archiwa.',
   scanning: 'Skanowanie — przykładaj karty do czytnika…',
   tapMoreCards: 'Przyłóż więcej kart lub przywróć kompletne archiwum.',
+  noArchiveData: 'Na tej karcie nie ma danych NFC Archiver',
   skippedCard: (message) => `Pominięto kartę: ${message}`,
   restore: 'Przywróć',
   restoredBytes: (bytes, name) => `Przywrócono ${bytes} ${pr(bytes, BYTE)} → ${name}.`,
