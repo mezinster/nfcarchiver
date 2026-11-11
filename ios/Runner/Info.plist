@@ -37,6 +37,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NFARAppGroup</key>
+	<string>group.$(NFAR_BUNDLE_ID)</string>
 	<key>NFCReaderUsageDescription</key>
 	<string>This app uses NFC to read and write archive data to NFC tags.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>

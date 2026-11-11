@@ -72,6 +72,23 @@
                 <data android:mimeType="application/vnd.nfcarchiver.chunk"/>
             </intent-filter>
 
+            <!-- Share-in: one photo or file handed over from another app's
+                 share sheet (ShareInbox.kt). For SEND_MULTIPLE only the first
+                 item is used. image/* is listed beside */* so the app shows
+                 among the photo targets of gallery apps. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+                <data android:mimeType="*/*"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+                <data android:mimeType="*/*"/>
+            </intent-filter>
+
         </activity>
 
         <meta-data

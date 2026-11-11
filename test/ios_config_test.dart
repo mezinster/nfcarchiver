@@ -209,6 +209,18 @@ void main() {
       expect(plist, contains('<string>\$(FLUTTER_BUILD_NUMBER)</string>'));
     });
 
+    // The app reads the inbox from the same container the extension writes,
+    // so it names the group through the same Info.plist key and value.
+    test('the app names the same App Group as the extension', () {
+      final key = RegExp(r'<key>NFARAppGroup</key>\s*<string>(.*?)</string>');
+      final app = key.firstMatch(infoPlist);
+      final ext = key.firstMatch(extensionFile('Info.plist'));
+      expect(app, isNotNull, reason: 'Runner Info.plist lacks NFARAppGroup');
+      expect(ext, isNotNull);
+      expect(app!.group(1), ext!.group(1));
+      expect(app.group(1), r'group.$(NFAR_BUNDLE_ID)');
+    });
+
     test('the app registers the URL scheme the extension opens', () {
       expect(infoPlist, contains('<string>nfcarchiver-share</string>'));
     });
