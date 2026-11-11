@@ -188,6 +188,8 @@ export const be: Messages = {
   photoQuality: (quality) => `Якасць ${quality}`,
   photoBackToAuto: 'Вярнуць аўта',
   photoUseOptimised: 'Выкарыстаць аптымізаванае фота',
+  photoUseWithCards: (n) =>
+    `Выкарыстаць аптымізаванае фота (${n} ${pr(n, CARD)})`,
   photoKeepOriginal: 'Пакінуць арыгінал',
   photoDecideFirst: 'Спачатку выкарыстайце аптымізаванае фота або пакіньце арыгінал',
   photoWorking: 'Аптымізацыя…',

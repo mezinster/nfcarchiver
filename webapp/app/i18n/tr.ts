@@ -185,6 +185,8 @@ export const tr: Messages = {
   photoQuality: (quality) => `Kalite ${quality}`,
   photoBackToAuto: 'Otomatiğe dön',
   photoUseOptimised: 'Optimize edilmiş fotoğrafı kullan',
+  photoUseWithCards: (n) =>
+    `Optimize edilmiş fotoğrafı kullan (${n} kart)`,
   photoKeepOriginal: 'Orijinali koru',
   photoDecideFirst: 'Önce optimize edilmiş fotoğrafı kullanın ya da orijinali koruyun',
   photoWorking: 'Optimize ediliyor…',

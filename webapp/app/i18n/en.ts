@@ -191,6 +191,8 @@ export const en = {
   photoQuality: (quality: number) => `Quality ${quality}`,
   photoBackToAuto: 'Back to auto',
   photoUseOptimised: 'Use optimised photo',
+  photoUseWithCards: (n: number) =>
+    `Use optimised photo (${n} ${pr(n, { one: 'card', other: 'cards' })})`,
   photoKeepOriginal: 'Keep original',
   photoDecideFirst: 'Use the optimised photo or keep the original first',
   photoWorking: 'Optimising…',

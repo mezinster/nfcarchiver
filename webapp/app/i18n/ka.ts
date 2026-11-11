@@ -185,6 +185,8 @@ export const ka: Messages = {
   photoQuality: (quality) => `ხარისხი ${quality}`,
   photoBackToAuto: 'ავტომატურზე დაბრუნება',
   photoUseOptimised: 'ოპტიმიზებული ფოტოს გამოყენება',
+  photoUseWithCards: (n) =>
+    `ოპტიმიზებული ფოტოს გამოყენება (${n} ბარათი)`,
   photoKeepOriginal: 'ორიგინალის შენარჩუნება',
   photoDecideFirst: 'ჯერ გამოიყენეთ ოპტიმიზებული ფოტო ან შეინარჩუნეთ ორიგინალი',
   photoWorking: 'ოპტიმიზაცია…',

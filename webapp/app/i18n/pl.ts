@@ -188,6 +188,8 @@ export const pl: Messages = {
   photoQuality: (quality) => `Jakość ${quality}`,
   photoBackToAuto: 'Wróć do auto',
   photoUseOptimised: 'Użyj zoptymalizowanego zdjęcia',
+  photoUseWithCards: (n) =>
+    `Użyj zoptymalizowanego zdjęcia (${n} ${pr(n, CARD)})`,
   photoKeepOriginal: 'Zachowaj oryginał',
   photoDecideFirst: 'Najpierw użyj zoptymalizowanego zdjęcia lub zachowaj oryginał',
   photoWorking: 'Optymalizowanie…',

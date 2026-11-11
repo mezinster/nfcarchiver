@@ -188,6 +188,8 @@ export const uk: Messages = {
   photoQuality: (quality) => `Якість ${quality}`,
   photoBackToAuto: 'Повернути авто',
   photoUseOptimised: 'Використати оптимізоване фото',
+  photoUseWithCards: (n) =>
+    `Використати оптимізоване фото (${n} ${pr(n, CARD)})`,
   photoKeepOriginal: 'Залишити оригінал',
   photoDecideFirst: 'Спершу використайте оптимізоване фото або залиште оригінал',
   photoWorking: 'Оптимізація…',
