@@ -194,6 +194,7 @@ export const pl: Messages = {
     `Nie mieści się na ${cards} ${pr(cards, { one: 'karcie', other: 'kartach' })} — potrzeba co najmniej ${needed} ${pr(needed, CARD_GEN)}`,
   photoLargerThanOriginal: 'Oryginalny plik jest mniejszy — „Zachowaj oryginał” go zachowa.',
   photoCannotRead: 'Tego zdjęcia nie można tu odczytać. Użyj „Zachowaj oryginał”, aby zarchiwizować oryginalny plik.',
+  photoSideTooLarge: 'Ten rozmiar jest za duży do przetworzenia w przeglądarce — wybierz mniejszy.',
   devOptions: 'Opcje programisty',
   devUnlocked: 'Opcje programisty włączone',
   mifare4kToggle: 'Mifare Classic 4K',

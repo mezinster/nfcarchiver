@@ -194,6 +194,7 @@ export const be: Messages = {
     `Не змяшчаецца ў ${cards} ${pr(cards, CARD_ACC)} — патрэбна не менш за ${needed} ${pr(needed, CARD_ACC)}`,
   photoLargerThanOriginal: 'Арыгінальны файл меншы — «Пакінуць арыгінал» захавае яго.',
   photoCannotRead: 'Гэта фота не атрымліваецца прачытаць тут. Націсніце «Пакінуць арыгінал», каб архіваваць арыгінальны файл.',
+  photoSideTooLarge: 'Гэты памер занадта вялікі для апрацоўкі ў браўзеры — выберыце меншы.',
   devOptions: 'Параметры распрацоўшчыка',
   devUnlocked: 'Параметры распрацоўшчыка ўключаны',
   mifare4kToggle: 'Mifare Classic 4K',

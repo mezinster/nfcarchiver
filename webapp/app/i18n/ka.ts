@@ -190,6 +190,7 @@ export const ka: Messages = {
   photoDoesNotFit: (cards, needed) => `${cards} ბარათში არ ეტევა — საჭიროა მინიმუმ ${needed} ბარათი`,
   photoLargerThanOriginal: 'ორიგინალი ფაილი უფრო მცირეა — „ორიგინალის შენარჩუნება“ მას შეინარჩუნებს.',
   photoCannotRead: 'ამ ფოტოს აქ ვერ წავიკითხავთ. ორიგინალი ფაილის დასაარქივებლად გამოიყენეთ „ორიგინალის შენარჩუნება“.',
+  photoSideTooLarge: 'ეს ზომა ბრაუზერში დასამუშავებლად ძალიან დიდია — აირჩიეთ უფრო მცირე.',
   devOptions: 'დეველოპერის პარამეტრები',
   devUnlocked: 'დეველოპერის პარამეტრები ჩართულია',
   mifare4kToggle: 'Mifare Classic 4K',

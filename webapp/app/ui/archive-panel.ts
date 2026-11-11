@@ -200,7 +200,7 @@ export function initArchivePanel(): void {
       previewUrl = URL.createObjectURL(new Blob([st.result.bytes as BlobPart], { type: 'image/jpeg' }));
       img.src = previewUrl;
     }
-    img.hidden = failed || previewUrl === null;
+    img.hidden = failed || st.result === null || previewUrl === null;
     const r = st.result;
     if (r && !failed) {
       const d = previewDimensions(st.width, st.height, r.maxSide);
@@ -211,6 +211,7 @@ export function initArchivePanel(): void {
     const note = $('photo-note');
     const lines: string[] = [];
     if (failed) lines.push(t.photoCannotRead);
+    else if (st.tooLarge && !st.busy) lines.push(t.photoSideTooLarge);
     else if (r && !st.busy) {
       if (!r.fits) lines.push(t.photoDoesNotFit(st.tags, st.needed ?? st.tags));
       if (st.largerThanOriginal) lines.push(t.photoLargerThanOriginal);

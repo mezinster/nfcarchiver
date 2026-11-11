@@ -194,6 +194,7 @@ export const uk: Messages = {
     `Не вміщується в ${cards} ${pr(cards, CARD_ACC)} — потрібно не менше ${needed} ${pr(needed, CARD_GEN)}`,
   photoLargerThanOriginal: 'Оригінальний файл менший — «Залишити оригінал» збереже його.',
   photoCannotRead: 'Це фото не вдається прочитати тут. Натисніть «Залишити оригінал», щоб архівувати оригінальний файл.',
+  photoSideTooLarge: 'Цей розмір завеликий для обробки в браузері — виберіть менший.',
   devOptions: 'Параметри розробника',
   devUnlocked: 'Параметри розробника увімкнено',
   mifare4kToggle: 'Mifare Classic 4K',

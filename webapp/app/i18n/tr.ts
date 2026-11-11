@@ -190,6 +190,7 @@ export const tr: Messages = {
   photoDoesNotFit: (cards, needed) => `${cards} karta sığmıyor — en az ${needed} kart gerekli`,
   photoLargerThanOriginal: 'Orijinal dosya daha küçük — Orijinali koru onu saklar.',
   photoCannotRead: "Bu fotoğraf burada okunamıyor. Orijinal dosyayı arşivlemek için Orijinali koru'yu kullanın.",
+  photoSideTooLarge: 'Bu boyut tarayıcıda işlenemeyecek kadar büyük — daha küçük birini seçin.',
   devOptions: 'Geliştirici seçenekleri',
   devUnlocked: 'Geliştirici seçenekleri etkinleştirildi',
   mifare4kToggle: 'Mifare Classic 4K',

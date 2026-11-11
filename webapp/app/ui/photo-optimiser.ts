@@ -128,6 +128,8 @@ export interface PhotoOptimiserState {
   error: PhotoError;
   /** The result is not smaller than the original file: Keep original is the better choice. */
   largerThanOriginal: boolean;
+  /** The chosen size could not be encoded in this browser (canvas size or memory limit); no result. */
+  tooLarge: boolean;
 }
 
 export interface PhotoOptimiserIO {
@@ -154,6 +156,19 @@ export function applyPhotoChoice(
 
 /** Thrown inside a fit that a newer request has superseded. */
 class Stale extends Error {}
+
+/**
+ * An encoder cannot produce this side here (a canvas above the browser's size
+ * or memory limit). Not a decode failure: the optimiser counts that side as
+ * "doesn't fit" and the search moves on to smaller sides, so the shared fit in
+ * src/photo/fit.ts stays identical to the app's.
+ */
+export class SideTooLargeError extends Error {
+  constructor() {
+    super('Side too large for this browser');
+    this.name = 'SideTooLargeError';
+  }
+}
 
 export class PhotoOptimiser {
   readonly outputName: string;
@@ -185,6 +200,7 @@ export class PhotoOptimiser {
       busy: true,
       error: 'none',
       largerThanOriginal: false,
+      tooLarge: false,
     };
   }
 
@@ -218,9 +234,14 @@ export class PhotoOptimiser {
       }
       this.session = session;
       const longest = Math.max(session.width, session.height);
-      const probe = await session.encode(Math.min(640, longest), 70);
+      let tags = 1;
+      try {
+        const probe = await session.encode(Math.min(640, longest), 70);
+        tags = Math.min(Math.max(this.tagsFor(probe.length, this.s.payloadSize), 1), this.s.cap);
+      } catch (e) {
+        if (!(e instanceof SideTooLargeError)) throw e; // the fit then reports what it can
+      }
       if (this.disposed) return;
-      const tags = Math.min(Math.max(this.tagsFor(probe.length, this.s.payloadSize), 1), this.s.cap);
       this.set({ width: session.width, height: session.height, tags });
       this.schedule(true);
     } catch (e) {
@@ -333,13 +354,23 @@ export class PhotoOptimiser {
     if (inner === null || !this.isCurrent(gen)) return;
     const st = this.s;
     const budget = photoByteBudget({ tags: st.tags, payloadSize: st.payloadSize, fileName: this.outputName });
+    // A side the encoder can't produce here comes back as a stand-in one byte
+    // over the budget, so the fit treats it as "doesn't fit" and moves on.
+    const tooLarge = new WeakSet<Uint8Array>();
     // Aborts a superseded search at its next encode instead of running it to the end.
     const guarded: JpegEncoderSession = {
       width: inner.width,
       height: inner.height,
       encode: async (side, q) => {
         if (!this.isCurrent(gen)) throw new Stale();
-        const bytes = await inner.encode(side, q);
+        let bytes: Uint8Array;
+        try {
+          bytes = await inner.encode(side, q);
+        } catch (e) {
+          if (!(e instanceof SideTooLargeError)) throw e;
+          bytes = new Uint8Array(Math.max(budget + 1, 1));
+          tooLarge.add(bytes);
+        }
         if (!this.isCurrent(gen)) throw new Stale();
         return bytes;
       },
@@ -356,7 +387,12 @@ export class PhotoOptimiser {
         r = await encodeManual(guarded, { maxSide: st.manualSide!, quality: st.manualQuality!, budget });
       }
       if (!this.isCurrent(gen)) return;
-      this.set({ result: r, needed: this.tagsFor(r.bytes.length, st.payloadSize), busy: false });
+      if (tooLarge.has(r.bytes)) {
+        this.autoFits.delete(`${st.payloadSize}:${st.tags}`);
+        this.set({ result: null, needed: null, busy: false, tooLarge: true });
+        return;
+      }
+      this.set({ result: r, needed: this.tagsFor(r.bytes.length, st.payloadSize), busy: false, tooLarge: false });
     } catch (e) {
       if (e instanceof Stale) return;
       if (this.isCurrent(gen)) this.fail(e);
@@ -365,6 +401,6 @@ export class PhotoOptimiser {
 
   private fail(e: unknown): void {
     this.io.warn?.('photo optimiser failed', { error: e instanceof Error ? e.name : typeof e });
-    this.set({ error: 'decodeFailed', busy: false, result: null, needed: null });
+    this.set({ error: 'decodeFailed', busy: false, result: null, needed: null, tooLarge: false });
   }
 }

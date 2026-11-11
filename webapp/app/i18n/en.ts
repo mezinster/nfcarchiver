@@ -197,6 +197,7 @@ export const en = {
     `Doesn't fit in ${cards} ${pr(cards, { one: 'card', other: 'cards' })} — needs at least ${needed} ${pr(needed, { one: 'card', other: 'cards' })}`,
   photoLargerThanOriginal: 'The original file is smaller — Keep original keeps it.',
   photoCannotRead: "This photo can't be read here. Use Keep original to archive the original file.",
+  photoSideTooLarge: 'This size is too large to process in this browser — pick a smaller one.',
   devOptions: 'Developer options',
   devUnlocked: 'Developer options enabled',
   mifare4kToggle: 'Mifare Classic 4K',

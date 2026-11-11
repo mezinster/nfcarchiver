@@ -66,6 +66,10 @@ for the manual real-device checklist (BLE pairing, round-trip, cross-read).
   canvas (`app/ui/canvas-jpeg.ts`: `createImageBitmap` with EXIF orientation,
   drawn on white, `toBlob('image/jpeg')`, then `stripJpegMetadata`); the logic
   is DOM-free in `app/ui/photo-optimiser.ts` behind a `PhotoOptimiserIO` seam.
+  At most two scaled canvases live at once and none exceeds 16 MP (iOS Safari
+  caps a canvas at ~16.7 MP): a side the browser can't encode throws
+  `SideTooLargeError` and counts as "doesn't fit", so the fit moves on to
+  smaller sides; only a failed `createImageBitmap` means "can't be read".
   HEIC decodes only where the browser can (Safari); elsewhere the section says
   the photo can't be read and Keep original archives it as is. No new
   dependencies.

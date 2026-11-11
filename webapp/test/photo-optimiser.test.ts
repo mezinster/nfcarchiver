@@ -9,6 +9,7 @@ import {
   holdIntervalAfter,
   holdMultiplierAfter,
   PHOTO_REFIT_DEBOUNCE_MS,
+  SideTooLargeError,
   type Clock,
   type PhotoOptimiserIO,
   type PhotoOptimiserState,
@@ -16,6 +17,7 @@ import {
 import type { JpegEncoderSession } from '../src/photo/fit.js';
 import { photoByteBudget } from '../src/photo/budget.js';
 import { FakeJpegSession } from './fake-jpeg-session.js';
+import { BoundedCache, MAX_CANVAS_PIXELS, MAX_LIVE_CANVASES, scaledSize } from '../app/ui/canvas-jpeg.js';
 
 const model = (side: number, q: number) => Math.floor((side * side * q) / 1000);
 const PAYLOAD = 720;
@@ -391,4 +393,91 @@ test('previewDimensions scales the oriented size to the result side, never up', 
   assert.deepEqual(previewDimensions(4032, 3024, 640), { width: 640, height: 480 });
   assert.deepEqual(previewDimensions(3024, 4032, 640), { width: 480, height: 640 });
   assert.deepEqual(previewDimensions(800, 600, 4032), { width: 800, height: 600 });
+});
+
+/** An encoder that, like iOS Safari's canvas, cannot produce sides above `limit`. */
+function cappedSession(limit: number): FakeJpegSession & { refused: number[] } {
+  const inner = new FakeJpegSession(8064, 6048, model) as FakeJpegSession & { refused: number[] };
+  inner.refused = [];
+  const encode = inner.encode.bind(inner);
+  inner.encode = async (side: number, q: number) => {
+    if (side > limit) { inner.refused.push(side); throw new SideTooLargeError(); }
+    return encode(side, q);
+  };
+  return inner;
+}
+
+test('a side the browser cannot encode counts as "doesn\'t fit": auto moves on to a smaller side', async () => {
+  const session = cappedSession(4000);
+  const { opt, clock } = setup({ session, originalSize: 30_000_000, payloadSize: 3408 });
+  await opt.open();
+  await flush();
+  opt.setTags(1000); // 3.4 MB: the 8064 px original at q50 (3.25 MB) would fit
+  clock.advance(PHOTO_REFIT_DEBOUNCE_MS);
+  await flush();
+  assert.ok(session.refused.includes(8064), 'the original side was tried and refused');
+  assert.equal(opt.state.error, 'none');
+  assert.equal(opt.state.tooLarge, false);
+  assert.equal(opt.state.result!.maxSide, 3840);
+  assert.equal(opt.state.result!.fits, true);
+});
+
+test('manual Original above the browser limit: a localized "too large" state, not "can\'t be read"', async () => {
+  const session = cappedSession(4000);
+  const { opt } = setup({ session, originalSize: 30_000_000 });
+  await opt.open();
+  await flush();
+  opt.setManual({ side: 8064 });
+  await flush();
+  assert.equal(opt.state.error, 'none');
+  assert.equal(opt.state.tooLarge, true);
+  assert.equal(opt.state.result, null);
+  assert.equal(opt.state.busy, false);
+  assert.equal(opt.use(), null);
+
+  opt.setManual({ side: 1024 });
+  await flush();
+  assert.equal(opt.state.tooLarge, false);
+  assert.equal(opt.state.result!.maxSide, 1024);
+});
+
+test('every side refused: still not a decode failure', async () => {
+  const session = cappedSession(100);
+  const { opt } = setup({ session });
+  await opt.open();
+  await flush();
+  assert.equal(opt.state.error, 'none');
+  assert.equal(opt.state.tags, 1, 'the refused probe starts at one card');
+  assert.equal(opt.state.tooLarge, true);
+  assert.equal(opt.state.result, null);
+});
+
+test('BoundedCache keeps at most the limit alive and releases what it drops', () => {
+  assert.equal(MAX_LIVE_CANVASES, 2);
+  const released: string[] = [];
+  const c = new BoundedCache<number, string>(MAX_LIVE_CANVASES, (v) => released.push(v));
+  c.set(4032, 'a');
+  c.set(3840, 'b');
+  c.set(2560, 'c');
+  assert.equal(c.size, 2);
+  assert.deepEqual(released, ['a']);
+  assert.equal(c.get(3840), 'b'); // now most recent
+  c.reserve(); // room for one more: drops the least recent (2560)
+  assert.deepEqual(released, ['a', 'c']);
+  assert.equal(c.size, 1);
+  c.set(1920, 'd');
+  c.set(1600, 'e');
+  assert.deepEqual(released, ['a', 'c', 'b']);
+  c.clear();
+  assert.deepEqual(released.sort(), ['a', 'b', 'c', 'd', 'e']);
+  assert.equal(c.size, 0);
+});
+
+test('a 48 MP original exceeds the canvas pixel cap; 12 MP does not', () => {
+  const big = scaledSize(8064, 6048, 8064);
+  assert.ok(big.w * big.h > MAX_CANVAS_PIXELS);
+  const twelve = scaledSize(4032, 3024, 4032);
+  assert.ok(twelve.w * twelve.h <= MAX_CANVAS_PIXELS);
+  assert.deepEqual(scaledSize(8064, 6048, 3840), { w: 3840, h: 2880 });
+  assert.deepEqual(scaledSize(800, 600, 3840), { w: 800, h: 600 });
 });
