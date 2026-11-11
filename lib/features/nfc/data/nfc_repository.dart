@@ -456,20 +456,9 @@ class NfcRepository {
               // via `onTagTooSmall` (the same re-chunk offer NDEF gets) instead
               // of failing mid-write with a raw `MifareCapacityException`.
               //
-              // This branch is currently unreachable: `mifareClassic1k` is the
-              // only `TagMedium.mifareClassic` type, its capacity (752) equals
-              // `MifareTagCodec.capacityBytes`, and the tag-type picker refuses
-              // to render once an archive is prepared, so the configured medium
-              // can't change mid-archive. Kept as defence-in-depth for the day
-              // a second Mifare medium exists.
-              //
-              // If that day comes: `onTagTooSmall`'s consumer,
-              // `_showRechunkDialog`, computes the rechunk size via
-              // `NfcTagType.maxPayloadForCapacity(detectedCapacity)`, which is
-              // NDEF-shaped (subtracts NDEF record/terminator overhead). For
-              // capacity 752 that yields 680 — the wrong payload for Mifare,
-              // whose real payload is 720. That formula must be fixed before
-              // this branch can fire for a real Mifare "too small" case.
+              // Reachable: a card smaller than the configured type (e.g. a
+              // 4K archive meeting a 1K card, or a 4K card with the 4K switch
+              // off). The consumer re-chunks with the medium-aware payload.
               final capacity = await codec.capacityBytes(tag);
               if (chunk.totalSize > capacity) {
                 final message = 'Tag too small: needs ${chunk.totalSize} bytes, '

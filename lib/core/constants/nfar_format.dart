@@ -115,6 +115,14 @@ enum NfcTagType {
       capacity: 752,
       medium: TagMedium.mifareClassic),
 
+  /// Mifare Classic 4K: 215 usable blocks x 16 B = 3440 B of raw storage
+  /// (card_layout.dart's MifareCardSize.k4.capacityBytes; same duplication
+  /// and test as the 1K entry).
+  mifareClassic4k(
+      name: 'Mifare Classic 4K',
+      capacity: 3440,
+      medium: TagMedium.mifareClassic),
+
   /// MIFARE Ultralight: 48 bytes user memory
   mifareUltralight(name: 'MIFARE Ultralight', capacity: 48),
 
@@ -142,8 +150,7 @@ enum NfcTagType {
     // Mifare Classic carries the raw chunk with no NDEF framing at all, so only
     // the NFAR header and CRC come off the top.
     if (medium == TagMedium.mifareClassic) {
-      final available = capacity - NfarHeaderSize.total;
-      return available > 0 ? available : 0;
+      return payloadForCapacity(capacity, medium);
     }
     // NDEF overhead includes:
     // - NDEF record header: 3-6 bytes (flags, type length, payload length)
@@ -154,6 +161,17 @@ enum NfcTagType {
     const ndefOverhead = 44;
     final available = capacity - ndefOverhead;
     return available - NfarHeaderSize.total;
+  }
+
+  /// Max payload for a detected [capacity] on a given [medium]. Mifare
+  /// capacity is in chunk bytes (only header and CRC come off); NDEF capacity
+  /// is `ndef.maxSize` and goes through [maxPayloadForCapacity].
+  static int payloadForCapacity(int capacity, TagMedium medium) {
+    if (medium == TagMedium.mifareClassic) {
+      final available = capacity - NfarHeaderSize.total;
+      return available > 0 ? available : 0;
+    }
+    return maxPayloadForCapacity(capacity);
   }
 
   /// Calculate max payload for a specific detected NDEF capacity.

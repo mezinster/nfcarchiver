@@ -413,7 +413,10 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
   ///
   /// Call this when a tag is detected with less capacity than expected.
   /// Returns the new number of chunks needed, or null if rechunking failed.
-  int? rechunkForDetectedCapacity(int detectedNdefCapacity) {
+  int? rechunkForDetectedCapacity(
+    int detectedCapacity, {
+    TagMedium medium = TagMedium.ndef,
+  }) {
     final current = state;
     ArchiveResult? result;
     Set<int> writtenChunks = const {};
@@ -434,7 +437,7 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
 
     try {
       // Calculate max payload for the detected capacity
-      final newPayloadSize = NfcTagType.maxPayloadForCapacity(detectedNdefCapacity);
+      final newPayloadSize = NfcTagType.payloadForCapacity(detectedCapacity, medium);
 
       if (newPayloadSize <= 0) {
         return null; // Tag too small for any data
