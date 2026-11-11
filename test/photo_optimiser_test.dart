@@ -375,6 +375,22 @@ void main() {
     expect(tagCount(1), findsOneWidget);
   });
 
+  testWidgets('the cap never exceeds the NFAR maximum of 65,535 tags',
+      (tester) async {
+    // 100 MB on NTAG213 would need far more than 65,535 tags.
+    final c = container(
+      photo: const PendingPhoto(
+          path: '/photos/huge.png', name: 'IMG_1.png', size: 100000000),
+      tagType: NfcTagType.ntag213,
+    );
+    c.listen(photoOptimiserProvider, (_, __) {}); // keeps it alive
+    await settle(tester);
+    expect(c.read(photoOptimiserProvider).cap, NfarLimits.maxChunks);
+    c.read(photoOptimiserProvider.notifier).setTags(100000);
+    await settle(tester);
+    expect(c.read(photoOptimiserProvider).tags, NfarLimits.maxChunks);
+  });
+
   testWidgets('the tag count carries a hint that it can be typed',
       (tester) async {
     final handle = tester.ensureSemantics();

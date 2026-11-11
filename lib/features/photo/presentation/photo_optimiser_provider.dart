@@ -174,14 +174,18 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
   static String _originalName(PendingPhoto photo) =>
       photo.name ?? p.basename(photo.path);
 
-  static int _capFor(PendingPhoto photo, NfcTagType type) => math.max(
-      1,
-      tagsNeeded(
-          archivedByteCount(
-              dataSize: photo.size,
-              fileName: _originalName(photo),
-              encrypt: true),
-          type));
+  /// The original's tag count, held to [1, NfarLimits.maxChunks]: an archive
+  /// cannot carry more chunks than the header's uint16 count can say.
+  static int _capFor(PendingPhoto photo, NfcTagType type) => math.min(
+      NfarLimits.maxChunks,
+      math.max(
+          1,
+          tagsNeeded(
+              archivedByteCount(
+                  dataSize: photo.size,
+                  fileName: _originalName(photo),
+                  encrypt: true),
+              type)));
 
   int _tagsFor(int bytes, NfcTagType type) => tagsNeeded(
       archivedByteCount(dataSize: bytes, fileName: _outName, encrypt: true),
