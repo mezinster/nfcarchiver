@@ -1,0 +1,6 @@
+Archiwizacja zdjęć, udostępnianie do aplikacji
+- Nowe: „Wybierz zdjęcie” i ekran optymalizacji, który zmniejsza zdjęcie do wybranej liczby tagów (dane lokalizacji i aparatu są usuwane)
+- Nowe: udostępnianie zdjęcia lub pliku z innych aplikacji do NFC Archiver
+- Nowe: dziennik diagnostyczny w „O aplikacji” — podgląd i udostępnianie
+- Zmiana: pusty lub obcy tag pokazuje teraz „Na tym tagu nie ma danych NFC Archiver”
+- Naprawiono: „O aplikacji” wymieniało nieobsługiwane typy tagów

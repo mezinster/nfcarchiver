@@ -1,0 +1,6 @@
+Fotoğraf arşivleme, uygulamaya paylaşım
+- Yeni: "Fotoğraf seç" ve fotoğrafı seçtiğiniz etiket sayısına sığacak şekilde küçülten optimizasyon ekranı (konum ve kamera verileri silinir)
+- Yeni: diğer uygulamalardan NFC Archiver'a fotoğraf veya dosya paylaşma
+- Yeni: Hakkında bölümünde görüntülenebilen ve paylaşılabilen tanılama günlüğü
+- Değişti: boş veya yabancı etiket artık "Bu etikette NFC Archiver verisi yok" diyor
+- Düzeltildi: Hakkında, desteklenmeyen etiket türlerini listeliyordu
