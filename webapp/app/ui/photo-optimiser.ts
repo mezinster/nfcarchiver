@@ -8,6 +8,7 @@
 import { fitToBudget, encodeManual, type JpegEncoderSession, type PhotoFitResult } from '../../src/photo/fit.js';
 import { filenameWrapperBytes, optimisedFileName, photoByteBudget, tagsNeeded } from '../../src/photo/budget.js';
 import { ENCRYPTION_OVERHEAD } from '../../src/crypto.js';
+import { MAX_CHUNKS } from '../../src/chunk.js';
 
 /** Stepper and slider changes wait this long before re-fitting. */
 export const PHOTO_REFIT_DEBOUNCE_MS = 250;
@@ -34,9 +35,18 @@ export interface Clock {
 
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'heic', 'heif', 'webp', 'gif']);
 
-/** Whether a picked file goes through the optimiser: an `image/*` type or a photo extension. */
+/**
+ * `image/*` types that are not photos the optimiser can re-encode: vector
+ * (SVG), or formats browsers don't decode to a canvas (TIFF, icons). These are
+ * archived as picked.
+ */
+const NON_PHOTO_IMAGE_TYPES = new Set(['image/svg+xml', 'image/tiff', 'image/x-icon', 'image/vnd.microsoft.icon']);
+
+/** Whether a picked file goes through the optimiser: a raster `image/*` type or a photo extension. */
 export function isImageFile(name: string, type: string): boolean {
-  if (type.startsWith('image/')) return true;
+  const t = type.toLowerCase();
+  if (NON_PHOTO_IMAGE_TYPES.has(t)) return false;
+  if (t.startsWith('image/')) return true;
   const dot = name.lastIndexOf('.');
   return dot > 0 && IMAGE_EXTENSIONS.has(name.slice(dot + 1).toLowerCase());
 }
@@ -237,9 +247,10 @@ export class PhotoOptimiser {
     this.io.onChange(this.s);
   }
 
+  /** The original's card count, held to [1, MAX_CHUNKS]: the header's uint16 count can say no more. */
   private capFor(payloadSize: number): number {
     const bytes = this.photo.originalSize + filenameWrapperBytes(this.photo.fileName) + ENCRYPTION_OVERHEAD;
-    return Math.max(1, tagsNeeded(bytes, payloadSize));
+    return Math.min(MAX_CHUNKS, Math.max(1, tagsNeeded(bytes, payloadSize)));
   }
 
   private tagsFor(bytes: number, payloadSize: number): number {
@@ -378,7 +389,12 @@ export class PhotoOptimiser {
     const budget = photoByteBudget({ tags: st.tags, payloadSize: st.payloadSize, fileName: this.outputName });
     // A side the encoder can't produce here comes back as a stand-in one byte
     // over the budget, so the fit treats it as "doesn't fit" and moves on.
+    // fit.ts only compares `.length`, so the stand-in is one zero-filled buffer
+    // per fit, made on the first refusal and shared by every later one (a
+    // budget can be tens of MB; engines map zeroed memory lazily, and it is
+    // never written). Identity marks it, so it never leaves this method.
     const tooLarge = new WeakSet<Uint8Array>();
+    let standIn: Uint8Array | null = null;
     // Aborts a superseded search at its next encode instead of running it to the end.
     const guarded: JpegEncoderSession = {
       width: inner.width,
@@ -390,8 +406,11 @@ export class PhotoOptimiser {
           bytes = await inner.encode(side, q);
         } catch (e) {
           if (!(e instanceof SideTooLargeError)) throw e;
-          bytes = new Uint8Array(Math.max(budget + 1, 1));
-          tooLarge.add(bytes);
+          if (standIn === null) {
+            standIn = new Uint8Array(Math.max(budget + 1, 1));
+            tooLarge.add(standIn);
+          }
+          bytes = standIn;
         }
         if (!this.isCurrent(gen)) throw new Stale();
         return bytes;

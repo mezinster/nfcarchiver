@@ -17,6 +17,7 @@ import {
 } from '../app/ui/photo-optimiser.js';
 import type { JpegEncoderSession } from '../src/photo/fit.js';
 import { photoByteBudget } from '../src/photo/budget.js';
+import { MAX_CHUNKS } from '../src/chunk.js';
 import { FakeJpegSession } from './fake-jpeg-session.js';
 import { BoundedCache, MAX_CANVAS_PIXELS, MAX_LIVE_CANVASES, scaledSize } from '../app/ui/canvas-jpeg.js';
 
@@ -92,6 +93,17 @@ test('isImageFile accepts image types and photo extensions only', () => {
   assert.equal(isImageFile('notes.txt', 'text/plain'), false);
   assert.equal(isImageFile('archive.zip', ''), false);
   assert.equal(isImageFile('jpg', ''), false);
+});
+
+test('isImageFile leaves vector, TIFF and icon images to plain archiving', () => {
+  assert.equal(isImageFile('logo.svg', 'image/svg+xml'), false);
+  assert.equal(isImageFile('scan.tif', 'image/tiff'), false);
+  assert.equal(isImageFile('favicon.ico', 'image/x-icon'), false);
+  assert.equal(isImageFile('favicon.ico', 'image/vnd.microsoft.icon'), false);
+  assert.equal(isImageFile('scan.TIFF', 'IMAGE/TIFF'), false, 'case-insensitive');
+  for (const t of ['image/jpeg', 'image/png', 'image/heic', 'image/heif', 'image/webp', 'image/gif', 'image/avif', 'image/bmp']) {
+    assert.equal(isImageFile('x', t), true, t);
+  }
 });
 
 test('hold schedule: 300 ms, then 100 ms after 1 s, 50 ms after 2 s, x10 from 3 s', () => {
@@ -171,6 +183,18 @@ test('auto fit on open: starting count from the 640/q70 probe, best fit for that
   assert.equal(opt.outputName, OUT);
   assert.deepEqual((session as FakeJpegSession).calls[0], { maxSide: 640, quality: 70 });
   assert.ok(states.length > 0, 'state changes are pushed');
+});
+
+test('the cap never exceeds the NFAR maximum of 65,535 cards', async () => {
+  // 1 GB on a 144 B payload would need millions of cards.
+  const { opt, clock } = setup({ originalSize: 1_000_000_000, payloadSize: 144 });
+  assert.equal(opt.state.cap, MAX_CHUNKS);
+  opt.setPayloadSize(100);
+  assert.equal(opt.state.cap, MAX_CHUNKS);
+  opt.setTags(1_000_000);
+  assert.equal(opt.state.tags, MAX_CHUNKS);
+  clock.advance(PHOTO_REFIT_DEBOUNCE_MS);
+  opt.dispose();
 });
 
 test('starting count is clamped to the cap the original needs', async () => {
