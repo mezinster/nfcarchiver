@@ -13,7 +13,7 @@
   "versionFooter": "NFC Archiver v{version} (Kompilacja {build}) © 2026",
   "buildLabel": "Kompilacja",
   "aboutAppDescription": "Rozproszony system archiwizacji danych wykorzystujący tagi NFC. Przechowuj pliki na wielu tagach NFC i przywracaj je później.",
-  "aboutSupportedTags": "Obsługiwane tagi: NTAG213/215/216, MIFARE Ultralight",
+  "aboutSupportedTags": "Obsługiwane tagi: NTAG213/215/216, MIFARE Ultralight C, Mifare Classic 1K (Android z obsługą Mifare lub przez Chameleon Ultra)",
   "selectFile": "Wybierz plik",
   "tapToSelectFile": "Dotknij, aby wybrać plik",
   "chooseFileToArchive": "Wybierz dowolny plik do archiwizacji na tagach NFC",

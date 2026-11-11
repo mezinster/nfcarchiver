@@ -13,7 +13,7 @@
   "versionFooter": "NFC Архиватор v{version} (Сборка {build}) © 2026",
   "buildLabel": "Сборка",
   "aboutAppDescription": "Распределённая система архивации данных с использованием NFC-меток. Храните файлы на нескольких NFC-метках и восстанавливайте их позже.",
-  "aboutSupportedTags": "Поддерживаемые метки: NTAG213/215/216, MIFARE Ultralight",
+  "aboutSupportedTags": "Поддерживаемые метки: NTAG213/215/216, MIFARE Ultralight C, Mifare Classic 1K (Android с поддержкой Mifare или через Chameleon Ultra)",
   "selectFile": "Выбор файла",
   "tapToSelectFile": "Нажмите для выбора файла",
   "chooseFileToArchive": "Выберите любой файл для архивации на NFC-метки",
