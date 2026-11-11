@@ -236,7 +236,7 @@
   "shareDiscardTitle": "Yeni bir arşiv başlatılsın mı?",
   "shareDiscardBody": "Geçerli arşivin bazı etiketleri zaten yazıldı. Yeni bir arşiv başlatmak onu iptal eder.",
   "shareDiscardRestoreBody": "Bir geri yükleme sürüyor. Yeni bir arşiv başlatmak onu durdurur; şimdiye kadar taranan etiketler saklanır ve daha sonra devam edebilirsiniz.",
-  "shareDiscardConfirm": "Vazgeç ve devam et",
+  "shareDiscardConfirm": "Sil ve devam et",
   "shareOnlyFirst": "{count} öğeden yalnızca ilki alındı — NFC Archiver her seferinde bir dosya arşivler.",
   "shareCouldNotRead": "Paylaşılan öğe okunamadı."
 }
