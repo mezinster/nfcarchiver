@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorSpace
 import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.graphics.Paint
@@ -130,6 +131,9 @@ class PhotoEncoder(messenger: BinaryMessenger) {
         } catch (e: Exception) {
             throw DecodeFailed()
         }
+        // API 34+ decodes an Ultra HDR gain map by default, and compress()
+        // would write it as a second image after EOI, with MPF and XMP.
+        if (Build.VERSION.SDK_INT >= 34) decoded.gainmap = null
         val bitmap = onWhite(decoded)
         session.cache[side] = bitmap
         var total = session.cache.values.sumOf { it.allocationByteCount.toLong() }
@@ -170,6 +174,9 @@ class PhotoEncoder(messenger: BinaryMessenger) {
                 max(1, (h * scale).roundToInt()),
             )
             decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            // The ICC profile does not survive the metadata strip, so the
+            // pixels themselves must be sRGB (Display P3 sources included).
+            decoder.setTargetColorSpace(ColorSpace.get(ColorSpace.Named.SRGB))
         }
 
     /** API < 28: BitmapFactory subsampling, exact scaling, then EXIF rotation. */
@@ -185,6 +192,8 @@ class PhotoEncoder(messenger: BinaryMessenger) {
         val opts = BitmapFactory.Options().apply {
             inSampleSize = sample
             inPreferredConfig = Bitmap.Config.ARGB_8888
+            // API 26+: convert wide-gamut sources; the ICC profile is stripped.
+            if (Build.VERSION.SDK_INT >= 26) inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
         }
         var bitmap = BitmapFactory.decodeFile(file.path, opts) ?: throw DecodeFailed()
 

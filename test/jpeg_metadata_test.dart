@@ -40,4 +40,33 @@ void main() {
         [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0]);
     expect(() => stripJpegMetadata(png), throwsFormatException);
   });
+
+  test('drops everything after the first EOI, appended gain map included', () {
+    final xmp = _seg(0xE1, ascii.encode('http://ns.adobe.com/xap/1.0/\x00GainMap'));
+    final gainMap = [...soi, ...app1, ...xmp, ...dqt, ...sof, ...dht, ...sos, ...data, ...eoi];
+    final input = Uint8List.fromList(
+        [...soi, ...app0, ...dqt, ...sof, ...dht, ...sos, ...data, ...eoi, ...gainMap, 0x00, 0x42]);
+    final out = stripJpegMetadata(input);
+    expect(out,
+        Uint8List.fromList([...soi, ...app0, ...dqt, ...sof, ...dht, ...sos, ...data, ...eoi]));
+    expect(out.sublist(out.length - 2), [0xFF, 0xD9]);
+    expect(latin1.decode(out).contains('Exif'), isFalse);
+    expect(latin1.decode(out).contains('GainMap'), isFalse);
+  });
+
+  test('progressive layout (several scans with tables between) is kept intact', () {
+    final sof2 = _seg(0xC2, [8, 0, 1, 0, 1, 1, 1, 0x11, 0]);
+    final dht2 = _seg(0xC4, List.filled(18, 2));
+    final data2 = [0x77, 0xFF, 0x00, 0xFF, 0xD3, 0x88];
+    final input = Uint8List.fromList([
+      ...soi, ...app0, ...app1, ...dqt, ...sof2, ...dht, ...sos, ...data,
+      ...dht2, ...sos, ...data2, ...eoi,
+    ]);
+    expect(
+        stripJpegMetadata(input),
+        Uint8List.fromList([
+          ...soi, ...app0, ...dqt, ...sof2, ...dht, ...sos, ...data,
+          ...dht2, ...sos, ...data2, ...eoi,
+        ]));
+  });
 }
