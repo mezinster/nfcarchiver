@@ -1120,6 +1120,10 @@
   "@shareDiscardBody": {
     "description": "Body of the dialog shown when a shared file would replace work in progress"
   },
+  "shareDiscardRestoreBody": "A restore is in progress. Starting a new archive stops it; the tags scanned so far are kept and you can continue later.",
+  "@shareDiscardRestoreBody": {
+    "description": "Body of the dialog shown when a shared file arrives while a restore is in progress"
+  },
   "shareDiscardConfirm": "Discard and continue",
   "@shareDiscardConfirm": {
     "description": "Button that discards the work in progress and takes the shared file"

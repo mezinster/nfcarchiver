@@ -228,6 +228,7 @@
   "choosePhoto": "Wybierz zdjęcie",
   "shareDiscardTitle": "Rozpocząć nowe archiwum?",
   "shareDiscardBody": "Część tagów bieżącego archiwum jest już zapisana. Rozpoczęcie nowego archiwum spowoduje jego odrzucenie.",
+  "shareDiscardRestoreBody": "Trwa przywracanie. Rozpoczęcie nowego archiwum je zatrzyma; zeskanowane dotąd tagi zostaną zachowane i można będzie kontynuować później.",
   "shareDiscardConfirm": "Odrzuć i kontynuuj",
   "shareOnlyFirst": "Wzięto tylko pierwszy z {count} elementów — NFC Archiver archiwizuje jeden plik naraz.",
   "shareCouldNotRead": "Nie udało się odczytać udostępnionego elementu."

@@ -62,10 +62,11 @@ class ShareInbox {
 
 final shareInboxProvider = Provider<ShareInbox>((_) => ShareInbox());
 
-/// Replacing this archive state would throw away tags already written.
+/// Replacing this archive state would throw away tags already written, or
+/// cut off a write session in progress (even on its first tag).
 bool archiveWorkInProgress(ArchiveState s) => switch (s) {
       ArchiveReady(:final writtenChunks) => writtenChunks.isNotEmpty,
-      ArchiveWriting(:final writtenChunks) => writtenChunks.isNotEmpty,
+      ArchiveWriting() => true,
       _ => false,
     };
 

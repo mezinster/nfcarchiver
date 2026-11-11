@@ -175,7 +175,8 @@ void main() {
       expect(
           archiveWorkInProgress(ArchiveWriting(
               result: r, currentChunkIndex: 0, writtenChunks: const {})),
-          isFalse);
+          isTrue,
+          reason: 'a live write session on the first tag');
       expect(
           archiveWorkInProgress(ArchiveWriting(
               result: r, currentChunkIndex: 1, writtenChunks: const {0})),
@@ -283,6 +284,7 @@ void main() {
       final shell = await _pumpShell(tester, inbox: inbox, archive: writing());
 
       expect(find.text('Start a new archive?'), findsOneWidget);
+      expect(find.textContaining('already written'), findsOneWidget);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
@@ -324,6 +326,8 @@ void main() {
         inbox: inbox, restore: const RestoreInProgress(archiveId: 'id'));
 
     expect(find.text('Start a new archive?'), findsOneWidget);
+    expect(find.textContaining('A restore is in progress'), findsOneWidget);
+    expect(find.textContaining('already written'), findsNothing);
     await tester.tap(find.text('Discard and continue'));
     await tester.pumpAndSettle();
     expect(container.container.read(restoreProvider), isA<RestoreInitial>());

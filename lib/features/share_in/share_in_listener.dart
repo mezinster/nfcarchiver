@@ -125,7 +125,7 @@ class _ShareInListenerState extends ConsumerState<ShareInListener>
     });
 
     if (archiveBusy || restoreBusy) {
-      final confirmed = await _confirmDiscard();
+      final confirmed = await _confirmDiscard(archiveBusy: archiveBusy);
       if (!mounted || !confirmed) {
         _discard(item);
         return;
@@ -163,7 +163,7 @@ class _ShareInListenerState extends ConsumerState<ShareInListener>
     }
   }
 
-  Future<bool> _confirmDiscard() async {
+  Future<bool> _confirmDiscard({required bool archiveBusy}) async {
     final context = _navContext;
     if (context == null) return false;
     final result = await showDialog<bool>(
@@ -172,7 +172,10 @@ class _ShareInListenerState extends ConsumerState<ShareInListener>
         final l10n = AppLocalizations.of(context)!;
         return AlertDialog(
           title: Text(l10n.shareDiscardTitle),
-          content: Text(l10n.shareDiscardBody),
+          // Written tags are the bigger loss, so they win when both are busy.
+          content: Text(archiveBusy
+              ? l10n.shareDiscardBody
+              : l10n.shareDiscardRestoreBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
