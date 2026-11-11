@@ -149,7 +149,10 @@ final readerControllerProvider =
   return ReaderController(
     makePhone: PhoneNfcReader.new,
     makeChameleon: (deviceId) =>
-        ChameleonReader(BleChameleonDevice(deviceId: deviceId)),
+        ChameleonReader(
+      BleChameleonDevice(deviceId: deviceId),
+      allow4k: () => ref.read(mifare4kEnabledProvider),
+    ),
   );
 });
 

@@ -5,6 +5,7 @@ import '../../../core/chameleon/chameleon_device.dart';
 import '../../../core/constants/nfar_format.dart';
 import '../../../core/log/logger.dart';
 import '../../../core/mifare/card_layout.dart';
+import '../../../core/mifare/sak.dart';
 import '../../../core/models/chunk.dart';
 import '../../../core/models/nfc_tag_info.dart';
 import '../../../core/nfc/ndef_bytes.dart';
@@ -23,10 +24,19 @@ class ChameleonReader implements CardReader {
   ChameleonReader(
     this._device, {
     Duration pollInterval = const Duration(milliseconds: 300),
-  }) : _pollInterval = pollInterval;
+    bool Function() allow4k = _never,
+  })  : _pollInterval = pollInterval,
+        _allow4k = allow4k;
+
+  static bool _never() => false;
 
   final ChameleonDevice _device;
   final Duration _pollInterval;
+
+  /// The developer switch, read at call time so a toggle applies to the next
+  /// tap. It gates WRITING beyond 1K capacity only; reading and identifying a
+  /// 4K card are never gated.
+  final bool Function() _allow4k;
 
   bool _sessionActive = false;
   DateTime? _lastWriteAt;
@@ -132,7 +142,7 @@ class ChameleonReader implements CardReader {
       final info = _tagInfo(tag);
       log.info('reader', 'Tag discovered', {
         'uid': info.identifier,
-        'sak': '0x${tag.sak.toRadixString(16).padLeft(2, '0')}',
+        'sak': _sakHex(tag.sak),
       });
       onTagDiscovered?.call(info);
       final bytes = await _readChunkBytes(tag);
@@ -181,24 +191,34 @@ class ChameleonReader implements CardReader {
 
     unawaited(_pollLoop(gen, (tag) async {
       final info = _tagInfo(tag);
-      if (tag.sak == 0x08) {
-        if (bytes.length > cardCapacityBytes) {
+      log.info('reader', 'Tag discovered', {
+        'uid': info.identifier,
+        'sak': _sakHex(tag.sak),
+      });
+      final kind = classifySak(tag.sak);
+      final size = cardSizeFor(kind);
+      if (size != null) {
+        final capacity = writableCapacity(size, allow4k: _allow4k());
+        if (bytes.length > capacity) {
           // Rejected before a single block is written: a partial write would
           // leave the card holding a chunk that can never be assembled.
-          log.warn('reader', 'Chunk too large for Mifare Classic 1K',
-              {'bytes': bytes.length, 'capacity': cardCapacityBytes});
+          log.warn('reader', 'Chunk too large for the Mifare Classic card',
+              {'bytes': bytes.length, 'capacity': capacity});
           // One report only: the error would overwrite the too-small state.
           if (onTagTooSmall != null) {
-            onTagTooSmall(bytes.length, cardCapacityBytes, info);
+            onTagTooSmall(bytes.length, capacity, info);
           } else {
             onError(const NfcFailure(NfcFailureKind.writeFailed));
           }
           _sessionActive = false;
           return;
         }
-        await _writeClassic(bytes);
-      } else {
+        await _writeClassic(bytes, size);
+      } else if (kind == TagKind.ntag) {
         await _writeNtag(bytes);
+      } else {
+        throw UnsupportedTagException(
+            'Unsupported tag (SAK ${_sakHex(tag.sak)})');
       }
       _lastWriteAt = DateTime.now();
       log.info(
@@ -338,22 +358,28 @@ class ChameleonReader implements CardReader {
 
   /// The chunk on the presented card, or null if it holds none.
   Future<Uint8List?> _readChunkBytes(ScannedTag tag) async {
-    if (tag.sak == 0x08) return _readClassic();
-    if (tag.sak == 0x00) return _readNtag();
+    final kind = classifySak(tag.sak);
+    final size = cardSizeFor(kind);
+    if (size != null) return _readClassic(size);
+    if (kind == TagKind.ntag) return _readNtag();
     throw UnsupportedTagException(
-      'Unsupported tag (SAK 0x${tag.sak.toRadixString(16).padLeft(2, '0')})',
+      'Unsupported tag (SAK ${_sakHex(tag.sak)})',
     );
   }
 
-  Future<Uint8List?> _readClassic() async {
-    final first = await _readBlockStrict(usableBlockIndexes[0]);
+  static String _sakHex(int sak) =>
+      '0x${sak.toRadixString(16).padLeft(2, '0')}';
+
+  Future<Uint8List?> _readClassic(MifareCardSize size) async {
+    final usable = size.usableBlocks;
+    final first = await _readBlockStrict(usable[0]);
     if (!firstBlockIsNfar(first)) return null;
-    final second = await _readBlockStrict(usableBlockIndexes[1]);
+    final second = await _readBlockStrict(usable[1]);
     final header = Uint8List(2 * blockSize)
       ..setRange(0, blockSize, first)
       ..setRange(blockSize, 2 * blockSize, second);
 
-    final total = nfarTotalLength(header);
+    final total = nfarTotalLength(header, size: size);
     final blockCount = (total + blockSize - 1) ~/ blockSize;
     final out = Uint8List(blockCount * blockSize)
       ..setRange(0, blockSize, first)
@@ -362,7 +388,7 @@ class ChameleonReader implements CardReader {
       out.setRange(
         i * blockSize,
         (i + 1) * blockSize,
-        await _readBlockStrict(usableBlockIndexes[i]),
+        await _readBlockStrict(usable[i]),
       );
     }
     return Uint8List.sublistView(out, 0, total);
@@ -442,8 +468,19 @@ class ChameleonReader implements CardReader {
     return ntagTotalPages(NtagType.ntag216);
   }
 
-  Future<void> _writeClassic(Uint8List bytes) async {
-    final writes = chunkToBlocks(bytes);
+  Future<void> _writeClassic(Uint8List bytes, MifareCardSize size) async {
+    final writes = chunkToBlocks(bytes, size: size);
+    // Beyond 1K capacity the chunk reaches sectors a card may have re-keyed. A
+    // failed write half-way would leave an unassemblable chunk, so prove every
+    // touched sector answers to the factory key BEFORE the first write. Chunks
+    // that fit 1K skip this: they are written exactly as before.
+    if (bytes.length > cardCapacityBytes) {
+      final sectors = {for (final w in writes) sectorOf(w.block)}.toList()
+        ..sort();
+      for (final sector in sectors) {
+        await _readBlockStrict(sector == 0 ? 1 : firstBlockOfSector(sector));
+      }
+    }
     log.info('reader', 'Writing blocks', {
       'count': writes.length,
       'blocks': writes.map((w) => w.block).join(','),
@@ -493,14 +530,22 @@ class ChameleonReader implements CardReader {
     }
   }
 
-  NfcTagInfo _tagInfo(ScannedTag tag) => NfcTagInfo(
-        identifier: _uidHex(tag.uid),
-        capacity: tag.sak == 0x08 ? cardCapacityBytes : 0,
-        isWritable: true,
-        isNdefCapable: tag.sak == 0x00,
-        tagType: tag.sak == 0x08 ? NfcTagType.mifareClassic1k : null,
-        technologies: const ['chameleon'],
-      );
+  NfcTagInfo _tagInfo(ScannedTag tag) {
+    final kind = classifySak(tag.sak);
+    final size = cardSizeFor(kind);
+    return NfcTagInfo(
+      identifier: _uidHex(tag.uid),
+      capacity: size == null ? 0 : writableCapacity(size, allow4k: _allow4k()),
+      isWritable: true,
+      isNdefCapable: kind == TagKind.ntag,
+      tagType: switch (kind) {
+        TagKind.classic1k => NfcTagType.mifareClassic1k,
+        TagKind.classic4k => NfcTagType.mifareClassic4k,
+        _ => null,
+      },
+      technologies: const ['chameleon'],
+    );
+  }
 
   static String _uidHex(Uint8List uid) =>
       uid.map((b) => b.toRadixString(16).padLeft(2, '0')).join();

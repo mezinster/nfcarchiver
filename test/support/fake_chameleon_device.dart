@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:nfc_archiver/core/chameleon/chameleon_device.dart';
 import 'package:nfc_archiver/core/mifare/card_layout.dart';
+import 'package:nfc_archiver/core/mifare/sak.dart';
 import 'package:nfc_archiver/core/nfc/ndef_bytes.dart';
 import 'package:nfc_archiver/core/nfc/type2.dart';
 
@@ -49,6 +50,24 @@ class FakeChameleonDevice implements ChameleonDevice {
         seed: seed,
       );
 
+  /// A Mifare Classic 4K: 256 blocks, 4-byte UID. [sak] is 0x18 for a real card;
+  /// 0x38 (emulated 4K) and 0x98 (Plus SL1) classify the same way.
+  ///
+  /// Per-sector keys use real 4K numbering ([sectorOf]): sectors 32-39 span 16
+  /// blocks each, so a key on sector 33 covers blocks 144-159.
+  factory FakeChameleonDevice.classic4k({
+    Map<int, Uint8List>? sectorKeys,
+    int seed = 0,
+    int sak = 0x18,
+  }) =>
+      FakeChameleonDevice._(
+        sak: sak,
+        blockCount: 256,
+        totalPages: 0,
+        sectorKeys: sectorKeys,
+        seed: seed,
+      );
+
   /// An NTAG215: 135 pages of 4 bytes, SAK 0x00, 7-byte (cascade) UID.
   factory FakeChameleonDevice.ntag215({int seed = 0}) => FakeChameleonDevice._(
         sak: 0x00,
@@ -76,6 +95,16 @@ class FakeChameleonDevice implements ChameleonDevice {
   Duration _perBlockDelay = Duration.zero;
 
   int disconnectCalls = 0;
+
+  /// Every block read / write that reached the card, in order — so a test can
+  /// say "nothing was written" or "no read beyond the verify pass".
+  final List<int> readLog = [];
+  final List<int> writeLog = [];
+
+  bool get _isClassic {
+    final kind = classifySak(sak);
+    return kind == TagKind.classic1k || kind == TagKind.classic4k;
+  }
 
   // ---- test knobs -----------------------------------------------------------
 
@@ -121,8 +150,9 @@ class FakeChameleonDevice implements ChameleonDevice {
   /// exists — a fake that stored raw bytes on NTAG would make the unwrap look
   /// unnecessary.
   void writeNfar(Uint8List chunk) {
-    if (sak == 0x08) {
-      for (final w in chunkToBlocks(chunk)) {
+    if (_isClassic) {
+      final size = cardSizeFor(classifySak(sak))!;
+      for (final w in chunkToBlocks(chunk, size: size)) {
         setBlock(w.block, w.data);
       }
       return;
@@ -166,13 +196,13 @@ class FakeChameleonDevice implements ChameleonDevice {
     // A 7-byte UID starts with the 0x88 cascade tag in anticollision level 1;
     // a 4-byte UID does not. Card code keys "is this a Classic" off the SAK,
     // but the identity probe keys "is this a cascade" off this byte.
-    final uid = sak == 0x08
+    final uid = _isClassic
         ? Uint8List.fromList(const [0xDE, 0xAD, 0xBE, 0xEF])
         : Uint8List.fromList(const [0x04, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66]);
     return ScannedTag(
       uid: uid,
       sak: sak,
-      atqa: Uint8List.fromList(sak == 0x08 ? const [0x00, 0x04] : const [0x00, 0x44]),
+      atqa: Uint8List.fromList(_isClassic ? const [0x00, 0x04] : const [0x00, 0x44]),
     );
   }
 
@@ -198,7 +228,7 @@ class FakeChameleonDevice implements ChameleonDevice {
     if (data.length == 2 && data[0] == 0x93 && data[1] == 0x20) {
       if (_failAnticollision) throw const CardReadException('Anticollision failed');
       final tag = (await scanTag())!;
-      final cl1 = sak == 0x08
+      final cl1 = _isClassic
           ? Uint8List.fromList(tag.uid)
           // For a 7-byte UID, CL1 carries 0x88 followed by the first 3 bytes.
           : Uint8List.fromList([0x88, tag.uid[0], tag.uid[1], tag.uid[2]]);
@@ -260,6 +290,7 @@ class FakeChameleonDevice implements ChameleonDevice {
       throw CardReadException('Card left the field at block $block');
     }
     _authenticate(block, key);
+    readLog.add(block);
     return Uint8List.fromList(_blocks[block]);
   }
 
@@ -271,6 +302,7 @@ class FakeChameleonDevice implements ChameleonDevice {
       throw CardReadException('A block is 16 bytes, got ${data.length}');
     }
     _authenticate(block, key);
+    writeLog.add(block);
     final stored = Uint8List.fromList(data);
     if (_corruptWrites) stored[0] ^= 0xff;
     _blocks[block] = stored;
@@ -279,7 +311,7 @@ class FakeChameleonDevice implements ChameleonDevice {
   // ---- internals ------------------------------------------------------------
 
   void _assertClassic() {
-    if (sak != 0x08) {
+    if (!_isClassic) {
       throw const UnsupportedTagException(
         'Block access is Mifare Classic only on this fake',
       );
@@ -287,9 +319,10 @@ class FakeChameleonDevice implements ChameleonDevice {
   }
 
   void _authenticate(int block, Uint8List key) {
-    final expected = _sectorKeys[block ~/ 4] ?? factoryKeyA;
+    final sector = sectorOf(block);
+    final expected = _sectorKeys[sector] ?? factoryKeyA;
     if (!_bytesEqual(expected, key)) {
-      throw CardAuthException('Wrong key for sector ${block ~/ 4}');
+      throw CardAuthException('Wrong key for sector $sector');
     }
   }
 
