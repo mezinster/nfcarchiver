@@ -189,6 +189,7 @@ export const be: Messages = {
   photoBackToAuto: 'Вярнуць аўта',
   photoUseOptimised: 'Выкарыстаць аптымізаванае фота',
   photoKeepOriginal: 'Пакінуць арыгінал',
+  photoDecideFirst: 'Спачатку выкарыстайце аптымізаванае фота або пакіньце арыгінал',
   photoWorking: 'Аптымізацыя…',
   photoDoesNotFit: (cards, needed) =>
     `Не змяшчаецца ў ${cards} ${pr(cards, CARD_ACC)} — патрэбна не менш за ${needed} ${pr(needed, CARD_ACC)}`,

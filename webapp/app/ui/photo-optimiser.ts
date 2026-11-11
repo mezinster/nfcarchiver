@@ -154,6 +154,28 @@ export function applyPhotoChoice(
   return { data: choice.data, fileName: choice.fileName, compress: false };
 }
 
+/**
+ * The Archive button and card estimate, given the reader and the optimiser.
+ * While a picked photo waits in the optimiser (file mode only), Archive is
+ * held until the user chooses Use or Keep original, and the estimate, which
+ * counts the original as picked, is hidden so it can't contradict the
+ * optimiser's own count. Text mode is never held by a file-mode optimiser.
+ */
+export function archiveGate(o: {
+  connected: boolean;
+  /** Which panel holds the reader lock, if any. */
+  lockOwner: string | null;
+  mode: 'file' | 'text';
+  photoOpen: boolean;
+}): { disabled: boolean; hint: 'connectReaderFirst' | 'photoDecideFirst' | null; showEstimate: boolean } {
+  const photoPending = o.mode === 'file' && o.photoOpen;
+  return {
+    disabled: !o.connected || o.lockOwner !== null || photoPending,
+    hint: !o.connected ? 'connectReaderFirst' : photoPending ? 'photoDecideFirst' : null,
+    showEstimate: !photoPending,
+  };
+}
+
 /** Thrown inside a fit that a newer request has superseded. */
 class Stale extends Error {}
 

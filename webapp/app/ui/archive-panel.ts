@@ -15,7 +15,7 @@ import { isMifare4kEnabled, onMifare4kChange } from '../dev-flags.js';
 import { log } from '../../src/log/logger.js';
 import { candidateSides } from '../../src/photo/fit.js';
 import {
-  PhotoOptimiser, HoldRepeater, applyPhotoChoice, isImageFile, previewDimensions,
+  PhotoOptimiser, HoldRepeater, applyPhotoChoice, archiveGate, isImageFile, previewDimensions,
   type PhotoOptimiserState, type Clock,
 } from './photo-optimiser.js';
 import { CanvasJpegSession } from './canvas-jpeg.js';
@@ -136,13 +136,21 @@ export function initArchivePanel(): void {
     ($('text') as HTMLTextAreaElement).value,
   );
 
+  // Declared before its first use in updateCounter; assigned in the photo section.
+  let photo: PhotoOptimiser | null = null;
+  const gate = () => archiveGate({
+    connected: isConnected(), lockOwner: readerLock.current(), mode, photoOpen: photo !== null,
+  });
+
   let counterTimer: ReturnType<typeof setTimeout> | undefined;
   let estimateGen = 0;
   const updateCounter = async (): Promise<void> => {
     const gen = ++estimateGen;
     const src = currentSource();
     const el = $('cardcount');
-    if (!src) { el.replaceChildren(); return; }
+    // While the optimiser is open the estimate would count the original, as
+    // picked, against the optimiser's own figure: hide it until Use / Keep.
+    if (!src || !gate().showEstimate) { el.replaceChildren(); return; }
     const compress = ($('compress') as HTMLInputElement).checked;
     const encrypted = ($('apass') as HTMLInputElement).value.length > 0;
     const count = await estimateCardCount(src.data, src.fileName, { compress, encrypted, payloadSize: selectedPayloadSize() });
@@ -170,12 +178,15 @@ export function initArchivePanel(): void {
     setTimeout: (fn, ms) => window.setTimeout(fn, ms),
     clearTimeout: (h) => window.clearTimeout(h as number),
   };
-  let photo: PhotoOptimiser | null = null;
   let previewUrl: string | null = null;
   let previewBytes: Uint8Array | null = null;
   let sizesFor = '';
 
-  const syncPhotoVisibility = (): void => { $('photo-opt').hidden = photo === null || mode !== 'file'; };
+  const syncPhotoVisibility = (): void => {
+    $('photo-opt').hidden = photo === null || mode !== 'file';
+    // Opening or closing the optimiser, or switching mode, moves the gate.
+    syncArchiveButton();
+  };
   const closePhoto = (): void => {
     photo?.dispose();
     photo = null;
@@ -321,6 +332,7 @@ export function initArchivePanel(): void {
   $('photo-keep').addEventListener('click', () => {
     photo?.keepOriginal();
     closePhoto();
+    void updateCounter(); // the estimate for the original comes back
   });
   onLocaleChange(() => { if (photo) renderPhoto(photo.state); });
 
@@ -362,13 +374,14 @@ export function initArchivePanel(): void {
   if (syncTargetTagForReader()) onTagTypeChange();
   onMifare4kChange(() => { if (syncTargetTagForReader()) onTagTypeChange(); });
 
-  const syncArchiveButton = (): void => {
+  function syncArchiveButton(): void {
     const owner = readerLock.current();
+    const g = gate();
     const btn = $('archive') as HTMLButtonElement;
-    btn.disabled = !isConnected() || owner !== null;
+    btn.disabled = g.disabled;
     btn.title = owner !== null && owner !== 'archive' ? t.readerBusyElsewhere : '';
-    $('archive-hint').textContent = isConnected() ? '' : t.connectReaderFirst;
-  };
+    $('archive-hint').textContent = g.hint === null ? '' : t[g.hint];
+  }
   readerLock.onChange(syncArchiveButton);
   // Same reason as restore-panel's: a `t`-derived title is invisible to
   // applyStaticText(), so it must be re-derived on a locale change.
@@ -462,8 +475,9 @@ export function initArchivePanel(): void {
     // Acquire only after the cheap rejections, or an early return would leak
     // the lock and wedge the reader for every other panel.
     if (!src) { setStatus(t.archivePickFirst); return; }
-    // Archiving with the optimiser still open means the original, as picked.
-    if (photo) { photo.keepOriginal(); closePhoto(); }
+    // The button is disabled while a file-mode optimiser is open (archiveGate);
+    // a text-mode run leaves a hidden one alone.
+    if (gate().disabled) return;
     const compress = ($('compress') as HTMLInputElement).checked;
     const pass = ($('apass') as HTMLInputElement).value;
 

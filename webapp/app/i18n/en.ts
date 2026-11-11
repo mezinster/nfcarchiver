@@ -192,6 +192,7 @@ export const en = {
   photoBackToAuto: 'Back to auto',
   photoUseOptimised: 'Use optimised photo',
   photoKeepOriginal: 'Keep original',
+  photoDecideFirst: 'Use the optimised photo or keep the original first',
   photoWorking: 'Optimising…',
   photoDoesNotFit: (cards: number, needed: number) =>
     `Doesn't fit in ${cards} ${pr(cards, { one: 'card', other: 'cards' })} — needs at least ${needed} ${pr(needed, { one: 'card', other: 'cards' })}`,

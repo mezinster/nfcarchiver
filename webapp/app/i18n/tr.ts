@@ -186,6 +186,7 @@ export const tr: Messages = {
   photoBackToAuto: 'Otomatiğe dön',
   photoUseOptimised: 'Optimize edilmiş fotoğrafı kullan',
   photoKeepOriginal: 'Orijinali koru',
+  photoDecideFirst: 'Önce optimize edilmiş fotoğrafı kullanın ya da orijinali koruyun',
   photoWorking: 'Optimize ediliyor…',
   photoDoesNotFit: (cards, needed) => `${cards} karta sığmıyor — en az ${needed} kart gerekli`,
   photoLargerThanOriginal: 'Orijinal dosya daha küçük — Orijinali koru onu saklar.',

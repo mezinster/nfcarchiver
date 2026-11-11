@@ -189,6 +189,7 @@ export const uk: Messages = {
   photoBackToAuto: 'Повернути авто',
   photoUseOptimised: 'Використати оптимізоване фото',
   photoKeepOriginal: 'Залишити оригінал',
+  photoDecideFirst: 'Спершу використайте оптимізоване фото або залиште оригінал',
   photoWorking: 'Оптимізація…',
   photoDoesNotFit: (cards, needed) =>
     `Не вміщується в ${cards} ${pr(cards, CARD_ACC)} — потрібно не менше ${needed} ${pr(needed, CARD_GEN)}`,

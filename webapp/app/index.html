@@ -635,14 +635,14 @@
                   <label class="field-label" for="photo-tags" data-i18n="photoCardsToUse">Cards to use</label>
                   <div class="stepper">
                     <button type="button" id="photo-minus" class="btn-step"><span aria-hidden="true">−</span><span class="sr-only" data-i18n="photoFewerCards">Fewer cards</span></button>
-                    <input type="number" id="photo-tags" inputmode="numeric" min="1" step="1" />
+                    <input type="number" id="photo-tags" inputmode="numeric" min="1" step="1" aria-describedby="photo-cap" />
                     <button type="button" id="photo-plus" class="btn-step"><span aria-hidden="true">+</span><span class="sr-only" data-i18n="photoMoreCards">More cards</span></button>
                     <span id="photo-cap" class="stepper-cap"></span>
                   </div>
                 </div>
                 <div class="field">
-                  <span class="field-label" data-i18n="photoManual">Manual</span>
-                  <div id="photo-sizes" class="chips" role="group"></div>
+                  <span id="photo-manual-label" class="field-label" data-i18n="photoManual">Manual</span>
+                  <div id="photo-sizes" class="chips" role="group" aria-labelledby="photo-manual-label"></div>
                 </div>
                 <label class="field">
                   <span id="photo-quality-label" class="field-label"></span>

@@ -186,6 +186,7 @@ export const ka: Messages = {
   photoBackToAuto: 'ავტომატურზე დაბრუნება',
   photoUseOptimised: 'ოპტიმიზებული ფოტოს გამოყენება',
   photoKeepOriginal: 'ორიგინალის შენარჩუნება',
+  photoDecideFirst: 'ჯერ გამოიყენეთ ოპტიმიზებული ფოტო ან შეინარჩუნეთ ორიგინალი',
   photoWorking: 'ოპტიმიზაცია…',
   photoDoesNotFit: (cards, needed) => `${cards} ბარათში არ ეტევა — საჭიროა მინიმუმ ${needed} ბარათი`,
   photoLargerThanOriginal: 'ორიგინალი ფაილი უფრო მცირეა — „ორიგინალის შენარჩუნება“ მას შეინარჩუნებს.',

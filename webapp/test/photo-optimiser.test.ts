@@ -4,6 +4,7 @@ import {
   PhotoOptimiser,
   HoldRepeater,
   applyPhotoChoice,
+  archiveGate,
   isImageFile,
   previewDimensions,
   holdIntervalAfter,
@@ -480,4 +481,37 @@ test('a 48 MP original exceeds the canvas pixel cap; 12 MP does not', () => {
   assert.ok(twelve.w * twelve.h <= MAX_CANVAS_PIXELS);
   assert.deepEqual(scaledSize(8064, 6048, 3840), { w: 3840, h: 2880 });
   assert.deepEqual(scaledSize(800, 600, 3840), { w: 800, h: 600 });
+});
+
+test('archiveGate: an open file-mode optimiser holds Archive and hides the estimate', () => {
+  assert.deepEqual(
+    archiveGate({ connected: true, lockOwner: null, mode: 'file', photoOpen: true }),
+    { disabled: true, hint: 'photoDecideFirst', showEstimate: false },
+  );
+  assert.deepEqual(
+    archiveGate({ connected: true, lockOwner: null, mode: 'file', photoOpen: false }),
+    { disabled: false, hint: null, showEstimate: true },
+  );
+});
+
+test('archiveGate: text mode is never held by a file-mode optimiser', () => {
+  assert.deepEqual(
+    archiveGate({ connected: true, lockOwner: null, mode: 'text', photoOpen: true }),
+    { disabled: false, hint: null, showEstimate: true },
+  );
+});
+
+test('archiveGate: no reader or a busy reader still disables; "connect" outranks the photo hint', () => {
+  assert.deepEqual(
+    archiveGate({ connected: false, lockOwner: null, mode: 'file', photoOpen: true }),
+    { disabled: true, hint: 'connectReaderFirst', showEstimate: false },
+  );
+  assert.deepEqual(
+    archiveGate({ connected: false, lockOwner: null, mode: 'text', photoOpen: false }),
+    { disabled: true, hint: 'connectReaderFirst', showEstimate: true },
+  );
+  assert.deepEqual(
+    archiveGate({ connected: true, lockOwner: 'restore', mode: 'file', photoOpen: false }),
+    { disabled: true, hint: null, showEstimate: true },
+  );
 });

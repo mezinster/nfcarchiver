@@ -189,6 +189,7 @@ export const pl: Messages = {
   photoBackToAuto: 'Wróć do auto',
   photoUseOptimised: 'Użyj zoptymalizowanego zdjęcia',
   photoKeepOriginal: 'Zachowaj oryginał',
+  photoDecideFirst: 'Najpierw użyj zoptymalizowanego zdjęcia lub zachowaj oryginał',
   photoWorking: 'Optymalizowanie…',
   photoDoesNotFit: (cards, needed) =>
     `Nie mieści się na ${cards} ${pr(cards, { one: 'karcie', other: 'kartach' })} — potrzeba co najmniej ${needed} ${pr(needed, CARD_GEN)}`,
