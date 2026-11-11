@@ -31,6 +31,10 @@ When writing, Cancel or the timeout takes you back to the "ready" state for the 
 
 Mifare Classic is **impossible** with the iPhone's own NFC: Core NFC does not support the CRYPTO1 cipher those cards use, so the app does not offer Mifare Classic 1K under phone NFC on iPhone. With a [Chameleon Ultra](chameleon.md) connected over Bluetooth it can, because the reader does the cryptography itself. In that case Mifare Classic 1K appears in the tag type list.
 
+## Share into NFC Archiver { #share-into-nfc-archiver }
+
+In Photos or Files, tap **Share**, then **NFC Archiver**. A photo opens **Optimise photo**; any other file opens **Archive Settings**. If you share several items, only the first is used (the app tells you). If the app does not open by itself, open NFC Archiver and the shared item is picked up. If you are in the middle of writing an archive, the app asks **Start a new archive?** before discarding it. See [Archiving a photo](archive.md#archiving-a-photo) for the optimiser.
+
 ## Next
 
 - [Archive a file](archive.md)

@@ -23,6 +23,10 @@ There is no system sheet on Android: the app's own screen shows the progress.
 
 If you tap a Mifare Classic card on a phone without Mifare support, the app says: "This looks like a Mifare Classic card. Your phone's NFC chip can't read them."
 
+## Share into NFC Archiver { #share-into-nfc-archiver }
+
+In Gallery, Photos or Files, tap **Share**, then **NFC Archiver**. A photo opens **Optimise photo**; any other file opens **Archive Settings**. If you share several items, only the first is used (the app tells you). If you are in the middle of writing an archive, the app asks **Start a new archive?** before discarding it. Sharing plain text (for example a link) is not supported and shows "The shared item couldn't be read." See [Archiving a photo](archive.md#archiving-a-photo) for the optimiser.
+
 ## Next
 
 - [Archive a file](archive.md)

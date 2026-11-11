@@ -31,6 +31,10 @@ Yazarken İptal ya da zaman aşımı sizi hatasız olarak geçerli etiketin "haz
 
 iPhone'un kendi NFC'siyle Mifare Classic **imkânsızdır**: Core NFC bu kartların kullandığı CRYPTO1 şifresini desteklemez, bu yüzden uygulama iPhone'da telefon NFC'siyle Mifare Classic 1K sunmaz. Bluetooth ile bağlı bir [Chameleon Ultra](chameleon.md) ile bu mümkündür, çünkü şifrelemeyi okuyucunun kendisi yapar. Bu durumda Mifare Classic 1K etiket türü listesinde görünür.
 
+## NFC Archiver'a paylaşma { #share-into-nfc-archiver }
+
+Fotoğraflar veya Dosyalar'da **Paylaş**'a, ardından **NFC Archiver**'a dokunun. Bir fotoğraf **Fotoğrafı optimize et** ekranını açar; başka her dosya **Arşiv Ayarları**'nı açar. Birden çok öğe paylaşırsanız yalnızca ilki kullanılır (uygulama bunu söyler). Uygulama kendiliğinden açılmazsa NFC Archiver'ı açın; paylaşılan öğe alınır. Bir arşiv yazmanın ortasındaysanız uygulama onu atmadan önce **Yeni bir arşiv başlatılsın mı?** diye sorar. Optimize edici için bkz. [Fotoğraf arşivleme](archive.md#archiving-a-photo).
+
 ## Sonraki adımlar
 
 - [Dosya arşivleme](archive.md)

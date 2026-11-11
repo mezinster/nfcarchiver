@@ -31,6 +31,10 @@ Podczas zapisu Anuluj lub upływ czasu przywracają gotowość do zapisu bieżą
 
 Z wbudowanym NFC iPhone'a Mifare Classic jest **niemożliwe**: Core NFC nie obsługuje szyfru CRYPTO1, którego używają te karty, więc przy NFC telefonu na iPhonie aplikacja nie oferuje Mifare Classic 1K. Z [Chameleonem Ultra](chameleon.md) połączonym przez Bluetooth jest to możliwe, bo kryptografię wykonuje sam czytnik. Wtedy Mifare Classic 1K pojawia się na liście typów tagów.
 
+## Udostępnianie do NFC Archiver { #share-into-nfc-archiver }
+
+W Zdjęciach lub Plikach dotknij **Udostępnij**, potem **NFC Archiver**. Zdjęcie otwiera **Optymalizuj zdjęcie**; każdy inny plik otwiera **Ustawienia archiwum**. Jeśli udostępnisz kilka elementów, używany jest tylko pierwszy (aplikacja o tym informuje). Jeśli aplikacja nie otworzy się sama, otwórz NFC Archiver — udostępniony element zostanie podjęty. Jeśli jesteś w trakcie zapisywania archiwum, aplikacja zapyta **Rozpocząć nowe archiwum?**, zanim je odrzuci. O optymalizatorze zobacz [Archiwizacja zdjęcia](archive.md#archiving-a-photo).
+
 ## Dalej
 
 - [Archiwizacja pliku](archive.md)

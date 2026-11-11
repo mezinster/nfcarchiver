@@ -23,6 +23,10 @@ Android'de sistem penceresi yoktur: ilerlemeyi uygulamanın kendi ekranı göste
 
 Mifare desteği olmayan bir telefona Mifare Classic kart tutarsanız uygulama (şimdilik İngilizce olarak) şunu söyler: "This looks like a Mifare Classic card. Your phone's NFC chip can't read them." ("Bu bir Mifare Classic kart gibi görünüyor. Telefonunuzun NFC çipi bunları okuyamaz.")
 
+## NFC Archiver'a paylaşma { #share-into-nfc-archiver }
+
+Galeri, Fotoğraflar veya Dosyalar'da **Paylaş**'a, ardından **NFC Archiver**'a dokunun. Bir fotoğraf **Fotoğrafı optimize et** ekranını açar; başka her dosya **Arşiv Ayarları**'nı açar. Birden çok öğe paylaşırsanız yalnızca ilki kullanılır (uygulama bunu söyler). Bir arşiv yazmanın ortasındaysanız uygulama onu atmadan önce **Yeni bir arşiv başlatılsın mı?** diye sorar. Düz metin paylaşmak (örneğin bir bağlantı) desteklenmez ve "Paylaşılan öğe okunamadı." iletisini gösterir. Optimize edici için bkz. [Fotoğraf arşivleme](archive.md#archiving-a-photo).
+
 ## Sonraki adımlar
 
 - [Dosya arşivleme](archive.md)
