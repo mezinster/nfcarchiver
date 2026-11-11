@@ -2,7 +2,7 @@
 
 *Obowiązuje angielska wersja tekstu: [Privacy policy](../../privacy/).*
 
-**NFC Archiver** · Ostatnia aktualizacja: 7 listopada 2026
+**NFC Archiver** · Ostatnia aktualizacja: 11 listopada 2026
 
 ## W skrócie
 

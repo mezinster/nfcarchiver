@@ -1,6 +1,6 @@
 # Privacy policy
 
-**NFC Archiver** · Last updated: 7 November 2026
+**NFC Archiver** · Last updated: 11 November 2026
 
 ## In short
 

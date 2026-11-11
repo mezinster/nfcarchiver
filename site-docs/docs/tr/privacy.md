@@ -2,7 +2,7 @@
 
 *Geçerli olan metin İngilizce sürümdür: [Privacy policy](../../privacy/).*
 
-**NFC Archiver** · Son güncelleme: 7 Kasım 2026
+**NFC Archiver** · Son güncelleme: 11 Kasım 2026
 
 ## Özet
 
