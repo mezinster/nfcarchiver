@@ -23,6 +23,10 @@ Na Androidzie nie ma okna systemowego: postęp pokazuje ekran samej aplikacji.
 
 Jeśli przyłożysz kartę Mifare Classic do telefonu bez jej obsługi, aplikacja poinformuje (na razie po angielsku): "This looks like a Mifare Classic card. Your phone's NFC chip can't read them." („To wygląda na kartę Mifare Classic. Chip NFC Twojego telefonu nie potrafi ich odczytać.”)
 
+## Udostępnianie do NFC Archiver { #share-into-nfc-archiver }
+
+W Galerii, Zdjęciach lub Plikach dotknij **Udostępnij**, potem **NFC Archiver**. Zdjęcie otwiera **Optymalizuj zdjęcie**; każdy inny plik otwiera **Ustawienia archiwum**. Jeśli udostępnisz kilka elementów, używany jest tylko pierwszy (aplikacja o tym informuje). Jeśli jesteś w trakcie zapisywania archiwum, aplikacja zapyta **Rozpocząć nowe archiwum?**, zanim je odrzuci. Udostępnianie zwykłego tekstu (np. linku) nie jest obsługiwane i pokazuje komunikat „Nie udało się odczytać udostępnionego elementu.” O optymalizatorze zobacz [Archiwizacja zdjęcia](archive.md#archiving-a-photo).
+
 ## Dalej
 
 - [Archiwizacja pliku](archive.md)

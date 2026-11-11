@@ -10,7 +10,7 @@ On the home screen tap **Create Archive**. Choose **File** and tap to pick a fil
 
 Tap **Choose photo** on the Create Archive screen, or share a photo from Photos, Gallery or Files into NFC Archiver (a shared file that is not a photo opens **Archive settings** directly). If you share several items, only the first one is used. On iPhone, if the app does not open by itself after sharing, open it and the photo is picked up.
 
-The **Optimise photo** screen then shrinks the photo to fit your tags. Set how many tags the photo may take with **Tags to use**; the best quality that fits them is found automatically. To set the size and quality yourself, pick them under **Manual** (tap **Back to auto** to return). Tap **Skip (keep original)** to archive the photo unchanged, or **Continue** to accept the result.
+The **Optimise photo** screen then shrinks the photo to fit your tags. Set how many tags the photo may take with **Tags to use**; the best quality that fits them is found automatically. To set the size and quality yourself, pick them under **Manual** (tap **Back to auto** to return). Tap **Skip (keep original)** to archive the photo unchanged, or **Continue** to accept the result. Press and hold **−** / **+** to change the count faster, or tap the number to type it. If the photo can't be made small enough for the chosen count, the button reads **Continue with 3 tags** (the screen also says how many tags are needed) and continuing uses that count. If the optimised photo isn't smaller than the original, the screen says so ("The original file is smaller — Skip keeps it."); **Skip (keep original)** keeps the original.
 
 Location and camera data are removed from the optimised photo.
 
