@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nfc_archiver/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,8 @@ import '../../features/nfc/presentation/screens/reader_picker_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../core/providers/dev_options_provider.dart';
+import '../../features/dev_options/presentation/dev_options_screen.dart';
 import '../../features/diagnostics/presentation/diagnostics_screen.dart';
 import '../../features/file_manager/presentation/providers/file_manager_provider.dart';
 import '../../features/nfc/nfc.dart';
@@ -51,7 +55,7 @@ class HomeScreen extends ConsumerWidget {
           const LanguageSelector(),
           IconButton(
             icon: const Icon(Icons.info_outline),
-            onPressed: () => _showAboutDialog(context),
+            onPressed: () => _showAboutDialog(context, ref),
           ),
         ],
       ),
@@ -120,27 +124,7 @@ class HomeScreen extends ConsumerWidget {
                         const Spacer(),
 
                         // Footer
-                        FutureBuilder<PackageInfo>(
-                          future: PackageInfo.fromPlatform(),
-                          builder: (context, snapshot) {
-                            final versionText = snapshot.hasData
-                                ? l10n.versionFooter(
-                                    snapshot.data!.version,
-                                    snapshot.data!.buildNumber,
-                                  )
-                                : l10n.copyright;
-                            return Text(
-                              versionText,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.4),
-                                  ),
-                              textAlign: TextAlign.center,
-                            );
-                          },
-                        ),
+                        const _VersionFooter(),
                         const SizedBox(height: 8),
                       ],
                     ),
@@ -154,10 +138,11 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showAboutDialog(BuildContext context) async {
+  Future<void> _showAboutDialog(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
     final info = await PackageInfo.fromPlatform();
     if (!context.mounted) return;
+    final devUnlocked = ref.read(devOptionsProvider).unlocked;
     showAboutDialog(
       context: context,
       applicationName: l10n.appTitle,
@@ -186,7 +171,86 @@ class HomeScreen extends ConsumerWidget {
           },
           child: Text(l10n.diagnosticsLog),
         ),
+        if (devUnlocked)
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              GoRouter.of(context).push(devOptionsRoute);
+            },
+            child: Text(l10n.developerOptions),
+          ),
       ],
+    );
+  }
+}
+
+/// Version line. Seven quick taps unlock the developer options (taps more
+/// than 2 s apart start over); once unlocked, taps do nothing.
+class _VersionFooter extends ConsumerStatefulWidget {
+  const _VersionFooter();
+
+  @override
+  ConsumerState<_VersionFooter> createState() => _VersionFooterState();
+}
+
+class _VersionFooterState extends ConsumerState<_VersionFooter> {
+  static const _tapsToUnlock = 7;
+  static const _idleReset = Duration(seconds: 2);
+
+  late final Future<PackageInfo> _info = PackageInfo.fromPlatform();
+  int _taps = 0;
+  Timer? _reset;
+
+  @override
+  void dispose() {
+    _reset?.cancel();
+    super.dispose();
+  }
+
+  void _onTap() {
+    if (ref.read(devOptionsProvider).unlocked) return;
+    _reset?.cancel();
+    _taps++;
+    if (_taps < _tapsToUnlock) {
+      _reset = Timer(_idleReset, () => _taps = 0);
+      return;
+    }
+    _taps = 0;
+    ref.read(devOptionsProvider.notifier).unlock();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.developerOptionsUnlocked),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return FutureBuilder<PackageInfo>(
+      future: _info,
+      builder: (context, snapshot) {
+        final versionText = snapshot.hasData
+            ? l10n.versionFooter(
+                snapshot.data!.version,
+                snapshot.data!.buildNumber,
+              )
+            : l10n.copyright;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _onTap,
+          child: Text(
+            versionText,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.4),
+                ),
+            textAlign: TextAlign.center,
+          ),
+        );
+      },
     );
   }
 }

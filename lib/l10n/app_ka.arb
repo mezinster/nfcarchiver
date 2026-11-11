@@ -215,5 +215,9 @@
   "diagnosticsShare": "ჟურნალის გაზიარება",
   "diagnosticsClear": "ჟურნალის გასუფთავება",
   "diagnosticsClearConfirm": "წაიშალოს დიაგნოსტიკის ჟურნალი ამ მოწყობილობიდან?",
-  "diagnosticsClearAction": "გასუფთავება"
+  "diagnosticsClearAction": "გასუფთავება",
+  "developerOptions": "დეველოპერის პარამეტრები",
+  "developerOptionsUnlocked": "დეველოპერის პარამეტრები ჩართულია",
+  "mifare4kToggle": "Mifare Classic 4K",
+  "mifare4kToggleSubtitle": "ექსპერიმენტული — რეალურ ბარათზე ჯერ არ გადამოწმებულა"
 }

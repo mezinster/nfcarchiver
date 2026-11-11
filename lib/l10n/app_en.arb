@@ -1017,5 +1017,21 @@
   "diagnosticsClearAction": "Clear",
   "@diagnosticsClearAction": {
     "description": "Diagnostics log screen: diagnosticsClearAction"
+  },
+  "developerOptions": "Developer options",
+  "@developerOptions": {
+    "description": "About dialog button and screen title for hidden developer settings"
+  },
+  "developerOptionsUnlocked": "Developer options enabled",
+  "@developerOptionsUnlocked": {
+    "description": "Snackbar shown when the developer options are unlocked"
+  },
+  "mifare4kToggle": "Mifare Classic 4K",
+  "@mifare4kToggle": {
+    "description": "Developer switch label: allow writing Mifare Classic 4K cards"
+  },
+  "mifare4kToggleSubtitle": "Experimental — not yet verified on a real card",
+  "@mifare4kToggleSubtitle": {
+    "description": "Developer switch subtitle warning that 4K support is unverified"
   }
 }

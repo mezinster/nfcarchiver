@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'core/log/log_navigator_observer.dart';
 import 'core/providers/locale_provider.dart';
 import 'features/archive/presentation/screens/archive_settings_screen.dart';
+import 'features/dev_options/presentation/dev_options_screen.dart';
 import 'features/diagnostics/presentation/diagnostics_screen.dart';
 import 'features/file_manager/presentation/screens/file_manager_screen.dart';
 import 'features/archive/presentation/screens/file_picker_screen.dart';
@@ -60,6 +61,12 @@ final _router = GoRouter(
     GoRoute(
       path: diagnosticsRoute,
       builder: (context, state) => const DiagnosticsScreen(),
+    ),
+
+    // Developer options
+    GoRoute(
+      path: devOptionsRoute,
+      builder: (context, state) => const DevOptionsScreen(),
     ),
 
     // Privacy policy
