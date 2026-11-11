@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/chameleon/ble_chameleon_device.dart';
 import '../../../../core/log/logger.dart';
+import '../../../../core/providers/dev_options_provider.dart';
 import '../../data/chameleon_reader.dart';
+import '../../data/nfc_repository.dart';
 import '../../data/phone_nfc_reader.dart';
 import '../../domain/card_reader.dart';
 
@@ -141,6 +143,9 @@ class ReaderController extends StateNotifier<ReaderState> {
 
 final readerControllerProvider =
     StateNotifierProvider<ReaderController, ReaderState>((ref) {
+  // The phone radio's repository is a singleton; hand it the developer switch
+  // as a getter so a toggle takes effect on the next tap without a rebuild.
+  NfcRepository.instance.allow4k = () => ref.read(mifare4kEnabledProvider);
   return ReaderController(
     makePhone: PhoneNfcReader.new,
     makeChameleon: (deviceId) =>

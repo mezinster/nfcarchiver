@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/nfc_manager_android.dart';
 
+import '../../../core/mifare/card_layout.dart';
+
 /// Factory key A. Every card this app writes stays factory-keyed, because
 /// sector trailers are never written.
 final Uint8List factoryKeyA =
@@ -22,6 +24,10 @@ class MifareAuthException implements Exception {
 /// Exists so the codec is testable without hardware: `nfc_manager`'s
 /// `MifareClassic` cannot be constructed in a test.
 abstract interface class MifareBlockIO {
+  /// Geometry of the card, or null for a Mifare Classic variant this app does
+  /// not support (2K, Mini, Plus in SL1).
+  MifareCardSize? get cardSize;
+
   Future<bool> authenticateSector(int sectorIndex, Uint8List keyA);
   Future<Uint8List> readBlock(int blockIndex);
   Future<void> writeBlock(int blockIndex, Uint8List data);
@@ -31,6 +37,13 @@ abstract interface class MifareBlockIO {
 class NfcManagerMifareBlockIO implements MifareBlockIO {
   NfcManagerMifareBlockIO(this._mifare);
   final MifareClassicAndroid _mifare;
+
+  @override
+  MifareCardSize? get cardSize => switch (_mifare.size) {
+        1024 => MifareCardSize.k1,
+        4096 => MifareCardSize.k4,
+        _ => null,
+      };
 
   @override
   Future<bool> authenticateSector(int sectorIndex, Uint8List keyA) =>
@@ -58,5 +71,8 @@ class NfcManagerMifareBlockIO implements MifareBlockIO {
 MifareBlockIO? mifareIoFor(NfcTag tag) {
   if (defaultTargetPlatform != TargetPlatform.android) return null;
   final mifare = MifareClassicAndroid.from(tag);
-  return mifare == null ? null : NfcManagerMifareBlockIO(mifare);
+  if (mifare == null) return null;
+  final io = NfcManagerMifareBlockIO(mifare);
+  // 2K / Mini / Plus-SL: not offered, so the tag falls through to NDEF.
+  return io.cardSize == null ? null : io;
 }
