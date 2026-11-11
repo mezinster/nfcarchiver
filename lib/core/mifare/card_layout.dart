@@ -92,8 +92,9 @@ List<MifareBlockWrite> chunkToBlocks(
   MifareCardSize size = MifareCardSize.k1,
 }) {
   if (chunkBytes.length > size.capacityBytes) {
+    final label = size == MifareCardSize.k4 ? '4K' : '1K';
     throw MifareCapacityException(
-      'Chunk is ${chunkBytes.length} bytes; a Mifare Classic ${size.name} '
+      'Chunk is ${chunkBytes.length} bytes; a Mifare Classic $label '
       'card holds ${size.capacityBytes}',
     );
   }
