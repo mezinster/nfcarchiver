@@ -5,7 +5,6 @@
  */
 
 import { ChameleonUltra, Buffer } from 'chameleon-ultra.js';
-import WebbleAdapter from 'chameleon-ultra.js/plugin/WebbleAdapter';
 import { SdkChameleonDevice } from '../../src/transport/sdk-chameleon-device.js';
 import { AutoTransport } from '../../src/transport/auto-transport.js';
 import { WebNfcTransport } from '../../src/transport/web-nfc-transport.js';
@@ -248,6 +247,11 @@ export function initDeviceBar(): void {
       });
       // use() is async (the adapter's install() runs availability checks etc.);
       // it MUST be awaited before connect(), or this.port is still undefined.
+      // Loaded on demand, never statically: the adapter calls
+      // BluetoothUUID.canonicalUUID() at module scope, and in a browser without
+      // Web Bluetooth (every iOS browser is WebKit) a static import throws while
+      // the bundle evaluates — before any handler is wired, so no button works.
+      const { default: WebbleAdapter } = await import('chameleon-ultra.js/plugin/WebbleAdapter');
       await ultra.use(new WebbleAdapter());
       transport = new AutoTransport(new SdkChameleonDevice(ultra), { allow4k: isMifare4kEnabled });
       await transport.connect();
