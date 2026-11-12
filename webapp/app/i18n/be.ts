@@ -149,6 +149,7 @@ export const be: Messages = {
   errUnsupportedTag: 'Метка не падтрымліваецца — выкарыстоўвайце Mifare Classic 1K або NTAG213/215/216.',
   errUnidentifiedTag: 'Карта не паведаміла свой ідэнтыфікатар — прыбярыце яе і прыкладзіце зноў.',
   errNdefFormat: 'На гэтай метцы няма даных NFAR NDEF.',
+  errNoWebBluetooth: 'У гэтым браўзеры няма Web Bluetooth. Каб падключыць Chameleon Ultra, адкрыйце праграму ў Chrome або Edge на Android ці камп’ютары.',
 
   // — redesign 2026-10 —
   encryptedLabel: 'Зашыфравана',

@@ -146,6 +146,7 @@ export const tr: Messages = {
   errUnsupportedTag: 'Desteklenmeyen etiket — Mifare Classic 1K veya NTAG213/215/216 kullanın.',
   errUnidentifiedTag: 'Kart kimliğini bildirmedi — kartı uzaklaştırıp yeniden okutun.',
   errNdefFormat: 'Bu etikette NFAR NDEF verisi yok.',
+  errNoWebBluetooth: 'Bu tarayıcıda Web Bluetooth yok. Chameleon Ultra’yı bağlamak için Android’de ya da bilgisayarda Chrome veya Edge kullanın.',
 
   // — redesign 2026-10 —
   encryptedLabel: 'Şifreli',

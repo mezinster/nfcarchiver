@@ -9,6 +9,7 @@ import { SdkChameleonDevice } from '../../src/transport/sdk-chameleon-device.js'
 import { AutoTransport } from '../../src/transport/auto-transport.js';
 import { WebNfcTransport } from '../../src/transport/web-nfc-transport.js';
 import { BrowserNdefIO, webNfcAvailable } from './browser-ndef-io.js';
+import { webBluetoothAvailable } from './web-bluetooth.js';
 import { NtagType } from '../../src/nfc/type2.js';
 import type { Transport } from '../../src/transport/transport.js';
 import { type RawAntiColl } from '../diagnostics.js';
@@ -221,6 +222,15 @@ export function initDeviceBar(): void {
   };
 
   $('connect').addEventListener('click', async () => {
+    // Checked before any teardown: on a browser that can never connect (every
+    // iOS browser, desktop Firefox/Safari) the click must leave the current
+    // reader alone and just say why, not surface "Can't find variable:
+    // BluetoothUUID" from the adapter.
+    if (!webBluetoothAvailable()) {
+      deviceStatus.textContent = t.errNoWebBluetooth;
+      log.warn('device', 'Web Bluetooth unavailable');
+      return;
+    }
     log.info('device', 'Connecting');
     await teardownActiveReader();
     const myEpoch = readerEpoch;
