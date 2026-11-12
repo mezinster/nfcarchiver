@@ -148,6 +148,7 @@ export const en = {
   errUnsupportedTag: 'Unsupported tag — use a Mifare Classic 1K or NTAG213/215/216.',
   errUnidentifiedTag: 'The card did not identify itself — lift it away and tap it again.',
   errNdefFormat: 'This tag holds no NFAR NDEF data.',
+  errNoWebBluetooth: 'Web Bluetooth isn’t available in this browser. To connect a Chameleon Ultra, use Chrome or Edge on Android or a computer.',
 
   // — redesign 2026-10: reader card, source picker, stage —
   encryptedLabel: 'Encrypted',

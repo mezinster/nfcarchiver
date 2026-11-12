@@ -146,6 +146,7 @@ export const ka: Messages = {
   errUnsupportedTag: 'ტეგი მხარდაუჭერელია — გამოიყენეთ Mifare Classic 1K ან NTAG213/215/216.',
   errUnidentifiedTag: 'ბარათმა იდენტიფიკატორი არ გადმოსცა — მოაშორეთ და ხელახლა მიადეთ.',
   errNdefFormat: 'ამ ტეგზე NFAR NDEF მონაცემები არ არის.',
+  errNoWebBluetooth: 'ამ ბრაუზერში Web Bluetooth მიუწვდომელია. Chameleon Ultra-ს დასაკავშირებლად გამოიყენეთ Chrome ან Edge Android-ზე ან კომპიუტერზე.',
 
   // — redesign 2026-10 —
   encryptedLabel: 'დაშიფრულია',

@@ -149,6 +149,7 @@ export const uk: Messages = {
   errUnsupportedTag: 'Мітка не підтримується — використовуйте Mifare Classic 1K або NTAG213/215/216.',
   errUnidentifiedTag: 'Картка не повідомила свій ідентифікатор — приберіть її та прикладіть знову.',
   errNdefFormat: 'На цій мітці немає даних NFAR NDEF.',
+  errNoWebBluetooth: 'У цьому браузері немає Web Bluetooth. Щоб підключити Chameleon Ultra, відкрийте застосунок у Chrome або Edge на Android чи комп’ютері.',
 
   // — redesign 2026-10 —
   encryptedLabel: 'Зашифровано',
