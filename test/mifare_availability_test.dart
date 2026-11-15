@@ -164,6 +164,24 @@ void main() {
       }
     });
 
+    // "Generic 1KB" matched no real tag and was easy to pick for a Mifare
+    // Classic 1K card by mistake.
+    test('never offers Generic 1KB, and the list is exactly the real tags', () {
+      for (final mifare in [true, false]) {
+        expect(
+            selectableTagTypes(mifareAvailable: mifare, mifare4kEnabled: true),
+            isNot(contains(NfcTagType.generic1k)));
+      }
+      expect(
+          selectableTagTypes(mifareAvailable: false, mifare4kEnabled: false),
+          orderedEquals([
+            NfcTagType.ntag213,
+            NfcTagType.ntag215,
+            NfcTagType.ntag216,
+            NfcTagType.mifareUltralightC,
+          ]));
+    });
+
     test('still offers Ultralight C, which holds as much as an NTAG213', () {
       expect(selectableTagTypes(mifareAvailable: false, mifare4kEnabled: false),
           contains(NfcTagType.mifareUltralightC));

@@ -15,6 +15,11 @@ import '../../../core/constants/nfar_format.dart';
 /// the NFAR header and CRC. It stays in the enum so a tapped one is still
 /// recognised.
 ///
+/// [NfcTagType.generic1k] is never offered: no tag we know of has exactly
+/// 1,024 bytes of NDEF memory, so the option described nothing a user could
+/// hold and invited picking it for a Mifare Classic 1K card. It stays in the
+/// enum because the web interop fixtures are generated with it.
+///
 /// [NfcTagType.mifareClassic4k] additionally needs [mifare4kEnabled], the
 /// developer switch: writing 4K is experimental until verified on a real card.
 List<NfcTagType> selectableTagTypes({
@@ -23,6 +28,7 @@ List<NfcTagType> selectableTagTypes({
 }) =>
     NfcTagType.values
         .where((t) => t != NfcTagType.custom)
+        .where((t) => t != NfcTagType.generic1k)
         .where((t) => t.maxPayloadSize > 0)
         .where((t) => t.medium != TagMedium.mifareClassic || mifareAvailable)
         .where((t) => t != NfcTagType.mifareClassic4k || mifare4kEnabled)
