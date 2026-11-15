@@ -181,6 +181,7 @@ export function initArchivePanel(): void {
   let previewUrl: string | null = null;
   let previewBytes: Uint8Array | null = null;
   let sizesFor = '';
+  let shownTags = -1;
 
   const syncPhotoVisibility = (): void => {
     $('photo-opt').hidden = photo === null || mode !== 'file';
@@ -233,7 +234,11 @@ export function initArchivePanel(): void {
     $('photo-controls').hidden = failed || !opened;
     const tagsInput = $('photo-tags') as HTMLInputElement;
     tagsInput.max = String(st.cap);
-    if (document.activeElement !== tagsInput) tagsInput.value = String(st.tags);
+    // A focused field is left alone while the user types (the count only
+    // changes on commit), but +/- move the count even then: on touch screens
+    // and in Safari a tapped button does not take the focus away.
+    if (document.activeElement !== tagsInput || st.tags !== shownTags) tagsInput.value = String(st.tags);
+    shownTags = st.tags;
     $('photo-cap').textContent = `/ ${st.cap}`;
     $('photo-minus').setAttribute('aria-disabled', String(st.tags <= 1));
     $('photo-plus').setAttribute('aria-disabled', String(st.tags >= st.cap));
@@ -290,11 +295,20 @@ export function initArchivePanel(): void {
       onHoldStart: () => photo?.beginHold(),
       onHoldEnd: () => photo?.endHold(),
     });
+    // Without capture a release outside the button never reaches it, and the
+    // hold would repeat for ever: leaving the button ends it instead.
+    let captured = false;
     btn.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
-      try { btn.setPointerCapture(e.pointerId); } catch { /* the release still arrives on the button */ }
+      try {
+        btn.setPointerCapture(e.pointerId);
+        captured = true;
+      } catch {
+        captured = false;
+      }
       repeater.press(dir);
     });
+    btn.addEventListener('pointerleave', () => { if (!captured) repeater.cancel(); });
     btn.addEventListener('pointerup', () => repeater.release());
     btn.addEventListener('pointercancel', () => repeater.cancel());
     btn.addEventListener('lostpointercapture', () => repeater.cancel());

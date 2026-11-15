@@ -447,6 +447,26 @@ test('a side the browser cannot encode counts as "doesn\'t fit": auto moves on t
   assert.equal(opt.state.result!.fits, true);
 });
 
+test('a side refused once is not asked for again in the same search', async () => {
+  const session = cappedSession(1000);
+  const { opt, clock } = setup({ session, originalSize: 30_000_000, payloadSize: 720 });
+  await opt.open();
+  await flush();
+  session.refused.length = 0;
+  // 1 card: nothing reaches q50, so the search goes through the sides a second
+  // time at q30, the refused ones included.
+  opt.setTags(2);
+  clock.advance(PHOTO_REFIT_DEBOUNCE_MS);
+  await flush();
+  opt.setTags(1);
+  clock.advance(PHOTO_REFIT_DEBOUNCE_MS);
+  await flush();
+  assert.ok(session.refused.length > 0, 'sides above the limit were tried');
+  for (const side of new Set(session.refused)) {
+    assert.equal(session.refused.filter((s) => s === side).length, 2, `side ${side}: once per search`);
+  }
+});
+
 test('manual Original above the browser limit: a localized "too large" state, not "can\'t be read"', async () => {
   const session = cappedSession(4000);
   const { opt } = setup({ session, originalSize: 30_000_000 });

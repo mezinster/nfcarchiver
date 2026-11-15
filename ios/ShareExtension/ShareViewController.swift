@@ -157,8 +157,13 @@ final class ShareViewController: UIViewController {
       try JSONSerialization.data(withJSONObject: meta)
         .write(to: itemDir.appendingPathComponent("meta.json"), options: .atomic)
 
-      if fm.fileExists(atPath: inbox.path) { try fm.removeItem(at: inbox) }
-      try fm.moveItem(at: staging, to: inbox)
+      // One step where an inbox exists: removing it first left a moment with
+      // no inbox at all, in which a take by the app found nothing.
+      if fm.fileExists(atPath: inbox.path) {
+        _ = try fm.replaceItemAt(inbox, withItemAt: staging)
+      } else {
+        try fm.moveItem(at: staging, to: inbox)
+      }
       return nil
     } catch {
       // Not the FileManager error: its userInfo carries App Group paths, and

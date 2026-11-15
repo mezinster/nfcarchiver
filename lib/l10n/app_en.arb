@@ -1136,6 +1136,10 @@
   "@photoCannotRead": {
     "description": "Optimiser: the photo cannot be decoded or encoded"
   },
+  "photoOutOfMemory": "There isn't enough memory on this device to optimise this photo.",
+  "@photoOutOfMemory": {
+    "description": "Shown in the photo optimiser when the device ran out of memory decoding the photo"
+  },
   "photoFewerTags": "Fewer tags",
   "@photoFewerTags": {
     "description": "Optimiser: screen-reader label of the button that lowers the tag count"

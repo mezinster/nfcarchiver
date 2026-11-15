@@ -37,7 +37,6 @@ final class ShareInbox {
   private static let staleStagingAge: TimeInterval = 10 * 60
 
   private let queue = DispatchQueue(label: "com.nfcarchiver.share_in", qos: .userInitiated)
-  private var channel: FlutterMethodChannel?
 
   func register(with messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(name: ShareInbox.channelName, binaryMessenger: messenger)
@@ -50,12 +49,6 @@ final class ShareInbox {
         DispatchQueue.main.async { result(reply) }
       }
     }
-    self.channel = channel
-  }
-
-  /// Tells Dart a share may have arrived while the app is running.
-  func notifyAvailable() {
-    DispatchQueue.main.async { self.channel?.invokeMethod("onShareAvailable", arguments: nil) }
   }
 
   // MARK: - Taking (runs on `queue`)

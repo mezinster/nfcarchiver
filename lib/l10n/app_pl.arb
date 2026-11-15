@@ -229,6 +229,7 @@
   "ok": "OK",
   "photoLargerThanOriginal": "Oryginalny plik jest mniejszy — „Pomiń” go zachowa.",
   "photoCannotRead": "Tego zdjęcia nie można tu odczytać. Użyj „Pomiń”, aby zarchiwizować oryginalny plik.",
+  "photoOutOfMemory": "Na tym urządzeniu brakuje pamięci, aby zoptymalizować to zdjęcie.",
   "photoFewerTags": "Mniej tagów",
   "photoMoreTags": "Więcej tagów",
   "photoEditTagCount": "Stuknij dwukrotnie, aby wpisać liczbę",
