@@ -27,7 +27,7 @@ Sıkıştırmadan önce ve dosya adının eklediği birkaç bayt hariç:
 
 Gerçek bir etiket türünün vaat ettiğinden daha az yer bildirirse uygulama, ilk etiket yazılmadan önce arşivi yeniden yapılandırmayı önerir (bkz. [Bir etiket çok küçükse](archive.md#if-a-tag-is-too-small)).
 
-Uygulamadaki listede ayrıca MIFARE Ultralight C (144 bayt) ve Generic 1KB (1024 bayt) bulunur. Düz MIFARE Ultralight (48 bayt) bir arşiv parçası için fazla küçüktür ve sunulmaz.
+Uygulamadaki listede ayrıca MIFARE Ultralight C (144 bayt) bulunur. Düz MIFARE Ultralight (48 bayt) bir arşiv parçası için fazla küçüktür ve sunulmaz.
 
 ## Hangi okuyucu neyi destekler
 

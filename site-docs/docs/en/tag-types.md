@@ -27,7 +27,7 @@ Encryption adds 44 bytes in total, not per tag. NFC tags are small: archives are
 
 If a real tag reports less space than its type, the app offers to reconfigure the archive before the first tag is written (see [If a tag is too small](archive.md#if-a-tag-is-too-small)).
 
-The list in the app also contains MIFARE Ultralight C (144 bytes) and Generic 1KB (1024 bytes). Plain MIFARE Ultralight (48 bytes) is too small to hold an archive chunk and is not offered.
+The list in the app also contains MIFARE Ultralight C (144 bytes). Plain MIFARE Ultralight (48 bytes) is too small to hold an archive chunk and is not offered.
 
 ## Which reader supports which
 

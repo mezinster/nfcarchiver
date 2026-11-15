@@ -27,7 +27,7 @@ Szyfrowanie dodaje łącznie 44 bajty, a nie na każdy tag. Tagi NFC są małe: 
 
 Jeśli prawdziwy tag zgłasza mniej miejsca niż jego typ, aplikacja zaproponuje przekonfigurowanie archiwum przed zapisaniem pierwszego tagu (patrz [Jeśli tag jest za mały](archive.md#if-a-tag-is-too-small)).
 
-Lista w aplikacji zawiera też MIFARE Ultralight C (144 bajty) i Generic 1KB (1024 bajty). Zwykły MIFARE Ultralight (48 bajtów) jest za mały na fragment archiwum i nie jest proponowany.
+Lista w aplikacji zawiera też MIFARE Ultralight C (144 bajty). Zwykły MIFARE Ultralight (48 bajtów) jest za mały na fragment archiwum i nie jest proponowany.
 
 ## Który czytnik co obsługuje
 
