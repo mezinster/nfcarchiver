@@ -420,7 +420,7 @@ void main() {
           '3,000 B chunk writes and reads back on SAK 0x${sak.toRadixString(16)}',
           () async {
         final dev = FakeChameleonDevice.classic4k(sak: sak);
-        final chunk = aChunk(payloadLength: 3000 - NfarHeaderSize.total);
+        final chunk = aChunk(payloadLength: 3000 - NfarHeaderSize.chunkOverhead);
         final r = await writeOnce(dev, chunk, allow4k: true);
         expect(r.ok, isNotNull);
         expect(r.ok!.tagType, NfcTagType.mifareClassic4k);
@@ -435,7 +435,7 @@ void main() {
       final dev = FakeChameleonDevice.classic4k();
       final r =
           await writeOnce(dev, aChunk(payloadLength: 3000), allow4k: false);
-      expect(r.tooSmall, [3000 + NfarHeaderSize.total, cardCapacityBytes]);
+      expect(r.tooSmall, [3000 + NfarHeaderSize.chunkOverhead, cardCapacityBytes]);
       expect(r.ok, isNull);
       expect(r.err, isNull);
       expect(dev.writeLog, isEmpty);

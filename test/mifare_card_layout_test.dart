@@ -87,7 +87,7 @@ void main() {
 
   group('4K geometry', () {
     Uint8List header(int payload) {
-      final h = Uint8List(NfarHeaderSize.total);
+      final h = Uint8List(NfarHeaderSize.chunkOverhead);
       h.setAll(0, nfarMagic);
       h[nfarMagic.length] = nfarVersion;
       ByteData.sublistView(h).setUint16(26, payload);

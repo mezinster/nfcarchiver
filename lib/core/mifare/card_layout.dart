@@ -47,7 +47,7 @@ final List<int> usableBlockIndexes4k = List.unmodifiable(
 );
 
 final int cardCapacityBytes = usableBlockIndexes.length * blockSize; // 752
-final int cardPayloadSize = cardCapacityBytes - NfarHeaderSize.total; // 720
+final int cardPayloadSize = cardCapacityBytes - NfarHeaderSize.chunkOverhead; // 720
 
 /// Mifare Classic card geometry this app understands.
 enum MifareCardSize {
@@ -61,7 +61,7 @@ enum MifareCardSize {
   int get capacityBytes => usableBlocks.length * blockSize;
 
   /// Largest chunk payload: capacity minus the NFAR header.
-  int get payloadSize => capacityBytes - NfarHeaderSize.total;
+  int get payloadSize => capacityBytes - NfarHeaderSize.chunkOverhead;
 }
 
 /// Capacity a write may use: 4K size only when [allow4k] (the user's switch)
@@ -128,14 +128,14 @@ int nfarTotalLength(
   if (!firstBlockIsNfar(header)) {
     throw const FormatException('Not an NFAR card: magic or version mismatch');
   }
-  if (header.length < NfarHeaderSize.total) {
+  if (header.length < NfarHeaderSize.chunkOverhead) {
     throw FormatException(
-      'Header too short: need ${NfarHeaderSize.total} bytes, '
+      'Header too short: need ${NfarHeaderSize.chunkOverhead} bytes, '
       'got ${header.length}',
     );
   }
   final payloadSize = ByteData.sublistView(header).getUint16(26); // big-endian
-  final total = NfarHeaderSize.total + payloadSize;
+  final total = NfarHeaderSize.chunkOverhead + payloadSize;
   if (total > size.capacityBytes) {
     throw FormatException(
       'Declared length $total exceeds card capacity ${size.capacityBytes}; '

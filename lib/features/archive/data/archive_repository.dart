@@ -258,41 +258,6 @@ class ArchiveRepository {
     );
   }
 
-  /// Validate that archive can be created with given parameters.
-  ArchiveValidation validateArchive({
-    required int dataSize,
-    required String fileName,
-    required NfcTagType tagType,
-  }) {
-    final estimate = estimateFromSize(
-      dataSize: dataSize,
-      fileName: fileName,
-      tagType: tagType,
-    );
-
-    if (estimate.chunksNeeded > NfarLimits.maxChunks) {
-      return ArchiveValidation(
-        isValid: false,
-        error: 'Data too large: would need ${estimate.chunksNeeded} tags, '
-            'maximum is ${NfarLimits.maxChunks}',
-        estimate: estimate,
-      );
-    }
-
-    if (tagType.maxPayloadSize <= 0) {
-      return ArchiveValidation(
-        isValid: false,
-        error: 'Tag type ${tagType.name} cannot store NFAR data',
-        estimate: estimate,
-      );
-    }
-
-    return ArchiveValidation(
-      isValid: true,
-      estimate: estimate,
-    );
-  }
-
   /// Prepend filename metadata to data.
   /// Format: [2-byte length (big-endian)][UTF-8 filename bytes][original data]
   Uint8List _prependFilenameMetadata(Uint8List data, String fileName) {
@@ -383,19 +348,14 @@ class ArchiveEstimate {
   final int payloadPerChunk;
   final double compressionRatio;
   final NfcTagType tagType;
-}
 
-/// Validation result for archive creation.
-class ArchiveValidation {
-  const ArchiveValidation({
-    required this.isValid,
-    this.error,
-    this.estimate,
-  });
+  /// More tags than one archive can address: the chunk count is a uint16.
+  bool get exceedsChunkLimit => chunksNeeded > NfarLimits.maxChunks;
 
-  final bool isValid;
-  final String? error;
-  final ArchiveEstimate? estimate;
+  /// Whether [chunksNeeded] is the real count rather than a guess. Without
+  /// compression the processed size is known up front; with it the size is
+  /// assumed, and the real archive may well come out smaller.
+  bool get isExact => compressionRatio == 1.0;
 }
 
 /// Exception during archive operations.

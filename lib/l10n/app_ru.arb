@@ -37,6 +37,7 @@
   "estimatedProcessedSize": "Примерный размер после обработки",
   "tagsNeeded": "Требуется меток",
   "payloadPerTag": "Данных на метку",
+  "archiveTooManyTags": "Слишком большой объём: нужно больше {max} меток — это предел для одного архива.",
   "bytesUnit": "{bytes} байт",
   "startArchiving": "Начать архивацию",
   "writingToTags": "Запись на метки",

@@ -37,6 +37,7 @@
   "estimatedProcessedSize": "სავარაუდო დამუშავებული ზომა",
   "tagsNeeded": "საჭირო ტეგები",
   "payloadPerTag": "მონაცემები ტეგზე",
+  "archiveTooManyTags": "ზედმეტად დიდია: საჭიროა {max}-ზე მეტი ტეგი — ეს ერთი არქივის ზღვარია.",
   "bytesUnit": "{bytes} ბაიტი",
   "startArchiving": "არქივაციის დაწყება",
   "writingToTags": "ტეგებზე ჩაწერა",

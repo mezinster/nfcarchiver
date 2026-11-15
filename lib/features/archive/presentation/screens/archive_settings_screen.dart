@@ -278,6 +278,16 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
                       label: l10n.payloadPerTag,
                       value: l10n.bytesUnit(config.estimate!.payloadPerChunk),
                     ),
+                    if (config.estimate!.exceedsChunkLimit) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        l10n.archiveTooManyTags(NfarLimits.maxChunks),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.error,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -287,8 +297,13 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
           const SizedBox(height: 24),
 
           // Start button
+          // An exact count over the limit can never be archived. A guessed one
+          // (compression on) may still fit, so that case only warns.
           FilledButton.icon(
-            onPressed: () => _startArchive(context, ref),
+            onPressed: (config?.estimate?.exceedsChunkLimit ?? false) &&
+                    config!.estimate!.isExact
+                ? null
+                : () => _startArchive(context, ref),
             icon: const Icon(Icons.archive),
             label: Text(l10n.startArchiving),
           ),

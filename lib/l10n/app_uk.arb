@@ -37,6 +37,7 @@
   "estimatedProcessedSize": "Приблизний розмір після обробки",
   "tagsNeeded": "Потрібно міток",
   "payloadPerTag": "Даних на мітку",
+  "archiveTooManyTags": "Завеликий обсяг: потрібно понад {max} міток — це межа для одного архіву.",
   "bytesUnit": "{bytes} байт",
   "startArchiving": "Почати архівацію",
   "writingToTags": "Запис на мітки",

@@ -62,7 +62,7 @@ class ArchiveMetadata extends Equatable {
 
   /// Estimated total size on tags (including headers)
   int get estimatedTagSize {
-    const headerPerChunk = NfarHeaderSize.total;
+    const headerPerChunk = NfarHeaderSize.chunkOverhead;
     return totalChunks * (headerPerChunk + chunkPayloadSize);
   }
 
