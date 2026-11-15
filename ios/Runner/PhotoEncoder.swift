@@ -7,6 +7,11 @@ import UniformTypeIdentifiers
 /// `com.nfcarchiver/photo`: decodes a photo once per session and re-encodes it
 /// as a metadata-free JPEG at any longest side and quality.
 ///
+/// A photo is never decoded above `maxPixels`. A larger source (48-200 MP
+/// sensors) is treated as if it were that size: `open` reports the capped
+/// dimensions and every encode works within them, so Dart needs no cap of its
+/// own and a full-resolution bitmap (190 MB at 48 MP) is never allocated.
+///
 /// Each scaled bitmap is rendered with the orientation baked in, drawn onto
 /// white, and cached per maxSide so the fit search's repeated encodes at one
 /// size skip the decode. All work runs on a serial background queue, which
@@ -18,9 +23,15 @@ final class PhotoEncoder {
   /// Decoded pixels kept per session before older sizes are dropped. A 12 MP
   /// photo alone is ~48 MB, so the newest entry is always kept.
   private static let cacheBudgetBytes = 64 * 1024 * 1024
+  /// 16 MP, a 64 MB bitmap: the web app's canvas limit, and above any 12 MP
+  /// photo.
+  private static let maxPixels = 16_000_000
+  /// The size of Dart's opening probe encode (photo_optimiser_provider.dart).
+  private static let probeSide = 640
 
   private final class Session {
     let source: CGImageSource
+    /// The largest side ever decoded: the source's, capped.
     let longestSide: Int
     var width = 0
     var height = 0
@@ -82,12 +93,23 @@ final class PhotoEncoder {
           let ph = props[kCGImagePropertyPixelHeight] as? Int, pw > 0, ph > 0
     else { return decodeFailed() }
 
-    let session = Session(source: source, longestSide: max(pw, ph))
-    // Render the original size now: it proves the file decodes, gives the
-    // dimensions after orientation, and is the fit search's first encode.
-    guard let original = bitmap(session, side: session.longestSide) else { return decodeFailed() }
-    session.width = original.width
-    session.height = original.height
+    // Dimensions come from the header: nothing is decoded at full size.
+    var longest = max(pw, ph)
+    if pw * ph > PhotoEncoder.maxPixels {
+      let scale = (Double(PhotoEncoder.maxPixels) / Double(pw * ph)).squareRoot()
+      longest = max(1, Int(Double(longest) * scale))
+    }
+    let shortest = max(
+      1, Int((Double(longest) * Double(min(pw, ph)) / Double(max(pw, ph))).rounded()))
+    let session = Session(source: source, longestSide: longest)
+    // A small render proves the file decodes and shows which way up it is
+    // after orientation; Dart's opening probe encode reuses it.
+    guard let probe = bitmap(session, side: min(PhotoEncoder.probeSide, longest)) else {
+      return decodeFailed()
+    }
+    let portrait = probe.width != probe.height ? probe.width < probe.height : pw < ph
+    session.width = portrait ? shortest : longest
+    session.height = portrait ? longest : shortest
 
     let id = nextId
     nextId += 1

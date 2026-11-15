@@ -9,11 +9,18 @@ import UniformTypeIdentifiers
 /// `{"name": String, "uti": String, "isImage": Bool, "count": Int}`, where
 /// `count` is how many items were shared. Only the first item is written, and
 /// it replaces whatever the inbox held, so only the latest share is kept.
+/// An item above `maxShareBytes` is not copied: its `meta.json` carries
+/// `"tooLarge": true` and no file, so the app can say why nothing arrived.
 ///
 /// No UI of its own: the system share sheet is all the user sees.
 final class ShareViewController: UIViewController {
   private static let inboxName = "ShareInbox"
   private static let hostURL = URL(string: "nfcarchiver-share://shared")!
+  /// The largest archive any supported tag can hold: 65,535 chunks of a
+  /// Mifare Classic 4K's 3,408-byte payload. The same value as in the app's
+  /// `ShareInbox.swift`; `test/share_size_cap_test.dart` holds both to the
+  /// Dart constants.
+  private static let maxShareBytes = 65_535 * 3_408
 
   private var started = false
 
@@ -136,11 +143,17 @@ final class ShareViewController: UIViewController {
       var name = source.lastPathComponent
       if name.isEmpty { name = "shared" }
       if name == "meta.json" { name = "shared-meta.json" }
-      try fm.copyItem(at: source, to: itemDir.appendingPathComponent(name))
+      // An unknown size is copied: the app checks again before its own copy.
+      let size = (try? source.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+      let tooLarge = size > maxShareBytes
+      if !tooLarge {
+        try fm.copyItem(at: source, to: itemDir.appendingPathComponent(name))
+      }
 
-      let meta: [String: Any] = [
+      var meta: [String: Any] = [
         "name": name, "uti": uti, "isImage": isImage, "count": count,
       ]
+      if tooLarge { meta["tooLarge"] = true }
       try JSONSerialization.data(withJSONObject: meta)
         .write(to: itemDir.appendingPathComponent("meta.json"), options: .atomic)
 

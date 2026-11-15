@@ -244,5 +244,6 @@
   "shareDiscardRestoreBody": "Bir geri yükleme sürüyor. Yeni bir arşiv başlatmak onu durdurur; şimdiye kadar taranan etiketler saklanır ve daha sonra devam edebilirsiniz.",
   "shareDiscardConfirm": "Sil ve devam et",
   "shareOnlyFirst": "{count} öğeden yalnızca ilki alındı — NFC Archiver her seferinde bir dosya arşivler.",
-  "shareCouldNotRead": "Paylaşılan öğe okunamadı."
+  "shareCouldNotRead": "Paylaşılan öğe okunamadı.",
+  "shareTooLarge": "Paylaşılan öğe NFC etiketlerine arşivlenemeyecek kadar büyük."
 }

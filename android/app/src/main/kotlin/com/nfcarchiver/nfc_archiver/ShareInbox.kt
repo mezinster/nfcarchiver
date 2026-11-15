@@ -25,7 +25,10 @@ import java.util.concurrent.Executors
  * returns null. A newer share replaces a pending one and deletes its copy.
  *
  * A share with nothing usable (text only, file://) is kept as unreadable, so
- * `take` answers `share_unreadable` and Dart tells the user.
+ * `take` answers `share_unreadable` and Dart tells the user. One larger than
+ * [MAX_SHARE_BYTES] is not copied (or the copy stops there) and `take` answers
+ * `share_too_large`: a shared video must not fill the cache before the app
+ * can refuse it.
  *
  * Copies and `take` run in order on one background thread, which also owns
  * [pending]; replies are posted on the main thread. Errors never carry a name
@@ -42,12 +45,17 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
     /** A share that arrived but could not be read; `take` reports it once. */
     private object Unreadable
 
+    /** A share above [MAX_SHARE_BYTES]; `take` reports it once. */
+    private object TooLarge
+
+    private class TooLargeException : Exception()
+
     private val resolver: ContentResolver = context.contentResolver
     private val root = File(context.cacheDir, DIR_NAME)
     private val main = Handler(Looper.getMainLooper())
     private val channel = MethodChannel(messenger, CHANNEL)
 
-    // Owned by [executor]: null, an [Item] or [Unreadable].
+    // Owned by [executor]: null, an [Item], [Unreadable] or [TooLarge].
     private var pending: Any? = null
 
     init {
@@ -71,6 +79,9 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
                         )
                         Unreadable -> result.error(
                             "share_unreadable", "The shared item could not be read.", null
+                        )
+                        TooLarge -> result.error(
+                            "share_too_large", "The shared item is too large.", null
                         )
                         else -> result.success(null)
                     }
@@ -127,15 +138,41 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
         val dir = File(root, UUID.randomUUID().toString())
         val file = File(dir, name ?: FALLBACK_NAME)
         pending = try {
+            // The declared size spares the copy; it can be missing or wrong, so
+            // the copy itself is bounded too.
+            if (declaredSize(uri) > MAX_SHARE_BYTES) throw TooLargeException()
             if (!dir.mkdirs()) throw java.io.IOException()
             val input = resolver.openInputStream(uri) ?: throw java.io.IOException()
-            input.use { src -> file.outputStream().use { src.copyTo(it) } }
+            input.use { src -> file.outputStream().use { copyCapped(src, it) } }
             Item(file, name, type?.startsWith("image/") == true, count)
+        } catch (t: TooLargeException) {
+            runCatching { dir.deleteRecursively() }
+            TooLarge
         } catch (t: Throwable) {
             runCatching { dir.deleteRecursively() }
             Unreadable
         }
     }
+
+    private fun copyCapped(src: java.io.InputStream, dst: java.io.OutputStream) {
+        val buffer = ByteArray(64 * 1024)
+        var total = 0L
+        while (true) {
+            val n = src.read(buffer)
+            if (n < 0) return
+            total += n
+            if (total > MAX_SHARE_BYTES) throw TooLargeException()
+            dst.write(buffer, 0, n)
+        }
+    }
+
+    /** What the provider says the item's size is, or -1 when it doesn't say. */
+    private fun declaredSize(uri: Uri): Long = runCatching {
+        resolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+            val i = c.getColumnIndex(OpenableColumns.SIZE)
+            if (i >= 0 && c.moveToFirst() && !c.isNull(i)) c.getLong(i) else -1L
+        }
+    }.getOrNull() ?: -1L
 
     // Runs on [executor]. A newer share replaces a pending one and its copy.
     private fun replacePending(value: Any?) {
@@ -190,6 +227,14 @@ class ShareInbox(context: Context, messenger: BinaryMessenger) {
         private const val DIR_NAME = "share_in"
         private const val FALLBACK_NAME = "shared"
         private const val MAX_NAME_CHARS = 200
+
+        /**
+         * The largest archive any supported tag can hold: 65,535 chunks of a
+         * Mifare Classic 4K's 3,408-byte payload. Nothing bigger can be
+         * archived uncompressed. `test/share_size_cap_test.dart` holds this
+         * to the Dart constants.
+         */
+        private const val MAX_SHARE_BYTES = 65_535L * 3_408
 
         /**
          * One thread for the whole process, like PhotoEncoder's: an engine

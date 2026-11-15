@@ -7,6 +7,8 @@ import Foundation
 /// Inbox contract (written by `ShareViewController`):
 /// `<group container>/ShareInbox/<uuid>/` holds the item under its name plus
 /// `meta.json` `{"name": String, "uti": String, "isImage": Bool, "count": Int}`.
+/// An item above `maxShareBytes` arrives as `meta.json` alone, with
+/// `"tooLarge": true`; `take` answers `share_too_large` for it.
 ///
 /// `take` copies the item into `Caches/share_in/<uuid>/` (the directory
 /// path_provider's `getTemporaryDirectory()` returns, which Dart sweeps on the
@@ -24,6 +26,11 @@ final class ShareInbox {
   private static let outputDirName = "share_in"
   private static let fallbackName = "shared"
   private static let maxNameChars = 200
+  /// The largest archive any supported tag can hold: 65,535 chunks of a
+  /// Mifare Classic 4K's 3,408-byte payload. The same value as in the
+  /// extension's `ShareViewController.swift`; `test/share_size_cap_test.dart`
+  /// holds both to the Dart constants.
+  private static let maxShareBytes = 65_535 * 3_408
   /// The extension builds the next inbox in a staging directory and moves it
   /// into place. One left behind (the extension was killed mid-copy) is
   /// deleted once it is this old, so a share still being written is spared.
@@ -88,6 +95,8 @@ final class ShareInbox {
     else { return unreadable() }
 
     let source = item.appendingPathComponent(storedName)
+    let size = (try? source.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+    if meta["tooLarge"] as? Bool == true || size > Self.maxShareBytes { return tooLarge() }
     guard let caches = fm.urls(for: .cachesDirectory, in: .userDomainMask).first else {
       return unreadable()
     }
@@ -129,6 +138,11 @@ final class ShareInbox {
   private func unreadable() -> FlutterError {
     FlutterError(
       code: "share_unreadable", message: "The shared item could not be read.", details: nil)
+  }
+
+  private func tooLarge() -> FlutterError {
+    FlutterError(
+      code: "share_too_large", message: "The shared item is too large.", details: nil)
   }
 
   /// The last path component only, with no separators, control characters or

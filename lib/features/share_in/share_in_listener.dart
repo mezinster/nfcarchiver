@@ -89,9 +89,11 @@ class _ShareInListenerState extends ConsumerState<ShareInListener>
       item = await _inbox.take();
     } on PlatformException catch (e, st) {
       log.report('share', 'share take failed', e, st, {'code': e.code});
-      _snack((l10n) => e.code == shareUnreadableCode
-          ? l10n.shareCouldNotRead
-          : l10n.somethingWentWrong);
+      _snack((l10n) => switch (e.code) {
+            shareUnreadableCode => l10n.shareCouldNotRead,
+            shareTooLargeCode => l10n.shareTooLarge,
+            _ => l10n.somethingWentWrong,
+          });
       return;
     } catch (e, st) {
       log.report('share', 'share take failed', e, st);
@@ -130,12 +132,24 @@ class _ShareInListenerState extends ConsumerState<ShareInListener>
         _discard(item);
         return;
       }
-      if (archiveBusy) ref.read(archiveProvider.notifier).reset();
-      if (restoreBusy) ref.read(restoreProvider.notifier).reset();
     }
 
+    // Before anything is reset: a copy that has vanished (the system clears
+    // caches under storage pressure) must not cost the work in progress.
     // Sync on purpose: one stat, and it keeps the routing in one frame.
-    final size = File(item.path).lengthSync();
+    final int size;
+    try {
+      size = File(item.path).lengthSync();
+    } on FileSystemException catch (e) {
+      // The type alone: the exception's text carries a path.
+      log.warn('share', 'shared copy is gone', {'error': '${e.runtimeType}'});
+      _discard(item);
+      _snack((l10n) => l10n.shareCouldNotRead);
+      return;
+    }
+
+    if (archiveBusy) ref.read(archiveProvider.notifier).reset();
+    if (restoreBusy) ref.read(restoreProvider.notifier).reset();
 
     // Never let the destination show leftovers of an earlier pick.
     if (item.isImage) {
