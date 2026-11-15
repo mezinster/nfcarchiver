@@ -33,7 +33,7 @@ Z wbudowanym NFC iPhone'a Mifare Classic jest **niemożliwe**: Core NFC nie obs�
 
 ## Udostępnianie do NFC Archiver { #share-into-nfc-archiver }
 
-W Zdjęciach lub Plikach dotknij **Udostępnij**, potem **NFC Archiver**. Zdjęcie otwiera **Optymalizuj zdjęcie**; każdy inny plik otwiera **Ustawienia archiwum**. Jeśli udostępnisz kilka elementów, używany jest tylko pierwszy (aplikacja o tym informuje). Jeśli aplikacja nie otworzy się sama, otwórz NFC Archiver — udostępniony element zostanie podjęty. Jeśli jesteś w trakcie zapisywania archiwum, aplikacja zapyta **Rozpocząć nowe archiwum?**, zanim je odrzuci. O optymalizatorze zobacz [Archiwizacja zdjęcia](archive.md#archiving-a-photo).
+W Zdjęciach lub Plikach dotknij **Udostępnij**, potem **NFC Archiver**. Zdjęcie otwiera **Optymalizuj zdjęcie**; każdy inny plik otwiera **Ustawienia archiwum**. Jeśli udostępnisz kilka elementów, używany jest tylko pierwszy (aplikacja o tym informuje). Jeśli aplikacja nie otworzy się sama, otwórz NFC Archiver — udostępniony element zostanie podjęty. Jeśli jesteś w trakcie zapisywania archiwum, aplikacja zapyta **Rozpocząć nowe archiwum?**, zanim je odrzuci. Element większy niż około 223 MB jest odrzucany: „Udostępniony element jest zbyt duży, aby zarchiwizować go na tagach NFC.” O optymalizatorze zobacz [Archiwizacja zdjęcia](archive.md#archiving-a-photo).
 
 ## Dalej
 

@@ -23,11 +23,11 @@ Before compression, and leaving out the few bytes the file name adds:
 | 10 KB | 151 | 24 | 13 | 15 |
 | 100 KB | 1,506 | 240 | 127 | 143 |
 
-Encryption adds 44 bytes in total, not per tag. NFC tags are small: archives are best suited to small files such as text, keys, configuration files or small documents. An archive can have at most 65,535 chunks.
+Encryption adds 44 bytes in total, not per tag. NFC tags are small: archives are best suited to small files such as text, keys, configuration files or small documents. An archive can have at most 65,535 chunks. If a file needs more than that, **Archive Settings** says so before you start.
 
 If a real tag reports less space than its type, the app offers to reconfigure the archive before the first tag is written (see [If a tag is too small](archive.md#if-a-tag-is-too-small)).
 
-The list in the app also contains MIFARE Ultralight (48 bytes, too small to hold an archive chunk), MIFARE Ultralight C (144 bytes) and Generic 1KB (1024 bytes).
+The list in the app also contains MIFARE Ultralight C (144 bytes) and Generic 1KB (1024 bytes). Plain MIFARE Ultralight (48 bytes) is too small to hold an archive chunk and is not offered.
 
 ## Which reader supports which
 

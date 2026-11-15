@@ -5,6 +5,8 @@ Podziel dowolny plik na części i zapisz je na tagach NFC. Skanuj tagi w dowoln
 Funkcje:
 * Archiwizacja plików — podział dowolnego pliku na części do zapisu na tagach NFC
 * Archiwizacja tekstu — przechowywanie wiadomości tekstowych na tagach NFC
+* Archiwizacja zdjęć — zmniejszenie zdjęcia do wybranej liczby tagów; dane lokalizacji i aparatu są usuwane
+* Udostępnianie do aplikacji — wyślij zdjęcie lub plik z Galerii, Zdjęć lub Plików prosto do NFC Archiver
 * Odtwarzanie — skanowanie tagów w dowolnej kolejności i składanie oryginalnego pliku
 * Przywrócone pliki — otwórz je w innej aplikacji, zapisz w Pobranych lub dowolnym folderze albo udostępnij
 * Kompresja — opcjonalna kompresja GZIP w celu zmniejszenia liczby tagów
@@ -18,7 +20,6 @@ Obsługiwane tagi NFC:
 * NTAG213 (144 bajty)
 * NTAG215 (504 bajty)
 * NTAG216 (888 bajtów)
-* MIFARE Ultralight (48 bajtów)
 * MIFARE Ultralight C (144 bajty)
 
 Wykorzystuje binarny format NFAR v1 z 28-bajtowym nagłówkiem, kontrolą integralności CRC32 i identyfikacją archiwum za pomocą UUID. Fragmenty można skanować w dowolnej kolejności, weryfikacja odbywa się automatycznie.

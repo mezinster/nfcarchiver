@@ -23,11 +23,11 @@ Sıkıştırmadan önce ve dosya adının eklediği birkaç bayt hariç:
 | 10 KB | 151 | 24 | 13 | 15 |
 | 100 KB | 1.506 | 240 | 127 | 143 |
 
-Şifreleme etiket başına değil, toplamda 44 bayt ekler. NFC etiketleri küçüktür: arşivler en çok metin, anahtarlar, yapılandırma dosyaları ya da küçük belgeler gibi küçük dosyalara uygundur. Bir arşivde en fazla 65.535 parça olabilir.
+Şifreleme etiket başına değil, toplamda 44 bayt ekler. NFC etiketleri küçüktür: arşivler en çok metin, anahtarlar, yapılandırma dosyaları ya da küçük belgeler gibi küçük dosyalara uygundur. Bir arşivde en fazla 65.535 parça olabilir. Bir dosya bundan fazlasını gerektiriyorsa **Arşiv Ayarları** bunu başlamadan önce bildirir.
 
 Gerçek bir etiket türünün vaat ettiğinden daha az yer bildirirse uygulama, ilk etiket yazılmadan önce arşivi yeniden yapılandırmayı önerir (bkz. [Bir etiket çok küçükse](archive.md#if-a-tag-is-too-small)).
 
-Uygulamadaki listede ayrıca MIFARE Ultralight (48 bayt, bir arşiv parçası için fazla küçük), MIFARE Ultralight C (144 bayt) ve Generic 1KB (1024 bayt) bulunur.
+Uygulamadaki listede ayrıca MIFARE Ultralight C (144 bayt) ve Generic 1KB (1024 bayt) bulunur. Düz MIFARE Ultralight (48 bayt) bir arşiv parçası için fazla küçüktür ve sunulmaz.
 
 ## Hangi okuyucu neyi destekler
 

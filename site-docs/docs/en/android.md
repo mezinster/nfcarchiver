@@ -25,7 +25,7 @@ If you tap a Mifare Classic card on a phone without Mifare support, the app says
 
 ## Share into NFC Archiver { #share-into-nfc-archiver }
 
-In Gallery, Photos or Files, tap **Share**, then **NFC Archiver**. A photo opens **Optimise photo**; any other file opens **Archive Settings**. If you share several items, only the first is used (the app tells you). If you are in the middle of writing an archive, the app asks **Start a new archive?** before discarding it. Sharing plain text (for example a link) is not supported and shows "The shared item couldn't be read." See [Archiving a photo](archive.md#archiving-a-photo) for the optimiser.
+In Gallery, Photos or Files, tap **Share**, then **NFC Archiver**. A photo opens **Optimise photo**; any other file opens **Archive Settings**. If you share several items, only the first is used (the app tells you). If you are in the middle of writing an archive, the app asks **Start a new archive?** before discarding it. Sharing plain text (for example a link) is not supported and shows "The shared item couldn't be read." An item larger than about 223 MB is refused: "The shared item is too large to archive on NFC tags." See [Archiving a photo](archive.md#archiving-a-photo) for the optimiser.
 
 ## Next
 

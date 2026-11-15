@@ -8,16 +8,38 @@
 
 Distributed data archive on NFC tags. A mobile application for Android and iOS that allows storing files across multiple NFC tags and restoring them when all parts are available.
 
+**User guide:** <https://nfcarchiver.com/docs/> · **Web app:** <https://nfcarchiver.com/app/>
+
 ### Features
 
-- **File archiving** — splitting any file into parts for writing to NFC tags
+- **File and text archiving** — splitting any file or a text message into parts for writing to NFC tags
+- **Photo archiving** — "Choose photo" opens an optimiser that shrinks a photo to fit the number of tags you pick; location and camera data are removed
+- **Share into the app** — send a photo or file from Gallery, Photos or Files straight to NFC Archiver (Android and iOS)
 - **Restoration** — scanning tags in any order and assembling the original file
+- **Restored files** — open them in another app, save them to any folder, or share them
 - **Compression** — optional GZIP compression to reduce the number of tags needed
 - **Encryption** — AES-256-GCM encryption with password (PBKDF2 for key derivation)
 - **Offline operation** — no network connection required
 - **Chameleon Ultra reader** — drive a [Chameleon Ultra](https://github.com/RfidResearchGroup/ChameleonUltra) over Bluetooth instead of the phone's NFC radio ([guide](docs/CHAMELEON.md))
 - **MIFARE Classic 1K** — 752 usable bytes per card, on any phone when using a Chameleon
 - **Card inspector** — read-only block-by-block dump with a decoded NFAR header and CRC check (requires a Chameleon)
+- **Diagnostics log** — kept on the device only, viewable, shareable and clearable from About; it never contains file names, contents or passwords
+
+### Languages
+
+The app, the [web app](https://nfcarchiver.com/app/), the [user guide](https://nfcarchiver.com/docs/) and the store listings are available in seven languages:
+
+| Language | Code | User guide |
+|---|---|---|
+| English | `en` | <https://nfcarchiver.com/docs/> |
+| Русский (Russian) | `ru` | <https://nfcarchiver.com/docs/ru/> |
+| Türkçe (Turkish) | `tr` | <https://nfcarchiver.com/docs/tr/> |
+| Українська (Ukrainian) | `uk` | <https://nfcarchiver.com/docs/uk/> |
+| ქართული (Georgian) | `ka` | <https://nfcarchiver.com/docs/ka/> |
+| Polski (Polish) | `pl` | <https://nfcarchiver.com/docs/pl/> |
+| Беларуская (Belarusian) | `be` | <https://nfcarchiver.com/docs/be/> |
+
+The app follows the system language, and the language can be changed inside the app. Translations other than English and Russian have not all been checked by native speakers — corrections are welcome as issues or pull requests (`lib/l10n/app_*.arb`, `webapp/app/i18n/`, `site-docs/docs/<code>/`).
 
 ### Readers
 
@@ -36,17 +58,16 @@ Only one reader is active at a time; switching disconnects the previous one. Car
 
 | Tag Type | Capacity | Useful Payload* |
 |----------|----------|-----------------|
-| NTAG213 | 144 bytes | ~106 bytes |
-| NTAG215 | 504 bytes | ~466 bytes |
-| NTAG216 | 888 bytes | ~850 bytes |
-| MIFARE Ultralight | 48 bytes | ~10 bytes |
-| MIFARE Ultralight C | 144 bytes | ~106 bytes |
-| MIFARE Classic 1K | 1 KB (752 usable) | ~720 bytes† |
+| NTAG213 | 144 bytes | 68 bytes |
+| NTAG215 | 504 bytes | 428 bytes |
+| NTAG216 | 888 bytes | 812 bytes |
+| MIFARE Ultralight C | 144 bytes | 68 bytes |
+| MIFARE Classic 1K | 1 KB (752 usable) | 720 bytes† |
 
-*After subtracting NFAR header (28 bytes) and NDEF overhead (~10 bytes)  
+*After subtracting the NFAR header and CRC (32 bytes) and, on NDEF tags, the 44 bytes reserved for the NDEF wrapping. Plain MIFARE Ultralight (48 bytes) is too small to hold a single chunk and is not offered.  
 †MIFARE Classic 1K holds raw 16-byte blocks (47 usable = 752 bytes) with no NDEF layer, so only the 28-byte NFAR header and 4-byte CRC are deducted. Available in the Android app on phones whose NFC chipset supports CRYPTO1, and on **any** phone when using a Chameleon Ultra. Block 0 and every sector trailer are never written, so keys and access bits are left untouched.
 
-> **Note:** This list is not exhaustive — more tag types are supported than shown here, and coverage continues to grow.
+One archive can span at most 65,535 tags; the app warns before you start when a file needs more.
 
 ### NFAR v1 Data Format
 
@@ -76,9 +97,9 @@ Only one reader is active at a time; switching disconnects the previous one. Car
 
 #### Requirements
 
-- Flutter SDK 3.5+
-- Android SDK (API 26+) for Android
-- Xcode 16+ and iOS 13+ for iOS
+- Flutter 3.44.8 (the version CI and the release workflow pin)
+- Android SDK (API 24+) for Android
+- Xcode 26 and iOS 15+ for iOS
 - Device with NFC support, or a Chameleon Ultra reader over Bluetooth
 
 #### Building
@@ -127,6 +148,8 @@ lib/
 │
 ├── features/
 │   ├── archive/             # Archive creation
+│   ├── photo/               # Photo optimiser
+│   ├── share_in/            # Items shared into the app
 │   ├── restore/             # Restoration
 │   └── nfc/                 # NFC abstraction
 │
@@ -144,10 +167,11 @@ lib/
 
 ### Web version (`webapp/`)
 
-A browser port of NFC Archiver lives in [`webapp/`](webapp/). It runs entirely
-client-side (no server) and drives a **Chameleon Ultra** reader/writer over **Web
-Bluetooth** to read and write physical cards from Chromium browsers on desktop and
-Android.
+A browser port of NFC Archiver lives in [`webapp/`](webapp/) and is published at
+**<https://nfcarchiver.com/app/>**. It runs entirely client-side (no server) and
+reads and writes physical cards through one of two readers: a **Chameleon Ultra**
+over **Web Bluetooth** (Chromium browsers on desktop and Android), or, in Chrome
+for Android, the phone's own radio over **Web NFC** (NTAG only).
 
 - **Media:** Mifare Classic 1K (720 B payload/card) and NTAG213/215/216 (Type-2 /
   NDEF). Tag type is auto-detected on tap.
@@ -157,13 +181,13 @@ Android.
   in the browser and vice versa; an NTAG written in the browser is a standard NDEF
   tag readable by any NFC phone.
 - **Features:** file **and** text archiving, GZIP compression, AES-256-GCM
-  encryption, filename preservation, a live "≈ N cards" estimate, multi-archive
-  scan-then-pick restore, and a Chameleon "Diagnose card" tool. The UI is a
-  branded, themed, tabbed shell.
+  encryption, filename preservation, a photo optimiser, a live "≈ N cards"
+  estimate, multi-archive scan-then-pick restore, and a Chameleon card inspector.
+  The UI is available in the same seven languages as the app.
 
 ```bash
 cd webapp
-source ~/.nvm/nvm.sh && nvm use --lts   # Node ≥ 22 (crypto.subtle, CompressionStream)
+source ~/.nvm/nvm.sh && nvm use 22      # Node ≥ 22 (crypto.subtle, CompressionStream)
 npm install
 npm test        # dependency-free NFAR core + transports, tested against a fake device
 npm run app     # serves http://localhost:8000 — open in Chrome/Edge on the Bluetooth host
@@ -171,10 +195,9 @@ npm run app     # serves http://localhost:8000 — open in Chrome/Edge on the Bl
 
 Web Bluetooth is Chromium-only (not Firefox or iOS Safari), and — inside WSL — the
 browser must run on the Windows host. Status: a working prototype; the archive →
-cards → restore round trip is validated on real hardware. See
-[`webapp/README.md`](webapp/README.md) for architecture, the SDK/hardware notes,
-and the parity roadmap (localization, an offline file manager, and phone-native
-Web NFC writing are still to come).
+cards → restore round trip is validated on real hardware with a Chameleon. See
+[`webapp/README.md`](webapp/README.md) for architecture, the SDK/hardware notes
+and what is still open (an offline file manager).
 
 ### F-Droid Publishing
 
@@ -226,16 +249,38 @@ coding assistant throughout.
 
 Распределённый архив данных на NFC-метках. Мобильное приложение для Android и iOS, позволяющее хранить файлы на множестве NFC-меток и восстанавливать их при наличии всех частей.
 
+**Руководство пользователя:** <https://nfcarchiver.com/docs/ru/> · **Веб-приложение:** <https://nfcarchiver.com/app/>
+
 ### Возможности
 
-- **Архивация файлов** — разбиение любого файла на части для записи на NFC-метки
+- **Архивация файлов и текста** — разбиение любого файла или текстового сообщения на части для записи на NFC-метки
+- **Архивация фото** — «Выбрать фото» открывает оптимизатор, который уменьшает фото под выбранное число меток; геоданные и данные камеры удаляются
+- **«Поделиться» в приложение** — отправьте фото или файл из Галереи, «Фото» или «Файлов» прямо в NFC Archiver (Android и iOS)
 - **Восстановление** — сканирование меток в произвольном порядке и сборка исходного файла
+- **Восстановленные файлы** — откройте в другом приложении, сохраните в любую папку или поделитесь ими
 - **Сжатие** — опциональное GZIP сжатие для уменьшения количества меток
 - **Шифрование** — AES-256-GCM шифрование с паролем (PBKDF2 для ключа)
 - **Офлайн работа** — не требует подключения к сети
 - **Считыватель Chameleon Ultra** — работа через [Chameleon Ultra](https://github.com/RfidResearchGroup/ChameleonUltra) по Bluetooth вместо NFC телефона ([руководство](docs/CHAMELEON.md))
 - **MIFARE Classic 1K** — 752 полезных байта на карту, на любом телефоне при использовании Chameleon
 - **Осмотр карты** — побайтовый дамп только для чтения с разбором заголовка NFAR и проверкой CRC (нужен Chameleon)
+- **Журнал диагностики** — хранится только на устройстве; просмотр, отправка и очистка — в «О приложении»; в нём никогда нет имён файлов, содержимого и паролей
+
+### Языки
+
+Приложение, [веб-приложение](https://nfcarchiver.com/app/), [руководство пользователя](https://nfcarchiver.com/docs/ru/) и описания в магазинах доступны на семи языках:
+
+| Язык | Код | Руководство |
+|---|---|---|
+| English (английский) | `en` | <https://nfcarchiver.com/docs/> |
+| Русский | `ru` | <https://nfcarchiver.com/docs/ru/> |
+| Türkçe (турецкий) | `tr` | <https://nfcarchiver.com/docs/tr/> |
+| Українська (украинский) | `uk` | <https://nfcarchiver.com/docs/uk/> |
+| ქართული (грузинский) | `ka` | <https://nfcarchiver.com/docs/ka/> |
+| Polski (польский) | `pl` | <https://nfcarchiver.com/docs/pl/> |
+| Беларуская (белорусский) | `be` | <https://nfcarchiver.com/docs/be/> |
+
+Приложение использует язык системы; язык можно сменить в самом приложении. Не все переводы, кроме английского и русского, проверены носителями языка — исправления приветствуются в виде issue или pull request (`lib/l10n/app_*.arb`, `webapp/app/i18n/`, `site-docs/docs/<код>/`).
 
 ### Считыватели
 
@@ -254,17 +299,16 @@ coding assistant throughout.
 
 | Тип метки | Ёмкость | Полезная нагрузка* |
 |-----------|---------|-------------------|
-| NTAG213 | 144 байт | ~106 байт |
-| NTAG215 | 504 байт | ~466 байт |
-| NTAG216 | 888 байт | ~850 байт |
-| MIFARE Ultralight | 48 байт | ~10 байт |
-| MIFARE Ultralight C | 144 байт | ~106 байт |
-| MIFARE Classic 1K | 1 КБ (752 доступно) | ~720 байт† |
+| NTAG213 | 144 байт | 68 байт |
+| NTAG215 | 504 байт | 428 байт |
+| NTAG216 | 888 байт | 812 байт |
+| MIFARE Ultralight C | 144 байт | 68 байт |
+| MIFARE Classic 1K | 1 КБ (752 доступно) | 720 байт† |
 
-*После вычета заголовка NFAR (28 байт) и NDEF overhead (~10 байт)  
+*После вычета заголовка NFAR и CRC (32 байта) и, для NDEF-меток, 44 байт, зарезервированных под обёртку NDEF. Обычная MIFARE Ultralight (48 байт) слишком мала даже для одного чанка и не предлагается.  
 †Карты MIFARE Classic 1K хранят необработанные 16-байтные блоки (47 доступных = 752 байта) без слоя NDEF, поэтому вычитаются только 28-байтный заголовок NFAR и 4-байтный CRC. Доступны в Android-приложении на телефонах с поддержкой CRYPTO1 в NFC-чипе и на **любом** телефоне при использовании Chameleon Ultra. Блок 0 и трейлеры секторов никогда не записываются, поэтому ключи и биты доступа остаются нетронутыми.
 
-> **Примечание:** список неполный — поддерживается больше типов меток, чем показано здесь, и охват продолжает расширяться.
+Один архив может занимать не более 65 535 меток; если файлу нужно больше, приложение предупредит до начала записи.
 
 ### Формат данных NFAR v1
 
@@ -294,10 +338,10 @@ coding assistant throughout.
 
 #### Требования
 
-- Flutter SDK 3.5+
-- Android SDK (API 26+) для Android
-- Xcode 15+ для iOS
-- Устройство с NFC
+- Flutter 3.44.8 (версия, закреплённая в CI и в релизном workflow)
+- Android SDK (API 24+) для Android
+- Xcode 26 и iOS 15+ для iOS
+- Устройство с NFC или считыватель Chameleon Ultra по Bluetooth
 
 #### Сборка
 
@@ -334,6 +378,8 @@ lib/
 │
 ├── features/
 │   ├── archive/             # Создание архива
+│   ├── photo/               # Оптимизатор фото
+│   ├── share_in/            # Объекты, переданные в приложение
 │   ├── restore/             # Восстановление
 │   └── nfc/                 # NFC абстракция
 │
@@ -351,10 +397,12 @@ lib/
 
 ### Веб-версия (`webapp/`)
 
-Браузерный порт NFC Archiver находится в [`webapp/`](webapp/). Работает полностью
-на стороне клиента (без сервера) и управляет ридером/райтером **Chameleon Ultra**
-через **Web Bluetooth**, читая и записывая физические карты из браузеров на базе
-Chromium на десктопе и Android.
+Браузерный порт NFC Archiver находится в [`webapp/`](webapp/) и опубликован на
+**<https://nfcarchiver.com/app/>**. Работает полностью на стороне клиента (без
+сервера) и читает и записывает физические карты через один из двух считывателей:
+**Chameleon Ultra** по **Web Bluetooth** (браузеры на базе Chromium на десктопе и
+Android) или, в Chrome для Android, собственный NFC телефона через **Web NFC**
+(только NTAG).
 
 - **Носители:** Mifare Classic 1K (720 Б полезной нагрузки на карту) и
   NTAG213/215/216 (Type-2 / NDEF). Тип метки определяется автоматически при
@@ -365,13 +413,13 @@ Chromium на десктопе и Android.
   восстанавливается в браузере и наоборот; NTAG, записанный в браузере — обычная
   NDEF-метка, читаемая любым NFC-телефоном.
 - **Возможности:** архивация файлов **и** текста, GZIP-сжатие, шифрование
-  AES-256-GCM, сохранение имени файла, живая оценка «≈ N карт», восстановление
-  нескольких архивов (скан → выбор), инструмент «Diagnose card». Интерфейс —
-  брендированная вкладочная оболочка с темой.
+  AES-256-GCM, сохранение имени файла, оптимизатор фото, живая оценка «≈ N карт»,
+  восстановление нескольких архивов (скан → выбор), осмотр карты через Chameleon.
+  Интерфейс доступен на тех же семи языках, что и приложение.
 
 ```bash
 cd webapp
-source ~/.nvm/nvm.sh && nvm use --lts   # Node ≥ 22 (crypto.subtle, CompressionStream)
+source ~/.nvm/nvm.sh && nvm use 22      # Node ≥ 22 (crypto.subtle, CompressionStream)
 npm install
 npm test        # ядро NFAR без зависимостей + транспорты, тесты против фейкового устройства
 npm run app     # http://localhost:8000 — открыть в Chrome/Edge на хосте с Bluetooth
@@ -379,10 +427,9 @@ npm run app     # http://localhost:8000 — открыть в Chrome/Edge на �
 
 Web Bluetooth работает только в Chromium (не Firefox и не iOS Safari), а внутри
 WSL браузер должен запускаться на Windows-хосте. Статус: рабочий прототип; цикл
-архивация → карты → восстановление проверен на реальном железе. Подробности —
-архитектура, заметки по SDK/железу и план паритета (локализация, офлайн
-файловый менеджер и запись через Web NFC с телефона ещё впереди) — в
-[`webapp/README.md`](webapp/README.md).
+архивация → карты → восстановление проверен на реальном железе с Chameleon.
+Подробности — архитектура, заметки по SDK/железу и то, что ещё не сделано
+(офлайн файловый менеджер), — в [`webapp/README.md`](webapp/README.md).
 
 ### Публикация в F-Droid
 
