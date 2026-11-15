@@ -5,6 +5,8 @@ Herhangi bir dosyayı parçalara bölün ve NFC etiketlerine yazın. Orijinal do
 Özellikler:
 * Dosya arşivleme — herhangi bir dosyayı NFC etiketlerine yazmak için parçalara bölme
 * Metin arşivleme — metin mesajlarını NFC etiketlerinde saklama
+* Fotoğraf arşivleme — fotoğrafı seçtiğiniz etiket sayısına sığacak şekilde küçültme; konum ve kamera verileri silinir
+* Uygulamaya paylaşım — Galeri, Fotoğraflar veya Dosyalar'dan bir fotoğrafı ya da dosyayı doğrudan NFC Archiver'a gönderin
 * Geri yükleme — etiketleri herhangi bir sırada tarayarak orijinal dosyayı birleştirme
 * Geri yüklenen dosyalar — başka bir uygulamada açın, İndirilenler'e veya istediğiniz klasöre kaydedin ya da paylaşın
 * Sıkıştırma — gereken etiket sayısını azaltmak için isteğe bağlı GZIP sıkıştırma
@@ -18,7 +20,6 @@ Desteklenen NFC Etiketleri:
 * NTAG213 (144 bayt)
 * NTAG215 (504 bayt)
 * NTAG216 (888 bayt)
-* MIFARE Ultralight (48 bayt)
 * MIFARE Ultralight C (144 bayt)
 
 28 baytlık başlık, CRC32 bütünlük kontrolü ve UUID tabanlı arşiv tanımlama ile NFAR v1 ikili formatını kullanır. Parçalar herhangi bir sırada taranabilir ve otomatik olarak doğrulanır.

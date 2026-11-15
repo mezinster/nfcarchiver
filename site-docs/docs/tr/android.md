@@ -25,7 +25,7 @@ Mifare desteği olmayan bir telefona Mifare Classic kart tutarsanız uygulama (�
 
 ## NFC Archiver'a paylaşma { #share-into-nfc-archiver }
 
-Galeri, Fotoğraflar veya Dosyalar'da **Paylaş**'a, ardından **NFC Archiver**'a dokunun. Bir fotoğraf **Fotoğrafı optimize et** ekranını açar; başka her dosya **Arşiv Ayarları**'nı açar. Birden çok öğe paylaşırsanız yalnızca ilki kullanılır (uygulama bunu söyler). Bir arşiv yazmanın ortasındaysanız uygulama onu atmadan önce **Yeni bir arşiv başlatılsın mı?** diye sorar. Düz metin paylaşmak (örneğin bir bağlantı) desteklenmez ve "Paylaşılan öğe okunamadı." iletisini gösterir. Optimize edici için bkz. [Fotoğraf arşivleme](archive.md#archiving-a-photo).
+Galeri, Fotoğraflar veya Dosyalar'da **Paylaş**'a, ardından **NFC Archiver**'a dokunun. Bir fotoğraf **Fotoğrafı optimize et** ekranını açar; başka her dosya **Arşiv Ayarları**'nı açar. Birden çok öğe paylaşırsanız yalnızca ilki kullanılır (uygulama bunu söyler). Bir arşiv yazmanın ortasındaysanız uygulama onu atmadan önce **Yeni bir arşiv başlatılsın mı?** diye sorar. Düz metin paylaşmak (örneğin bir bağlantı) desteklenmez ve "Paylaşılan öğe okunamadı." iletisini gösterir. Yaklaşık 223 MB'tan büyük bir öğe kabul edilmez: "Paylaşılan öğe NFC etiketlerine arşivlenemeyecek kadar büyük." Optimize edici için bkz. [Fotoğraf arşivleme](archive.md#archiving-a-photo).
 
 ## Sonraki adımlar
 

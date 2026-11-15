@@ -23,11 +23,11 @@ Bez kompresji i bez kilku bajtów, które dodaje nazwa pliku:
 | 10 KB | 151 | 24 | 13 | 15 |
 | 100 KB | 1506 | 240 | 127 | 143 |
 
-Szyfrowanie dodaje łącznie 44 bajty, a nie na każdy tag. Tagi NFC są małe: archiwa najlepiej nadają się do małych plików, takich jak tekst, klucze, pliki konfiguracyjne czy niewielkie dokumenty. Archiwum może mieć najwyżej 65 535 fragmentów.
+Szyfrowanie dodaje łącznie 44 bajty, a nie na każdy tag. Tagi NFC są małe: archiwa najlepiej nadają się do małych plików, takich jak tekst, klucze, pliki konfiguracyjne czy niewielkie dokumenty. Archiwum może mieć najwyżej 65 535 fragmentów. Jeśli plik wymaga więcej, **Ustawienia archiwum** informują o tym przed rozpoczęciem.
 
 Jeśli prawdziwy tag zgłasza mniej miejsca niż jego typ, aplikacja zaproponuje przekonfigurowanie archiwum przed zapisaniem pierwszego tagu (patrz [Jeśli tag jest za mały](archive.md#if-a-tag-is-too-small)).
 
-Lista w aplikacji zawiera też MIFARE Ultralight (48 bajtów, za mało na fragment archiwum), MIFARE Ultralight C (144 bajty) i Generic 1KB (1024 bajty).
+Lista w aplikacji zawiera też MIFARE Ultralight C (144 bajty) i Generic 1KB (1024 bajty). Zwykły MIFARE Ultralight (48 bajtów) jest za mały na fragment archiwum i nie jest proponowany.
 
 ## Który czytnik co obsługuje
 

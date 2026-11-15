@@ -33,7 +33,7 @@ iPhone'un kendi NFC'siyle Mifare Classic **imkânsızdır**: Core NFC bu kartlar
 
 ## NFC Archiver'a paylaşma { #share-into-nfc-archiver }
 
-Fotoğraflar veya Dosyalar'da **Paylaş**'a, ardından **NFC Archiver**'a dokunun. Bir fotoğraf **Fotoğrafı optimize et** ekranını açar; başka her dosya **Arşiv Ayarları**'nı açar. Birden çok öğe paylaşırsanız yalnızca ilki kullanılır (uygulama bunu söyler). Uygulama kendiliğinden açılmazsa NFC Archiver'ı açın; paylaşılan öğe alınır. Bir arşiv yazmanın ortasındaysanız uygulama onu atmadan önce **Yeni bir arşiv başlatılsın mı?** diye sorar. Optimize edici için bkz. [Fotoğraf arşivleme](archive.md#archiving-a-photo).
+Fotoğraflar veya Dosyalar'da **Paylaş**'a, ardından **NFC Archiver**'a dokunun. Bir fotoğraf **Fotoğrafı optimize et** ekranını açar; başka her dosya **Arşiv Ayarları**'nı açar. Birden çok öğe paylaşırsanız yalnızca ilki kullanılır (uygulama bunu söyler). Uygulama kendiliğinden açılmazsa NFC Archiver'ı açın; paylaşılan öğe alınır. Bir arşiv yazmanın ortasındaysanız uygulama onu atmadan önce **Yeni bir arşiv başlatılsın mı?** diye sorar. Yaklaşık 223 MB'tan büyük bir öğe kabul edilmez: "Paylaşılan öğe NFC etiketlerine arşivlenemeyecek kadar büyük." Optimize edici için bkz. [Fotoğraf arşivleme](archive.md#archiving-a-photo).
 
 ## Sonraki adımlar
 

@@ -5,6 +5,8 @@ Split any file into parts and write them to NFC tags. Scan the tags in any order
 Features:
 * File archiving — split any file into parts for writing to NFC tags
 * Text archiving — store text messages across NFC tags
+* Photo archiving — shrink a photo to fit the number of tags you choose; location and camera data are removed
+* Share into the app — send a photo or file from Gallery, Photos or Files straight to NFC Archiver
 * Restoration — scan tags in any order and assemble the original file
 * Restored files — open them in another app, save them to Downloads or any folder, or share them
 * Compression — optional GZIP compression to reduce the number of tags needed
@@ -18,7 +20,6 @@ Supported NFC Tags:
 * NTAG213 (144 bytes)
 * NTAG215 (504 bytes)
 * NTAG216 (888 bytes)
-* MIFARE Ultralight (48 bytes)
 * MIFARE Ultralight C (144 bytes)
 
 Uses the NFAR v1 binary format with a 28-byte header, CRC32 integrity checking, and UUID-based archive identification. Chunks can be scanned in any order and are validated automatically.

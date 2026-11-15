@@ -33,7 +33,7 @@ Mifare Classic is **impossible** with the iPhone's own NFC: Core NFC does not su
 
 ## Share into NFC Archiver { #share-into-nfc-archiver }
 
-In Photos or Files, tap **Share**, then **NFC Archiver**. A photo opens **Optimise photo**; any other file opens **Archive Settings**. If you share several items, only the first is used (the app tells you). If the app does not open by itself, open NFC Archiver and the shared item is picked up. If you are in the middle of writing an archive, the app asks **Start a new archive?** before discarding it. See [Archiving a photo](archive.md#archiving-a-photo) for the optimiser.
+In Photos or Files, tap **Share**, then **NFC Archiver**. A photo opens **Optimise photo**; any other file opens **Archive Settings**. If you share several items, only the first is used (the app tells you). If the app does not open by itself, open NFC Archiver and the shared item is picked up. If you are in the middle of writing an archive, the app asks **Start a new archive?** before discarding it. An item larger than about 223 MB is refused: "The shared item is too large to archive on NFC tags." See [Archiving a photo](archive.md#archiving-a-photo) for the optimiser.
 
 ## Next
 

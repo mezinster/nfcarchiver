@@ -25,7 +25,7 @@ Jeśli przyłożysz kartę Mifare Classic do telefonu bez jej obsługi, aplikacj
 
 ## Udostępnianie do NFC Archiver { #share-into-nfc-archiver }
 
-W Galerii, Zdjęciach lub Plikach dotknij **Udostępnij**, potem **NFC Archiver**. Zdjęcie otwiera **Optymalizuj zdjęcie**; każdy inny plik otwiera **Ustawienia archiwum**. Jeśli udostępnisz kilka elementów, używany jest tylko pierwszy (aplikacja o tym informuje). Jeśli jesteś w trakcie zapisywania archiwum, aplikacja zapyta **Rozpocząć nowe archiwum?**, zanim je odrzuci. Udostępnianie zwykłego tekstu (np. linku) nie jest obsługiwane i pokazuje komunikat „Nie udało się odczytać udostępnionego elementu.” O optymalizatorze zobacz [Archiwizacja zdjęcia](archive.md#archiving-a-photo).
+W Galerii, Zdjęciach lub Plikach dotknij **Udostępnij**, potem **NFC Archiver**. Zdjęcie otwiera **Optymalizuj zdjęcie**; każdy inny plik otwiera **Ustawienia archiwum**. Jeśli udostępnisz kilka elementów, używany jest tylko pierwszy (aplikacja o tym informuje). Jeśli jesteś w trakcie zapisywania archiwum, aplikacja zapyta **Rozpocząć nowe archiwum?**, zanim je odrzuci. Udostępnianie zwykłego tekstu (np. linku) nie jest obsługiwane i pokazuje komunikat „Nie udało się odczytać udostępnionego elementu.” Element większy niż około 223 MB jest odrzucany: „Udostępniony element jest zbyt duży, aby zarchiwizować go na tagach NFC.” O optymalizatorze zobacz [Archiwizacja zdjęcia](archive.md#archiving-a-photo).
 
 ## Dalej
 
