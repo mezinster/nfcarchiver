@@ -316,6 +316,42 @@ void main() {
     });
   });
 
+  // The system clears caches under storage pressure, and the dialog can stay
+  // up for as long as the user likes.
+  testWidgets('a copy gone by the time the user confirms costs no work',
+      (tester) async {
+    final f = _sharedFile('doc.pdf');
+    final inbox = FakeShareInbox()
+      ..queue.add(SharedItem(
+          path: f.path, name: 'doc.pdf', isImage: false, count: 1));
+    final shell = await _pumpShell(tester,
+        inbox: inbox,
+        archive: ArchiveWriting(
+            result: _result(), currentChunkIndex: 1, writtenChunks: const {0}));
+
+    f.deleteSync();
+    await tester.tap(find.text('Discard and continue'));
+    await tester.pumpAndSettle();
+
+    final s = shell.container.read(archiveProvider);
+    expect(s, isA<ArchiveWriting>(), reason: 'nothing was reset');
+    expect((s as ArchiveWriting).writtenChunks, {0});
+    expect(find.text("The shared item couldn't be read."), findsOneWidget);
+    expect(shell.path, '/');
+    expectLogFreeOf(f);
+  });
+
+  testWidgets('a share too large to archive says so', (tester) async {
+    final inbox = FakeShareInbox()
+      ..queue.add(PlatformException(code: shareTooLargeCode, message: 'boom'));
+    final shell = await _pumpShell(tester, inbox: inbox);
+
+    expect(find.text('The shared item is too large to archive on NFC tags.'),
+        findsOneWidget);
+    expect(find.textContaining('boom'), findsNothing);
+    expect(shell.path, '/');
+  });
+
   testWidgets('a restore in progress asks too; confirm resets it',
       (tester) async {
     final f = _sharedFile('doc.pdf');

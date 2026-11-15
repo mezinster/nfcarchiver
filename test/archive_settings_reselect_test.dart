@@ -37,9 +37,10 @@ class _RecordingArchive extends ArchiveNotifier {
   final prepared = <String?>[];
 
   @override
-  Future<void> prepareArchive() async {
+  Future<bool> prepareArchive() async {
     final s = state;
     if (s is ArchiveConfiguring) prepared.add(s.filePath);
+    return true;
   }
 }
 

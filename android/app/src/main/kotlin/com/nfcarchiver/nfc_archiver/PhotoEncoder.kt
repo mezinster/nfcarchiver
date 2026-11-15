@@ -20,11 +20,18 @@ import java.io.File
 import java.io.FileInputStream
 import java.util.concurrent.Executors
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * `com.nfcarchiver/photo`: decodes a photo once per size and re-encodes it as a
  * metadata-free JPEG at any longest side and quality.
+ *
+ * A photo is never decoded above [MAX_PIXELS]. A larger source (48-200 MP
+ * sensors) is treated as if it were that size: `open` reports the capped
+ * dimensions and every encode works within them, so Dart needs no cap of its
+ * own and a full-resolution bitmap (190 MB at 48 MP) is never allocated.
  *
  * Each scaled bitmap has the EXIF orientation baked in, sits on white, and is
  * cached per maxSide so the fit search's repeated encodes at one size skip the
@@ -37,6 +44,7 @@ class PhotoEncoder(messenger: BinaryMessenger) {
     private class DecodeFailed : Exception()
     private class NoSession : Exception()
 
+    /** [longestSide] is the largest side ever decoded: the source's, capped. */
     private class Session(val file: File, val longestSide: Int) {
         var width = 0
         var height = 0
@@ -92,24 +100,36 @@ class PhotoEncoder(messenger: BinaryMessenger) {
 
     private fun open(path: String): Map<String, Int> {
         val file = File(path)
+        // Dimensions come from the header: nothing is decoded at full size.
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(file.path, bounds)
-        val longest = if (bounds.outWidth > 0 && bounds.outHeight > 0) {
-            max(bounds.outWidth, bounds.outHeight)
+        val (w, h) = if (bounds.outWidth > 0 && bounds.outHeight > 0) {
+            bounds.outWidth to bounds.outHeight
         } else if (Build.VERSION.SDK_INT >= 28) {
-            headerLongestSide(file)
+            headerSize(file)
         } else {
             throw DecodeFailed()
         }
+        val longest = cappedLongestSide(w, h)
+        val shortest = max(1, (longest.toDouble() * min(w, h) / max(w, h)).roundToInt())
         val session = Session(file, longest)
-        // Decode the original size now: it proves the file decodes, gives the
-        // dimensions after orientation, and is the fit search's first encode.
-        val original = bitmap(session, longest)
-        session.width = original.width
-        session.height = original.height
+        // A small decode proves the file decodes and shows which way up it is
+        // after orientation; Dart's opening probe encode reuses it.
+        val probe = bitmap(session, min(PROBE_SIDE, longest))
+        val portrait = if (probe.width != probe.height) probe.width < probe.height else w < h
+        session.width = if (portrait) shortest else longest
+        session.height = if (portrait) longest else shortest
         val id = nextId++
         sessions[id] = session
         return mapOf("id" to id, "width" to session.width, "height" to session.height)
+    }
+
+    /** The longest side to work at: the source's, or less to stay in [MAX_PIXELS]. */
+    private fun cappedLongestSide(w: Int, h: Int): Int {
+        val longest = max(w, h)
+        val pixels = w.toLong() * h
+        if (pixels <= MAX_PIXELS) return longest
+        return max(1, (longest * sqrt(MAX_PIXELS.toDouble() / pixels)).toInt())
     }
 
     private fun encode(session: Session, maxSide: Int, quality: Int): ByteArray {
@@ -146,19 +166,22 @@ class PhotoEncoder(messenger: BinaryMessenger) {
         return bitmap
     }
 
-    private fun headerLongestSide(file: File): Int {
-        var longest = 0
+    /** API 28+: the source size for formats BitmapFactory cannot size (HEIF). */
+    private fun headerSize(file: File): Pair<Int, Int> {
+        var w = 0
+        var h = 0
         try {
             ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
-                longest = max(info.size.width, info.size.height)
-                decoder.setTargetSampleSize(max(1, longest / 64))
+                w = info.size.width
+                h = info.size.height
+                decoder.setTargetSampleSize(max(1, max(w, h) / 64))
                 decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
             }
         } catch (e: Exception) {
             throw DecodeFailed()
         }
-        if (longest <= 0) throw DecodeFailed()
-        return longest
+        if (w <= 0 || h <= 0) throw DecodeFailed()
+        return w to h
     }
 
     /** API 28+: ImageDecoder applies EXIF orientation itself. */
@@ -238,6 +261,10 @@ class PhotoEncoder(messenger: BinaryMessenger) {
         const val CHANNEL = "com.nfcarchiver/photo"
         /** A 12 MP photo alone is ~48 MB, so the newest entry is always kept. */
         const val CACHE_BUDGET_BYTES = 64L * 1024 * 1024
+        /** 16 MP, a 64 MB bitmap: the web app's canvas limit, and above any 12 MP photo. */
+        const val MAX_PIXELS = 16_000_000L
+        /** The size of Dart's opening probe encode (photo_optimiser_provider.dart). */
+        const val PROBE_SIDE = 640
         val NOT_IMPLEMENTED = Any()
         /** Shared across engines, so a recreated activity doesn't leak a thread. */
         val executor = Executors.newSingleThreadExecutor()

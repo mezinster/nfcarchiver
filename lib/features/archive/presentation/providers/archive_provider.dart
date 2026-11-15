@@ -291,14 +291,20 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
   }
 
   /// Prepare the archive (compress, encrypt, chunk).
-  Future<void> prepareArchive() async {
+  ///
+  /// Returns whether the outcome (ready or error) became the state. It does
+  /// not when something else took the state over while this was working — a
+  /// share arriving, a reset — and the stale outcome must not overwrite that.
+  Future<bool> prepareArchive() async {
     final current = state;
-    if (current is! ArchiveConfiguring) return;
+    if (current is! ArchiveConfiguring) return false;
 
-    state = ArchivePreparing(
+    final preparing = ArchivePreparing(
       fileName: current.fileName,
       stage: current.isTextMode ? 'Processing text...' : 'Reading file...',
     );
+    state = preparing;
+    bool superseded() => !mounted || !identical(state, preparing);
 
     try {
       ArchiveResult result;
@@ -323,6 +329,7 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
         );
       }
 
+      if (superseded()) return false;
       _configuredTagType = current.tagType;
       state = ArchiveReady(
         result: result,
@@ -330,11 +337,14 @@ class ArchiveNotifier extends StateNotifier<ArchiveState> {
         writtenChunks: const {},
       );
     } on ArchiveException catch (e) {
+      if (superseded()) return false;
       state = ArchiveError(message: e.message);
     } catch (e, st) {
       log.report('archive', 'prepare failed', e, st);
+      if (superseded()) return false;
       state = const ArchiveError();
     }
+    return true;
   }
 
   /// Mark the current chunk as written and move to next.

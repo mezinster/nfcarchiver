@@ -25,6 +25,10 @@ class SharedItem {
 /// could not be read.
 const shareUnreadableCode = 'share_unreadable';
 
+/// `PlatformException.code` for a share above the largest possible archive.
+/// The native side refuses it without keeping a copy.
+const shareTooLargeCode = 'share_too_large';
+
 /// Wraps the `com.nfcarchiver/share_in` channel.
 class ShareInbox {
   ShareInbox([MethodChannel? channel])
@@ -32,8 +36,9 @@ class ShareInbox {
 
   final MethodChannel _channel;
 
-  /// The waiting item, or null. Throws [PlatformException] (code
-  /// [shareUnreadableCode]) when a share arrived but could not be read.
+  /// The waiting item, or null. Throws [PlatformException] when a share
+  /// arrived but could not be read ([shareUnreadableCode]) or is too large to
+  /// archive ([shareTooLargeCode]).
   Future<SharedItem?> take() async {
     final Map<String, Object?>? m;
     try {

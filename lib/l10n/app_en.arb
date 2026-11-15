@@ -1180,5 +1180,9 @@
   "shareCouldNotRead": "The shared item couldn't be read.",
   "@shareCouldNotRead": {
     "description": "Snackbar when an item shared into the app could not be read"
+  },
+  "shareTooLarge": "The shared item is too large to archive on NFC tags.",
+  "@shareTooLarge": {
+    "description": "Snackbar when an item shared into the app is larger than any archive can hold"
   }
 }

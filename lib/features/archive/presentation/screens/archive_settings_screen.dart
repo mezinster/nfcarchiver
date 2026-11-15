@@ -333,8 +333,10 @@ class _ArchiveSettingsScreenState extends ConsumerState<ArchiveSettingsScreen> {
       return;
     }
 
-    await ref.read(archiveProvider.notifier).prepareArchive();
-    if (context.mounted) {
+    final applied = await ref.read(archiveProvider.notifier).prepareArchive();
+    // Not applied: a share took the archive over meanwhile and has already
+    // navigated to where it belongs.
+    if (applied && context.mounted) {
       context.go('/archive/write');
     }
   }
