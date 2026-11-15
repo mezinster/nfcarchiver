@@ -165,7 +165,7 @@ void main() {
     // malformed-but-nfarTotalLength-passing input can currently reach it:
     // Chunk.fromBytes performs no CRC check, and its own length guard
     // (NfarHeaderOffset.payload + NfarHeaderSize.crc32) is definitionally
-    // equal to nfarTotalLength's (NfarHeaderSize.total), so once
+    // equal to nfarTotalLength's (NfarHeaderSize.chunkOverhead), so once
     // nfarTotalLength has accepted a header, Chunk.fromBytes cannot reject
     // the same bytes. Verified here: a chunk with a deliberately wrong CRC
     // still comes back non-null, with the bad CRC preserved as-is -- CRC

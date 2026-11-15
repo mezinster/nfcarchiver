@@ -19,7 +19,7 @@ void main() {
       // nothing for the terminator, which is the bug this guards.
       for (final capacity in [144, 240, 492, 872, 1024]) {
         final payload = NfcTagType.maxPayloadForCapacity(capacity);
-        final message = _ndefRecordOverhead + NfarHeaderSize.total + payload;
+        final message = _ndefRecordOverhead + NfarHeaderSize.chunkOverhead + payload;
         expect(
           message + _terminatorTlv,
           lessThanOrEqualTo(capacity),
@@ -39,7 +39,7 @@ void main() {
       const capacity = 492;
       final payload = NfcTagType.maxPayloadForCapacity(capacity);
       final oneMore =
-          _ndefRecordOverhead + NfarHeaderSize.total + payload + 1 + _terminatorTlv;
+          _ndefRecordOverhead + NfarHeaderSize.chunkOverhead + payload + 1 + _terminatorTlv;
       expect(oneMore, greaterThan(capacity),
           reason: 'payload is smaller than it needs to be');
     });
@@ -62,7 +62,7 @@ void main() {
       expect(
         NfcTagType.mifareClassic1k.capacity -
             NfcTagType.mifareClassic1k.maxPayloadSize,
-        NfarHeaderSize.total,
+        NfarHeaderSize.chunkOverhead,
       );
     });
 

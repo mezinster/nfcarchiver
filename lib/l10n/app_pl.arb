@@ -37,6 +37,7 @@
   "estimatedProcessedSize": "Szacowany rozmiar po przetworzeniu",
   "tagsNeeded": "Potrzebne tagi",
   "payloadPerTag": "Dane na tag",
+  "archiveTooManyTags": "Za duże: potrzeba ponad {max} tagów — to limit jednego archiwum.",
   "bytesUnit": "{bytes} bajtów",
   "startArchiving": "Rozpocznij archiwizację",
   "writingToTags": "Zapis na tagi",

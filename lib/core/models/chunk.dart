@@ -53,11 +53,11 @@ class Chunk extends Equatable {
   }
 
   /// Total size of this chunk when serialized
-  int get totalSize => NfarHeaderSize.total + payload.length;
+  int get totalSize => NfarHeaderSize.chunkOverhead + payload.length;
 
   /// Serialize this chunk to bytes.
   Uint8List toBytes() {
-    final writer = BinaryWriter(NfarHeaderSize.total + payload.length);
+    final writer = BinaryWriter(NfarHeaderSize.chunkOverhead + payload.length);
 
     // Magic
     writer.writeBytes(Uint8List.fromList(nfarMagic));
@@ -93,9 +93,9 @@ class Chunk extends Equatable {
   ///
   /// Throws [FormatException] if the data is invalid.
   factory Chunk.fromBytes(Uint8List data) {
-    if (data.length < NfarHeaderSize.total) {
+    if (data.length < NfarHeaderSize.chunkOverhead) {
       throw FormatException(
-        'Data too short: expected at least ${NfarHeaderSize.total} bytes, '
+        'Data too short: expected at least ${NfarHeaderSize.chunkOverhead} bytes, '
         'got ${data.length}',
       );
     }

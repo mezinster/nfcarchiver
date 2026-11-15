@@ -37,6 +37,7 @@
   "estimatedProcessedSize": "Tahmini işlenmiş boyut",
   "tagsNeeded": "Gereken etiket sayısı",
   "payloadPerTag": "Etiket başına veri",
+  "archiveTooManyTags": "Çok büyük: {max} etiketten fazlası gerekiyor; bir arşiv en fazla bu kadar etikete yayılabilir.",
   "bytesUnit": "{bytes} bayt",
   "startArchiving": "Arşivlemeyi Başlat",
   "writingToTags": "Etiketlere Yazılıyor",

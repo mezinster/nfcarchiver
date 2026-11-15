@@ -35,7 +35,7 @@ class NdefTagCodec implements TagCodec {
     // two must first prove the NDEF accept/reject decision is unchanged for
     // every chunk size.
     return NfcTagType.maxPayloadForCapacity(ndef.maxSize) +
-        NfarHeaderSize.total;
+        NfarHeaderSize.chunkOverhead;
   }
 
   @override

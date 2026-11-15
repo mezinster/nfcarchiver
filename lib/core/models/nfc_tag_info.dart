@@ -33,30 +33,6 @@ class NfcTagInfo extends Equatable {
   /// List of supported NFC technologies
   final List<String> technologies;
 
-  /// Maximum payload size for NFAR chunks on this tag
-  int get maxPayloadSize {
-    // NDEF overhead is approximately 5-10 bytes
-    const ndefOverhead = 10;
-    final available = capacity - ndefOverhead;
-    return available - NfarHeaderSize.total;
-  }
-
-  /// Whether this tag can store NFAR data
-  bool get canStoreNfar => isWritable && isNdefCapable && maxPayloadSize > 0;
-
-  /// Determine tag type from capacity if not already set.
-  NfcTagType get effectiveTagType {
-    if (tagType != null) return tagType!;
-
-    // Try to match by capacity
-    for (final type in NfcTagType.values) {
-      if (type == NfcTagType.custom) continue;
-      if (type.capacity == capacity) return type;
-    }
-
-    return NfcTagType.custom;
-  }
-
   /// Short description of the tag
   String get description {
     if (tagType != null) {

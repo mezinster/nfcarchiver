@@ -46,8 +46,10 @@ abstract class NfarHeaderSize {
   static const int payloadSize = 2;
   static const int crc32 = 4;
 
-  /// Total header size (without payload)
-  static const int total = magic +
+  /// Everything in a chunk that is not payload: the 28-byte header (which ends
+  /// at [NfarHeaderOffset.payload]) plus the 4-byte CRC32 that trails the
+  /// payload. 32 bytes.
+  static const int chunkOverhead = magic +
       version +
       flags +
       archiveId +
@@ -152,15 +154,18 @@ enum NfcTagType {
     if (medium == TagMedium.mifareClassic) {
       return payloadForCapacity(capacity, medium);
     }
-    // NDEF overhead includes:
-    // - NDEF record header: 3-6 bytes (flags, type length, payload length)
+    // [capacity] is the tag's raw user memory, so the whole NDEF wrapper comes
+    // off it. Worst case, which is what a chunk over 254 bytes needs:
+    // - NDEF Message TLV: tag byte + 3-byte length = 4 bytes
+    // - NDEF record header, long form: flags, type length, 4-byte payload
+    //   length = 6 bytes
     // - MIME type: 33 bytes ("application/vnd.nfcarchiver.chunk")
-    // - NDEF TLV wrapper: ~5 bytes
-    // Total NDEF overhead: ~41-44 bytes
-    // We use 44 bytes as a safe margin
-    const ndefOverhead = 44;
+    // - Terminator TLV: 1 byte
+    // (maxPayloadForCapacity starts from ndef.maxSize instead, which already
+    // excludes the TLV header, so it subtracts only 39 + 1.)
+    const ndefOverhead = 4 + 6 + 33 + 1; // 44
     final available = capacity - ndefOverhead;
-    return available - NfarHeaderSize.total;
+    return available - NfarHeaderSize.chunkOverhead;
   }
 
   /// Max payload for a detected [capacity] on a given [medium]. Mifare
@@ -168,7 +173,7 @@ enum NfcTagType {
   /// is `ndef.maxSize` and goes through [maxPayloadForCapacity].
   static int payloadForCapacity(int capacity, TagMedium medium) {
     if (medium == TagMedium.mifareClassic) {
-      final available = capacity - NfarHeaderSize.total;
+      final available = capacity - NfarHeaderSize.chunkOverhead;
       return available > 0 ? available : 0;
     }
     return maxPayloadForCapacity(capacity);
@@ -183,7 +188,7 @@ enum NfcTagType {
     const ndefRecordOverhead = 6 + mimeTypeLength; // 39 bytes
 
     // NFAR format overhead
-    const nfarOverhead = NfarHeaderSize.total; // 32 bytes (28 header + 4 CRC)
+    const nfarOverhead = NfarHeaderSize.chunkOverhead; // 32 bytes
 
     // The NFC Forum Type-2 spec terminates the TLV area with a 0xFE byte, which
     // shares the NDEF data area with the message. Android's ndef.maxSize does
@@ -215,9 +220,6 @@ abstract class NfarLimits {
 
   /// Maximum payload size per chunk (uint16 max)
   static const int maxPayloadSize = 65535;
-
-  /// Minimum supported tag capacity
-  static const int minTagCapacity = 64;
 }
 
 /// NDEF MIME type for NFAR chunks

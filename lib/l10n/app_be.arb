@@ -37,6 +37,7 @@
   "estimatedProcessedSize": "Прыблізны памер пасля апрацоўкі",
   "tagsNeeded": "Патрэбна метак",
   "payloadPerTag": "Даных на метку",
+  "archiveTooManyTags": "Занадта вялікі аб'ём: трэба больш за {max} метак — гэта мяжа для аднаго архіва.",
   "bytesUnit": "{bytes} байтаў",
   "startArchiving": "Пачаць архівацыю",
   "writingToTags": "Запіс на меткі",

@@ -170,6 +170,16 @@
   "@payloadPerTag": {
     "description": "Payload size per tag"
   },
+  "archiveTooManyTags": "Too large: this needs more than {max} tags, the most one archive can span.",
+  "@archiveTooManyTags": {
+    "description": "Warning on the archive estimate when the data needs more tags than the format allows",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "description": "Maximum number of tags in one archive"
+      }
+    }
+  },
   "bytesUnit": "{bytes} bytes",
   "@bytesUnit": {
     "description": "Bytes with unit",

@@ -83,7 +83,7 @@ String _formatArchiveId(Uint8List id) {
 /// guessing a capacity they have not read.
 NfarDescription describeNfar(Uint8List data, {int? capacityBytes}) {
   const headerPrefix = NfarHeaderOffset.payload; // 28: header without the CRC
-  const totalOverhead = NfarHeaderSize.total; // 32: header + trailing CRC
+  const totalOverhead = NfarHeaderSize.chunkOverhead; // 32: header + trailing CRC
 
   final minToJudge = nfarMagic.length + 1;
   if (data.length < minToJudge) {
