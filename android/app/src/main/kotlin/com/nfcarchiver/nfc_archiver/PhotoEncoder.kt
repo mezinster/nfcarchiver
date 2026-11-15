@@ -65,8 +65,11 @@ class PhotoEncoder(messenger: BinaryMessenger) {
                         onSuccess = { if (it === NOT_IMPLEMENTED) result.notImplemented() else result.success(it) },
                         onFailure = { e ->
                             when (e) {
-                                is DecodeFailed, is OutOfMemoryError ->
+                                is DecodeFailed ->
                                     result.error("decode_failed", "The image could not be decoded", null)
+                                // The file may be fine: say so, rather than "can't be read".
+                                is OutOfMemoryError ->
+                                    result.error("out_of_memory", "Not enough memory for the image", null)
                                 is NoSession ->
                                     result.error("no_session", "Unknown photo session", null)
                                 is IllegalArgumentException ->

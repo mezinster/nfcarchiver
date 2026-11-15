@@ -69,4 +69,42 @@ void main() {
           ...dht2, ...sos, ...data2, ...eoi,
         ]));
   });
+
+  test('every APP1-APP15 segment is dropped; APP0 stays', () {
+    for (var marker = 0xE1; marker <= 0xEF; marker++) {
+      final appN = _seg(marker, ascii.encode('ICC_PROFILE or MPF or anything'));
+      final out = stripJpegMetadata(Uint8List.fromList(
+          [...soi, ...app0, ...appN, ...dqt, ...sof, ...dht, ...sos, ...data, ...eoi]));
+      expect(out, [...soi, ...app0, ...dqt, ...sof, ...dht, ...sos, ...data, ...eoi],
+          reason: 'marker 0x${marker.toRadixString(16)}');
+    }
+  });
+
+  test('fill bytes before a marker are skipped, kept or dropped segment alike',
+      () {
+    final out = stripJpegMetadata(Uint8List.fromList([
+      ...soi, 0xFF, ...app0, 0xFF, 0xFF, ...app1, 0xFF, 0xFF, 0xFF, ...dqt,
+      ...sof, ...dht, ...sos, ...data, ...eoi,
+    ]));
+    expect(out, [...soi, ...app0, ...dqt, ...sof, ...dht, ...sos, ...data, ...eoi]);
+  });
+
+  group('truncated input throws rather than returning a partial file', () {
+    final whole = [...soi, ...app0, ...app1, ...dqt, ...sof, ...dht, ...sos, ...data, ...eoi];
+    void expectThrows(String what, List<int> bytes) => test(what, () {
+          expect(() => stripJpegMetadata(Uint8List.fromList(bytes)),
+              throwsFormatException);
+        });
+
+    expectThrows('nothing after SOI', soi);
+    expectThrows('inside a segment that is kept', whole.sublist(0, soi.length + 6));
+    expectThrows('inside a segment that is dropped',
+        whole.sublist(0, soi.length + app0.length + 5));
+    expectThrows('after a marker, before its length',
+        [...soi, ...app0, 0xFF, 0xDB]);
+    expectThrows('inside the entropy data, no EOI',
+        whole.sublist(0, whole.length - eoi.length - 2));
+    expectThrows('a lone FF where EOI should be',
+        [...whole.sublist(0, whole.length - 1)]);
+  });
 }

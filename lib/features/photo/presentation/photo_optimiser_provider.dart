@@ -38,7 +38,7 @@ final jpegSessionOpenerProvider =
 
 enum PhotoMode { auto, manual }
 
-enum PhotoError { none, decodeFailed }
+enum PhotoError { none, decodeFailed, outOfMemory }
 
 /// Stepper and slider changes wait this long before re-fitting.
 const photoRefitDebounce = Duration(milliseconds: 250);
@@ -164,6 +164,7 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
   bool _disposed = false;
   Timer? _debounce;
   bool _holding = false;
+  bool _tagsChosen = false;
   int _gen = 0;
   Future<void> _chain = Future<void>.value();
   final Map<(NfcTagType, int), PhotoFitResult> _autoFits = {};
@@ -206,7 +207,11 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
       state = state.copyWith(
         width: s.width,
         height: s.height,
-        tags: _tagsFor(probe.length, state.tagType).clamp(1, state.cap),
+        // The starting count is a suggestion: a count the user already set
+        // while the photo was opening stands.
+        tags: _tagsChosen
+            ? null
+            : _tagsFor(probe.length, state.tagType).clamp(1, state.cap),
       );
       _schedule(now: true);
     } catch (e, st) {
@@ -215,6 +220,7 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
   }
 
   void setTags(int n) {
+    _tagsChosen = true;
     final tags = n.clamp(1, state.cap);
     if (tags == state.tags) return;
     state = state.copyWith(tags: tags);
@@ -287,11 +293,20 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
   Future<void> continueWithResult() async {
     final r = state.result;
     if (!state.canContinue || r == null) return;
-    final temp = await _ref.read(photoTempDirProvider)();
-    final dir = Directory(p.join(temp.path, photoOptimiserDirName));
-    await dir.create(recursive: true);
-    final file = File(p.join(dir.path, _outName));
-    await file.writeAsBytes(r.bytes, flush: true);
+    // Busy while the file is written: Continue is disabled, so a second tap
+    // cannot write and select the file again.
+    state = state.copyWith(busy: true);
+    final File file;
+    try {
+      final temp = await _ref.read(photoTempDirProvider)();
+      final dir = Directory(p.join(temp.path, photoOptimiserDirName));
+      await dir.create(recursive: true);
+      file = File(p.join(dir.path, _outName));
+      await file.writeAsBytes(r.bytes, flush: true);
+    } finally {
+      if (!_disposed) state = state.copyWith(busy: false);
+    }
+    if (_disposed) return;
     _ref.read(archiveProvider.notifier).selectFile(
           filePath: file.path,
           fileName: _outName,
@@ -391,7 +406,11 @@ class PhotoOptimiserNotifier extends StateNotifier<PhotoOptimiserState> {
   void _fail(Object e, StackTrace st) {
     log.report('photo', 'photo optimiser failed', e, st);
     state = state.copyWith(
-        error: PhotoError.decodeFailed, busy: false, clearResult: true);
+        error: e is PhotoMemoryException
+            ? PhotoError.outOfMemory
+            : PhotoError.decodeFailed,
+        busy: false,
+        clearResult: true);
   }
 
   void _closeQuietly(JpegEncoderSession s) {

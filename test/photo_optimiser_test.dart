@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -83,12 +84,13 @@ void main() {
     bool mifareAvailable = false,
     bool mifare4k = false,
     NfcTagType tagType = NfcTagType.ntag216,
+    Future<Directory> Function()? tempDir,
   }) {
     final s = session ?? FakeJpegSession(4000, 3000, size: linear);
     final c = ProviderContainer(overrides: [
       pendingPhotoProvider.overrideWith((ref) => photo),
       jpegSessionOpenerProvider.overrideWithValue(opener ?? (_) async => s),
-      photoTempDirProvider.overrideWithValue(() async => temp),
+      photoTempDirProvider.overrideWithValue(tempDir ?? () async => temp),
       mifareClassicAvailableProvider
           .overrideWith((ref) async => mifareAvailable),
       mifare4kEnabledProvider.overrideWith((ref) => ref.watch(fake4k)),
@@ -350,6 +352,86 @@ void main() {
     expect(find.textContaining('PlatformException'), findsNothing);
     expect(find.textContaining('Exception'), findsNothing);
     expect(photoErrorLogged(), isTrue);
+  });
+
+  testWidgets('running out of memory says so, not "can\'t be read"',
+      (tester) async {
+    final c =
+        container(opener: (_) async => throw const PhotoMemoryException());
+    await pumpScreen(tester, c);
+
+    expect(
+        find.text(
+            "There isn't enough memory on this device to optimise this photo."),
+        findsOneWidget);
+    expect(find.textContaining("can't be read"), findsNothing);
+    expect(continueButton(tester).onPressed, isNull);
+    expect(photoErrorLogged(), isTrue);
+  });
+
+  test('the photo channel maps out_of_memory on open and on encode', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    var failOpen = true;
+    messenger.setMockMethodCallHandler(photoChannel, (call) async {
+      if (call.method == 'open' && !failOpen) {
+        return {'id': 1, 'width': 40, 'height': 30};
+      }
+      throw PlatformException(code: 'out_of_memory');
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(photoChannel, null));
+
+    await expectLater(PlatformJpegSession.open('/x.jpg'),
+        throwsA(isA<PhotoMemoryException>()));
+    failOpen = false;
+    final session = await PlatformJpegSession.open('/x.jpg');
+    await expectLater(session.encode(maxSide: 40, quality: 70),
+        throwsA(isA<PhotoMemoryException>()));
+  });
+
+  testWidgets('a count set while the photo is opening is kept', (tester) async {
+    // Opening takes about a second on a real phone; the starting count used
+    // to land on top of whatever the user had set meanwhile.
+    final opened = Completer<JpegEncoderSession>();
+    final c = container(opener: (_) => opened.future);
+    c.listen(photoOptimiserProvider, (_, __) {}); // keeps it alive
+    c.read(photoOptimiserProvider.notifier).setTags(2);
+
+    opened.complete(FakeJpegSession(4000, 3000, size: linear));
+    await settle(tester);
+
+    expect(c.read(photoOptimiserProvider).tags, 2);
+    expect(c.read(photoOptimiserProvider).result, isNotNull,
+        reason: 'and it is fitted for that count');
+  });
+
+  testWidgets('a second Continue while the file is being written does nothing',
+      (tester) async {
+    var tempDirCalls = 0;
+    final gate = Completer<void>();
+    final c = container(tempDir: () async {
+      tempDirCalls++;
+      await gate.future;
+      return temp;
+    });
+    c.listen(photoOptimiserProvider, (_, __) {});
+    await settle(tester);
+    final n = c.read(photoOptimiserProvider.notifier);
+    expect(c.read(photoOptimiserProvider).canContinue, isTrue);
+
+    // Real async: the save does file I/O, which the fake clock never ends.
+    await tester.runAsync(() async {
+      final first = n.continueWithResult();
+      expect(c.read(photoOptimiserProvider).canContinue, isFalse,
+          reason: 'Continue is disabled while saving');
+      final second = n.continueWithResult();
+      gate.complete();
+      await Future.wait([first, second]);
+    });
+
+    expect(tempDirCalls, 1);
+    expect(c.read(archiveProvider), isA<ArchiveFileSelected>());
   });
 
   testWidgets('a platform failure shows the localized message, not its text',

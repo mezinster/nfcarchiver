@@ -236,6 +236,7 @@
   "ok": "Tamam",
   "photoLargerThanOriginal": "Orijinal dosya daha küçük — Atla onu korur.",
   "photoCannotRead": "Bu fotoğraf burada okunamıyor. Orijinal dosyayı arşivlemek için Atla'yı kullanın.",
+  "photoOutOfMemory": "Bu cihazda bu fotoğrafı optimize etmek için yeterli bellek yok.",
   "photoFewerTags": "Daha az etiket",
   "photoMoreTags": "Daha fazla etiket",
   "photoEditTagCount": "Sayıyı yazmak için iki kez dokunun",

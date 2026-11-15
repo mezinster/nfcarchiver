@@ -432,6 +432,9 @@ export class PhotoOptimiser {
     // never written). Identity marks it, so it never leaves this method.
     const tooLarge = new WeakSet<Uint8Array>();
     let standIn: Uint8Array | null = null;
+    // The search visits each side at up to two qualities; a side refused once
+    // is not asked for again (a refusal costs a decode and a canvas).
+    const refused = new Set<number>();
     // Aborts a superseded search at its next encode instead of running it to the end.
     const guarded: JpegEncoderSession = {
       width: inner.width,
@@ -440,9 +443,11 @@ export class PhotoOptimiser {
         if (!this.isCurrent(gen)) throw new Stale();
         let bytes: Uint8Array;
         try {
+          if (refused.has(side)) throw new SideTooLargeError();
           bytes = await inner.encode(side, q);
         } catch (e) {
           if (!(e instanceof SideTooLargeError)) throw e;
+          refused.add(side);
           if (standIn === null) {
             standIn = new Uint8Array(Math.max(budget + 1, 1));
             tooLarge.add(standIn);

@@ -102,7 +102,9 @@ class PhotoOptimiserScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  l10n.photoCannotRead,
+                  st.error == PhotoError.outOfMemory
+                      ? l10n.photoOutOfMemory
+                      : l10n.photoCannotRead,
                   style: TextStyle(color: theme.colorScheme.onErrorContainer),
                 ),
               ),

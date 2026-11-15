@@ -57,3 +57,36 @@ test('progressive layout (several scans with tables between) is kept intact', ()
     u8(soi, app0, dqt, sof2, dht, sos, data, dht2, sos, data2, eoi),
   );
 });
+
+test('every APP1-APP15 segment is dropped; APP0 stays', () => {
+  for (let marker = 0xe1; marker <= 0xef; marker++) {
+    const appN = seg(marker, ascii('ICC_PROFILE or MPF or anything'));
+    assert.deepEqual(
+      stripJpegMetadata(u8(soi, app0, appN, dqt, sof, dht, sos, data, eoi)),
+      u8(soi, app0, dqt, sof, dht, sos, data, eoi),
+      `marker 0x${marker.toString(16)}`,
+    );
+  }
+});
+
+test('fill bytes before a marker are skipped, kept or dropped segment alike', () => {
+  const out = stripJpegMetadata(
+    u8(soi, [0xff], app0, [0xff, 0xff], app1, [0xff, 0xff, 0xff], dqt, sof, dht, sos, data, eoi),
+  );
+  assert.deepEqual(out, u8(soi, app0, dqt, sof, dht, sos, data, eoi));
+});
+
+test('truncated input throws rather than returning a partial file', () => {
+  const whole = [...soi, ...app0, ...app1, ...dqt, ...sof, ...dht, ...sos, ...data, ...eoi];
+  const cases: [string, number[]][] = [
+    ['nothing after SOI', soi],
+    ['inside a segment that is kept', whole.slice(0, soi.length + 6)],
+    ['inside a segment that is dropped', whole.slice(0, soi.length + app0.length + 5)],
+    ['after a marker, before its length', [...soi, ...app0, 0xff, 0xdb]],
+    ['inside the entropy data, no EOI', whole.slice(0, whole.length - eoi.length - 2)],
+    ['a lone FF where EOI should be', whole.slice(0, whole.length - 1)],
+  ];
+  for (const [what, bytes] of cases) {
+    assert.throws(() => stripJpegMetadata(Uint8Array.from(bytes)), Error, what);
+  }
+});

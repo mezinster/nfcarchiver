@@ -16,6 +16,17 @@ class PhotoDecodeException implements Exception {
   String toString() => 'PhotoDecodeException';
 }
 
+/// The device ran out of memory working on the photo; the file itself may be
+/// fine. Android only: ImageIO on iOS reports no reason for a failed render.
+class PhotoMemoryException implements Exception {
+  const PhotoMemoryException();
+
+  @override
+  String toString() => 'PhotoMemoryException';
+}
+
+const _outOfMemoryCode = 'out_of_memory';
+
 class PlatformJpegSession implements JpegEncoderSession {
   final int _id;
   @override
@@ -26,7 +37,8 @@ class PlatformJpegSession implements JpegEncoderSession {
   PlatformJpegSession._(this._id, this.width, this.height);
 
   /// Opens [path] natively. [width]/[height] are after EXIF orientation.
-  /// Throws [PhotoDecodeException] when the file is not a decodable image.
+  /// Throws [PhotoDecodeException] when the file is not a decodable image and
+  /// [PhotoMemoryException] when there was no memory to decode it.
   static Future<PlatformJpegSession> open(String path) async {
     try {
       final r = await photoChannel
@@ -35,14 +47,21 @@ class PlatformJpegSession implements JpegEncoderSession {
           r!['id'] as int, r['width'] as int, r['height'] as int);
     } on PlatformException catch (e) {
       if (e.code == 'decode_failed') throw const PhotoDecodeException();
+      if (e.code == _outOfMemoryCode) throw const PhotoMemoryException();
       rethrow;
     }
   }
 
   @override
   Future<Uint8List> encode({required int maxSide, required int quality}) async {
-    final bytes = await photoChannel.invokeMethod<Uint8List>(
-        'encode', {'id': _id, 'maxSide': maxSide, 'quality': quality});
+    final Uint8List? bytes;
+    try {
+      bytes = await photoChannel.invokeMethod<Uint8List>(
+          'encode', {'id': _id, 'maxSide': maxSide, 'quality': quality});
+    } on PlatformException catch (e) {
+      if (e.code == _outOfMemoryCode) throw const PhotoMemoryException();
+      rethrow;
+    }
     // Belt and braces: the native encoders write no metadata, but whatever
     // they emit must never carry EXIF/XMP/GPS onto a tag.
     return stripJpegMetadata(bytes!);
