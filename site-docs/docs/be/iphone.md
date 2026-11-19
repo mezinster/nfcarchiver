@@ -2,6 +2,14 @@
 
 Убудаваны NFC iPhone запісвае і чытае меткі **NTAG213, NTAG215 і NTAG216**. Для Mifare Classic патрэбны [Chameleon Ultra](chameleon.md) (гл. ніжэй).
 
+## Усталяванне з AltStore PAL (ЕС) { #altstore-pal }
+
+У Еўрапейскім саюзе NFC Archiver можна ўсталяваць таксама з [AltStore PAL](https://altstore.io) — альтэрнатыўнай крамы праграм:
+
+1. Усталюйце AltStore PAL (версіі 2.2 або навейшай) з [altstore.io](https://altstore.io).
+2. У AltStore PAL адкрыйце **Sources**, націсніце **+** і ўвядзіце `https://nfcarchiver.com/altstore/source.json`
+3. NFC Archiver з'явіцца ў раздзеле **Browse**. Усталюйце яго адтуль.
+
 ## Адно акно NFC на кожную метку
 
 Пры запісе і сканаванні iOS паказвае ўнізе экрана сваё акно NFC. NFC Archiver адкрывае **новае акно для кожнай меткі**:
