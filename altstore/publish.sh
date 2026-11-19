@@ -2,7 +2,10 @@
 # Publishes an Apple Alternative Distribution Package (ADP) and the AltStore PAL
 # source to https://nfcarchiver.com/altstore/. See altstore/README.md.
 #
-#   altstore/publish.sh <extracted-adp-dir> [--dry-run]
+#   altstore/publish.sh <extracted-adp-dir> [--dry-run | --source-only]
+#
+# --source-only updates source.json and the listing images for a release
+# that is already live, and re-verifies everything; the package is not touched.
 #
 # Needs an AWS CLI session that may write the site bucket (`aws login`), jq,
 # curl and sha256sum. The ADP files are copied byte for byte: never edit,
@@ -13,8 +16,8 @@ BUCKET=nfcarchiver.com
 SITE=https://nfcarchiver.com
 HERE=$(cd "$(dirname "$0")" && pwd)
 
-ADP=${1:?usage: publish.sh <extracted-adp-dir> [--dry-run]}
-DRY=${2:-}
+ADP=${1:?usage: publish.sh <extracted-adp-dir> [--dry-run | --source-only]}
+MODE=${2:-}
 [[ -f $ADP/manifest.json && -f $ADP/signature && -d $ADP/variant ]] \
   || { echo "not an extracted ADP: $ADP" >&2; exit 1; }
 
@@ -50,12 +53,17 @@ SUMS=$(mktemp); trap 'rm -f "$SUMS"' EXIT
 (cd "$ADP" && find . -type f -printf '%P\n' | sort | xargs -d '\n' sha256sum) > "$SUMS"
 cat "$SUMS"
 
-[[ $DRY == --dry-run ]] && { echo "dry run: nothing uploaded"; exit 0; }
+python3 -I "$HERE/validate.py" --adp "$ADP"
+
+[[ $MODE == --dry-run ]] && { echo "dry run: nothing uploaded"; exit 0; }
 
 # 3. A published release is immutable: a changed file under the same URL
 #    would no longer match what devices may have cached.
-if aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$PREFIX/" --max-items 1 \
-     --query 'Contents[0].Key' --output text | grep -qv '^None$'; then
+published=$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$PREFIX/" --max-items 1 \
+  --query 'Contents[0].Key' --output text)
+if [[ $MODE == --source-only ]]; then
+  [[ $published != None ]] || { echo "s3://$BUCKET/$PREFIX/ is not published yet" >&2; exit 1; }
+elif [[ $published != None ]]; then
   echo "s3://$BUCKET/$PREFIX/ already exists; publish a new version instead" >&2
   exit 1
 fi
@@ -67,15 +75,18 @@ put() { # <local> <key> <content-type> <cache-control>
 
 # 4. The package. Release files never change, so they cache for a year.
 IMMUTABLE='public, max-age=31536000, immutable'
-put "$ADP/manifest.json" "$PREFIX/manifest.json" application/json "$IMMUTABLE"
-put "$ADP/signature" "$PREFIX/signature" application/octet-stream "$IMMUTABLE"
-for f in "$ADP"/variant/*; do
-  put "$f" "$PREFIX/variant/$(basename "$f")" application/octet-stream "$IMMUTABLE"
-done
+if [[ $MODE != --source-only ]]; then
+  put "$ADP/manifest.json" "$PREFIX/manifest.json" application/json "$IMMUTABLE"
+  put "$ADP/signature" "$PREFIX/signature" application/octet-stream "$IMMUTABLE"
+  for f in "$ADP"/variant/*; do
+    put "$f" "$PREFIX/variant/$(basename "$f")" application/octet-stream "$IMMUTABLE"
+  done
+fi
 
 # 5. Icon, screenshots, then the source last, so it never points at a
 #    package that isn't there yet.
 put "$HERE/icon.png" altstore/icon.png image/png 'public, max-age=86400'
+put "$HERE/header.png" altstore/header.png image/png 'public, max-age=86400'
 for f in "$HERE"/screenshots/*.png; do
   put "$f" "altstore/screenshots/$(basename "$f")" image/png 'public, max-age=86400'
 done
@@ -85,7 +96,7 @@ put "$HERE/source.json" altstore/source.json application/json 'public, max-age=3
 DIST=$(aws cloudfront list-distributions --output text \
   --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, '$BUCKET')].Id | [0]")
 INV=$(aws cloudfront create-invalidation --distribution-id "$DIST" \
-  --paths '/altstore/source.json' '/altstore/icon.png' '/altstore/screenshots/*' \
+  --paths '/altstore/source.json' '/altstore/icon.png' '/altstore/header.png' '/altstore/screenshots/*' \
   --query 'Invalidation.Id' --output text)
 echo "waiting for the CloudFront invalidation"
 aws cloudfront wait invalidation-completed --distribution-id "$DIST" --id "$INV"
@@ -98,8 +109,9 @@ while read -r sum rel; do
   got=$(curl -sS --fail --max-redirs 0 -A 'nfcarchiver-publish' "$url" | sha256sum | cut -d' ' -f1) || got=fetch-failed
   if [[ $got == "$sum" ]]; then echo "ok   $url"; else echo "BAD  $url ($got)"; bad=1; fi
 done < "$SUMS"
-for rel in source.json icon.png $(cd "$HERE" && ls screenshots/*.png); do
+for rel in source.json icon.png header.png $(cd "$HERE" && ls screenshots/*.png); do
   got=$(curl -sS --fail --max-redirs 0 -A 'nfcarchiver-publish' "$SITE/altstore/$rel" | sha256sum | cut -d' ' -f1) || got=fetch-failed
   if [[ $got == $(sha256sum "$HERE/$rel" | cut -d' ' -f1) ]]; then echo "ok   $SITE/altstore/$rel"; else echo "BAD  $SITE/altstore/$rel"; bad=1; fi
 done
+[[ $bad == 0 ]] && python3 -I "$HERE/validate.py" --adp "$ADP" --online || bad=1
 exit $bad

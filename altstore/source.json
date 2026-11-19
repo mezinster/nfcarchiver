@@ -4,7 +4,9 @@
   "subtitle": "Store files across NFC tags",
   "description": "The official AltStore PAL source for NFC Archiver, a free and open-source app that stores files across NFC tags.",
   "iconURL": "https://nfcarchiver.com/altstore/icon.png",
+  "headerURL": "https://nfcarchiver.com/altstore/header.png",
   "website": "https://nfcarchiver.com",
+  "fediUsername": "nfcarchiver",
   "tintColor": "#1976D2",
   "nsfw": false,
   "featuredApps": [
