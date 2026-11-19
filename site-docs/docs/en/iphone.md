@@ -2,6 +2,14 @@
 
 The iPhone's own NFC writes and reads **NTAG213, NTAG215 and NTAG216** tags. Mifare Classic needs a [Chameleon Ultra](chameleon.md) (see below).
 
+## Install from AltStore PAL (EU) { #altstore-pal }
+
+In the European Union you can also install NFC Archiver from [AltStore PAL](https://altstore.io), an alternative app marketplace:
+
+1. Install AltStore PAL (version 2.2 or later) from [altstore.io](https://altstore.io).
+2. In AltStore PAL, open **Sources**, tap **+** and enter `https://nfcarchiver.com/altstore/source.json`
+3. NFC Archiver appears under **Browse**. Install it from there.
+
 ## One NFC sheet per tag
 
 When you write or scan, iOS shows its NFC sheet at the bottom of the screen. NFC Archiver opens **a new sheet for each tag**:

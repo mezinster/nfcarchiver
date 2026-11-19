@@ -2,6 +2,14 @@
 
 iPhone'un kendi NFC'si **NTAG213, NTAG215 ve NTAG216** etiketlerine yazar ve onları okur. Mifare Classic için bir [Chameleon Ultra](chameleon.md) gerekir (aşağıya bakın).
 
+## AltStore PAL'dan yükleme (AB) { #altstore-pal }
+
+Avrupa Birliği'nde NFC Archiver'ı alternatif bir uygulama mağazası olan [AltStore PAL](https://altstore.io) üzerinden de yükleyebilirsiniz:
+
+1. AltStore PAL'ı (2.2 veya üzeri sürüm) [altstore.io](https://altstore.io) adresinden yükleyin.
+2. AltStore PAL'da **Sources** bölümünü açın, **+** simgesine dokunun ve şunu girin: `https://nfcarchiver.com/altstore/source.json`
+3. NFC Archiver **Browse** bölümünde görünür. Oradan yükleyin.
+
 ## Her etiket için bir NFC penceresi
 
 Yazarken ve tararken iOS ekranın altında kendi NFC penceresini gösterir. NFC Archiver **her etiket için yeni bir pencere** açar:

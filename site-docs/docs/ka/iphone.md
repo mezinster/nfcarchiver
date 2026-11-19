@@ -2,6 +2,14 @@
 
 iPhone-ის ჩაშენებული NFC წერს და კითხულობს **NTAG213, NTAG215 და NTAG216** ტეგებს. Mifare Classic-ისთვის საჭიროა [Chameleon Ultra](chameleon.md) (იხ. ქვემოთ).
 
+## ინსტალაცია AltStore PAL-დან (ევროკავშირი) { #altstore-pal }
+
+ევროკავშირში NFC Archiver-ის დაყენება ასევე შეგიძლიათ [AltStore PAL](https://altstore.io)-დან — აპლიკაციების ალტერნატიული მაღაზიიდან:
+
+1. დააყენეთ AltStore PAL (ვერსია 2.2 ან უფრო ახალი) [altstore.io](https://altstore.io)-დან.
+2. AltStore PAL-ში გახსენით **Sources**, შეეხეთ **+**-ს და შეიყვანეთ `https://nfcarchiver.com/altstore/source.json`
+3. NFC Archiver გამოჩნდება **Browse**-ში. დააყენეთ იქიდან.
+
 ## ერთი NFC ფანჯარა თითო ტეგზე
 
 ჩაწერისა და სკანირებისას iOS ეკრანის ქვედა ნაწილში საკუთარ NFC ფანჯარას აჩვენებს. NFC Archiver **თითოეული ტეგისთვის ახალ ფანჯარას** ხსნის:
