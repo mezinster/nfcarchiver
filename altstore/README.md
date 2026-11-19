@@ -34,7 +34,14 @@ To change only `source.json` or the listing images for a release that is already
 
 ## Federation (Explore AltStore)
 
-`fediUsername` gives the source an automated account on explore.alt.store (`nfcarchiver` → `@nfcarchiver@alt.store`), created by `POST https://api.altstore.io/federate` with `{"source": "https://nfcarchiver.com/altstore/source.json"}`. **The username cannot be changed afterwards.** The endpoint takes only the source URL, with no documented authentication. So once a source carrying `fediUsername` is live, anyone could trigger federation: putting the key live means committing to the name.
+`fediUsername` gives the source an automated account on explore.alt.store: `nfcarchiver` becomes `@nfcarchiver@alt.store`. **The username cannot be changed afterwards.** The source was federated on 2026-11-20 with
+
+```bash
+curl -X POST https://api.altstore.io/federate -H "Authorization: Bearer <token from /register>" \
+  -H 'Content-Type: application/json' --data '{"source": "https://nfcarchiver.com/altstore/source.json"}'
+```
+
+AltStore's server then fetches `source.json` **without a User-Agent**. AWS WAF's `NoUserAgent_HEADER` rule blocked that fetch, and the API relayed it as a bare `403` from `FederationManager.swift`. The terraform repo now sets that rule to count instead of block, site-wide, because the distribution's flat-rate plan refuses a custom rule that would limit it to `/altstore/`. If federation 403s again, look at the web ACL's sampled requests for `/altstore/source.json` first.
 
 ## TLS
 
