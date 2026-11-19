@@ -133,6 +133,10 @@ User guide, privacy policy and support page in the app's seven languages (MkDocs
 - **Deploy:** manual only, from `master` — `gh workflow run deploy-docs.yml --ref master`, with `-f dry_run=true` first. It syncs to the `docs/` prefix (never `app/`; the guard refuses any other shape), invalidates `/docs/*`, verifies the full-SHA `nfar-docs-build` marker on the live pages, then deploys Pages.
 - **Public-repo hygiene:** this repository and its Actions logs are public. Never commit or print the AWS account ID, the role ARN or the CloudFront distribution ID, and don't run `aws sts get-caller-identity`. The docs workflow reads the distribution ID from the `CLOUDFRONT_DISTRIBUTION_ID` environment secret, so it is masked and never appears in its logs. The deploy role's permissions are managed outside this repository — don't describe them here.
 
+## AltStore PAL (`altstore/`)
+
+EU distribution through AltStore PAL: `https://nfcarchiver.com/altstore/source.json`, with each Apple ADP unzipped under `altstore/releases/<version>/`. The ADP files are Apple-signed and FairPlay-encrypted, so publish them byte for byte, never reformatted, renamed or re-zipped. `altstore/publish.sh` checks them against the manifest, refuses to overwrite a published version, and verifies the live copies over HTTPS. The upload uses the maintainer's own `aws login`; the GitHub deploy role has no access to `altstore/`. The ADP's `signature` file has no extension, and it is reachable only because the terraform repo's CloudFront function exempts `/altstore/` from the "no dot ⇒ folder ⇒ 302" rule. `marketplaceID` is the Apple ID `6831653857`. See `altstore/README.md`.
+
 ## Apple App Store Publishing
 
 **Goal:** Publish NFC Archiver to the Apple App Store.

@@ -1,0 +1,77 @@
+{
+  "name": "NFC Archiver",
+  "identifier": "com.nfcarchiver.altstore",
+  "subtitle": "Store files across NFC tags",
+  "description": "The official AltStore PAL source for NFC Archiver, a free and open-source app that stores files across NFC tags.",
+  "iconURL": "https://nfcarchiver.com/altstore/icon.png",
+  "website": "https://nfcarchiver.com",
+  "tintColor": "#1976D2",
+  "nsfw": false,
+  "featuredApps": [
+    "com.nfcarchiver.app"
+  ],
+  "apps": [
+    {
+      "name": "NFC Archiver",
+      "bundleIdentifier": "com.nfcarchiver.app",
+      "marketplaceID": "6831653857",
+      "developerName": "Evgeny Mezin",
+      "subtitle": "Store files across NFC tags",
+      "localizedDescription": "Split any file into parts and write them to NFC tags. Scan the tags back in any order to reassemble and restore the original file.\n\nFeatures:\n• File and text archiving across as many NFC tags as it takes\n• Restore by scanning tags in any order; every chunk is CRC32-checked\n• Optional GZIP compression to need fewer tags\n• Optional AES-256-GCM encryption with a password (PBKDF2 key derivation)\n• Open restored files in another app, save them to Files, or share them\n• Chameleon Ultra over Bluetooth: use it as the reader, which also unlocks MIFARE Classic 1K cards (752 usable bytes per card) and the card inspector\n• Works fully offline. No tracking, no ads, no account\n\nSupported tags with the iPhone's own NFC: NTAG213 (144 bytes), NTAG215 (504 bytes), NTAG216 (888 bytes). MIFARE Classic needs a Chameleon Ultra, because iPhones cannot talk to it directly.\n\nArchives use the open NFAR v1 format and are byte-compatible with the Android app and the web app at nfcarchiver.com/app.\n\nNFC Archiver is free and open source: https://github.com/mezinster/nfcarchiver",
+      "iconURL": "https://nfcarchiver.com/altstore/icon.png",
+      "tintColor": "#1976D2",
+      "category": "utilities",
+      "screenshots": [
+        {
+          "imageURL": "https://nfcarchiver.com/altstore/screenshots/01-home.png",
+          "width": 1206,
+          "height": 2622
+        },
+        {
+          "imageURL": "https://nfcarchiver.com/altstore/screenshots/02-select.png",
+          "width": 1206,
+          "height": 2622
+        },
+        {
+          "imageURL": "https://nfcarchiver.com/altstore/screenshots/03-encrypt.png",
+          "width": 1206,
+          "height": 2622
+        },
+        {
+          "imageURL": "https://nfcarchiver.com/altstore/screenshots/04-scan.png",
+          "width": 1206,
+          "height": 2622
+        },
+        {
+          "imageURL": "https://nfcarchiver.com/altstore/screenshots/05-restore.png",
+          "width": 1206,
+          "height": 2622
+        }
+      ],
+      "versions": [
+        {
+          "version": "1.2.1",
+          "buildVersion": "21",
+          "date": "2026-11-19T22:22:25Z",
+          "localizedDescription": "First release on AltStore PAL.\n- User guide, privacy policy and support at nfcarchiver.com/docs\n- Fixed: restoring from NTAG tags through a Chameleon Ultra skipped full-size chunks",
+          "downloadURL": "https://nfcarchiver.com/altstore/releases/1.2.1/manifest.json",
+          "size": 9056287,
+          "minOSVersion": "15.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [
+          "com.apple.developer.nfc.readersession.formats",
+          "com.apple.security.application-groups",
+          "keychain-access-groups",
+          "beta-reports-active"
+        ],
+        "privacy": {
+          "NSBluetoothAlwaysUsageDescription": "Connects to a Chameleon Ultra reader to read and write NFC cards.",
+          "NFCReaderUsageDescription": "This app uses NFC to read and write archive data to NFC tags."
+        }
+      }
+    }
+  ],
+  "news": []
+}
